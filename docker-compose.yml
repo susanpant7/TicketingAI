@@ -1,0 +1,21 @@
+name: ticketing-ai
+
+services:
+  server:
+    build: ./server
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "5176:8080"
+    volumes:
+      - server-data:/app/data
+
+  client:
+    build: ./client
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+
+volumes:
+  server-data:
