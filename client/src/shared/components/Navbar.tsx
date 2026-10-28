@@ -1,0 +1,34 @@
+import { Link, NavLink } from 'react-router-dom'
+
+const links = [{ to: '/', label: 'Home' }]
+
+export default function Navbar() {
+  return (
+    <header className="border-b border-gray-200">
+      <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+        <div className="flex items-center gap-6">
+          <Link to="/" className="text-lg font-bold">
+            Ticketing AI
+          </Link>
+          {links.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                isActive ? 'font-medium text-blue-600' : 'text-gray-600 hover:text-gray-900'
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
+        </div>
+        <Link
+          to="/login"
+          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Login
+        </Link>
+      </nav>
+    </header>
+  )
+}

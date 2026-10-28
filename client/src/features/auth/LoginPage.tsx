@@ -9,12 +9,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
+    <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-6">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-4 rounded-lg border border-gray-200 p-6"
       >
-        <h1 className="text-2xl font-bold">Sign in</h1>
+        <h1 className="text-2xl font-bold">Login</h1>
 
         <label className="block text-sm font-medium">
           Email
@@ -44,7 +44,7 @@ export default function LoginPage() {
           type="submit"
           className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
         >
-          Sign in
+          Login
         </button>
       </form>
     </main>
