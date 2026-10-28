@@ -1,11 +1,21 @@
 import { useState, type SubmitEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/features/auth/useAuth'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (login(username, password)) {
+      navigate('/tickets', { replace: true })
+    } else {
+      setError('Invalid username or password')
+    }
   }
 
   return (
@@ -17,13 +27,13 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold">Login</h1>
 
         <label className="block text-sm font-medium">
-          Email
+          Username
           <input
-            type="email"
+            type="text"
             required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             className="mt-1 w-full rounded border border-gray-300 px-3 py-2 font-normal"
           />
         </label>
@@ -39,6 +49,8 @@ export default function LoginPage() {
             className="mt-1 w-full rounded border border-gray-300 px-3 py-2 font-normal"
           />
         </label>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"

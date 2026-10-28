@@ -1,8 +1,13 @@
 import { Link, NavLink } from 'react-router-dom'
+import { useAuth } from '@/features/auth/useAuth'
 
-const links = [{ to: '/', label: 'Home' }]
+const publicLinks = [{ to: '/', label: 'Home' }]
+const privateLinks = [{ to: '/tickets', label: 'Tickets' }]
 
 export default function Navbar() {
+  const { isAuthenticated, logout } = useAuth()
+  const links = isAuthenticated ? [...publicLinks, ...privateLinks] : publicLinks
+
   return (
     <header className="border-b border-gray-200">
       <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
@@ -22,12 +27,21 @@ export default function Navbar() {
             </NavLink>
           ))}
         </div>
-        <Link
-          to="/login"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Login
-        </Link>
+        {isAuthenticated ? (
+          <button
+            onClick={logout}
+            className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+          >
+            Logout
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Login
+          </Link>
+        )}
       </nav>
     </header>
   )
