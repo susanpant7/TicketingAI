@@ -5,7 +5,10 @@ import { buttonClass } from '@/shared/components/buttonStyles'
 import { SparkleIcon } from '@/shared/components/icons'
 
 const publicLinks = [{ to: '/', label: 'Home' }]
-const privateLinks = [{ to: '/tickets', label: 'Tickets' }]
+const privateLinks = [
+  { to: '/chat', label: 'Chat' },
+  { to: '/tickets', label: 'Tickets' },
+]
 const adminLinks = [{ to: '/users', label: 'Users' }]
 
 export default function Navbar() {

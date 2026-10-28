@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import MainLayout from '@/app/MainLayout'
 import AdminRoute from '@/features/auth/AdminRoute'
 import AuthProvider from '@/features/auth/AuthProvider'
+import ChatPage from '@/features/chat/ChatPage'
 import LoginPage from '@/features/auth/LoginPage'
 import UserRoute from '@/features/auth/UserRoute'
 import ProtectedRoute from '@/features/auth/ProtectedRoute'
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<UserRoute />}>
+                <Route path="/chat" element={<ChatPage />} />
                 <Route path="/tickets" element={<TicketsPage />} />
               </Route>
               <Route element={<AdminRoute />}>

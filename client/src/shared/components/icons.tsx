@@ -65,3 +65,10 @@ export const InboxIcon = (props: IconProps) => (
     <path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5h-5l-1 2h-4l-1-2H4Z" />
   </Icon>
 )
+
+export const SendIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M5 12 20 4l-4 16-4.5-6.5L5 12Z" />
+    <path d="m11.5 13.5 8.5-9.5" />
+  </Icon>
+)
