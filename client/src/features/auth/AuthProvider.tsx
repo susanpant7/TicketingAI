@@ -1,27 +1,40 @@
 import { useState, type ReactNode } from 'react'
-import { AuthContext } from '@/features/auth/AuthContext'
+import { AuthContext, type AuthUser } from '@/features/auth/AuthContext'
+import { loginRequest } from '@/features/auth/authApi'
+import { ApiError } from '@/shared/api/apiClient'
+import { clearToken, getToken, setToken } from '@/shared/api/token'
 
-const STORAGE_KEY = 'isAuthenticated'
+const USER_KEY = 'user'
+
+function loadUser(): AuthUser | null {
+  const stored = localStorage.getItem(USER_KEY)
+  return stored && getToken() ? (JSON.parse(stored) as AuthUser) : null
+}
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem(STORAGE_KEY) === 'true',
-  )
+  const [user, setUser] = useState<AuthUser | null>(loadUser)
 
-  function login(username: string, password: string) {
-    const success = username === 'admin' && password === 'admin'
-    if (success) localStorage.setItem(STORAGE_KEY, 'true')
-    setIsAuthenticated(success)
-    return success
+  async function login(username: string, password: string) {
+    try {
+      const { token, ...authUser } = await loginRequest(username, password)
+      setToken(token)
+      localStorage.setItem(USER_KEY, JSON.stringify(authUser))
+      setUser(authUser)
+      return true
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) return false
+      throw error
+    }
   }
 
   function logout() {
-    localStorage.removeItem(STORAGE_KEY)
-    setIsAuthenticated(false)
+    clearToken()
+    localStorage.removeItem(USER_KEY)
+    setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: user !== null, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

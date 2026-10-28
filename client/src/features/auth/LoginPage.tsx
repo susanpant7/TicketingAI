@@ -8,13 +8,22 @@ export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (login(username, password)) {
-      navigate('/tickets', { replace: true })
-    } else {
-      setError('Invalid username or password')
+    setError('')
+    setSubmitting(true)
+    try {
+      if (await login(username, password)) {
+        navigate('/tickets', { replace: true })
+      } else {
+        setError('Invalid username or password')
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -54,9 +63,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          disabled={submitting}
+          className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
         >
-          Login
+          {submitting ? 'Logging in...' : 'Login'}
         </button>
       </form>
     </main>

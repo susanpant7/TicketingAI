@@ -5,7 +5,7 @@ const publicLinks = [{ to: '/', label: 'Home' }]
 const privateLinks = [{ to: '/tickets', label: 'Tickets' }]
 
 export default function Navbar() {
-  const { isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout } = useAuth()
   const links = isAuthenticated ? [...publicLinks, ...privateLinks] : publicLinks
 
   return (
@@ -28,12 +28,15 @@ export default function Navbar() {
           ))}
         </div>
         {isAuthenticated ? (
-          <button
-            onClick={logout}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600">{user?.username}</span>
+            <button
+              onClick={logout}
+              className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+            >
+              Logout
+            </button>
+          </div>
         ) : (
           <Link
             to="/login"
