@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TicketingAI.Api/TicketingAI.Api.csproj" />
+    <Project Path="src/TicketingAI.Data/TicketingAI.Data.csproj" />
+  </Folder>
+</Solution>

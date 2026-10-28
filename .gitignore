@@ -1,0 +1,13 @@
+.DS_Store
+.vscode/
+.idea/
+.vs/
+
+# server
+bin/
+obj/
+*.user
+*.db
+*.db-shm
+*.db-wal
+appsettings.*.local.json
