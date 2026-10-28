@@ -10,8 +10,8 @@ using TicketingAI.Data.Persistence;
 namespace TicketingAI.Data.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261028200111_UseNepaliSeedUserNames")]
-    partial class UseNepaliSeedUserNames
+    [Migration("20261028201550_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using TicketingAI.Api.Users;
 
 namespace TicketingAI.Api.Auth;
 

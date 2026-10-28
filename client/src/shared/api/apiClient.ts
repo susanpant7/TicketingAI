@@ -3,8 +3,8 @@ import { getToken } from '@/shared/api/token'
 export class ApiError extends Error {
   status: number
 
-  constructor(status: number) {
-    super(`Request failed with status ${status}`)
+  constructor(status: number, message = `Request failed with status ${status}`) {
+    super(message)
     this.status = status
   }
 }
@@ -17,7 +17,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   const response = await fetch(`/api${path}`, { ...init, headers })
-  if (!response.ok) throw new ApiError(response.status)
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null)
+    throw new ApiError(response.status, problem?.detail)
+  }
 
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }

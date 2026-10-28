@@ -3,10 +3,15 @@ import { useAuth } from '@/features/auth/useAuth'
 
 const publicLinks = [{ to: '/', label: 'Home' }]
 const privateLinks = [{ to: '/tickets', label: 'Tickets' }]
+const adminLinks = [{ to: '/users', label: 'Users' }]
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
-  const links = isAuthenticated ? [...publicLinks, ...privateLinks] : publicLinks
+  const links = [
+    ...publicLinks,
+    ...(isAuthenticated ? privateLinks : []),
+    ...(user?.role === 'Admin' ? adminLinks : []),
+  ]
 
   return (
     <header className="border-b border-gray-200">

@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TicketingAI.Api.Auth;
+using TicketingAI.Api.Departments;
+using TicketingAI.Api.Users;
 using TicketingAI.Data.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,10 +39,17 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 
 Directory.CreateDirectory("data");
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
