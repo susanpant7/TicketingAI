@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace TicketingAI.Api.Auth;
@@ -12,4 +13,9 @@ public class AuthController(IAuthService authService) : ControllerBase
         var response = await authService.LoginAsync(request);
         return response is null ? Unauthorized() : response;
     }
+
+    [Authorize]
+    [HttpGet("me")]
+    public ActionResult<object> Me() =>
+        new { Username = User.Identity!.Name, Role = User.FindFirst("role")!.Value };
 }
