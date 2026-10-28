@@ -20,9 +20,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setToken(token)
       localStorage.setItem(USER_KEY, JSON.stringify(authUser))
       setUser(authUser)
-      return true
+      return authUser
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) return false
+      if (error instanceof ApiError && error.status === 401) return null
       throw error
     }
   }

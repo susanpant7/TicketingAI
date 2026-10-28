@@ -1,6 +1,10 @@
 import { useState, type SubmitEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
+import Alert from '@/shared/components/Alert'
+import Button from '@/shared/components/Button'
+import { TextField } from '@/shared/components/Field'
+import { SparkleIcon } from '@/shared/components/icons'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -15,8 +19,9 @@ export default function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      if (await login(username, password)) {
-        navigate('/tickets', { replace: true })
+      const user = await login(username, password)
+      if (user) {
+        navigate(user.role === 'Admin' ? '/users' : '/tickets', { replace: true })
       } else {
         setError('Invalid username or password')
       }
@@ -28,47 +33,43 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-6">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-gray-200 p-6"
-      >
-        <h1 className="text-2xl font-bold">Login</h1>
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-12">
+      <div className="w-full max-w-sm">
+        <div className="text-center">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+            <SparkleIcon className="size-7" />
+          </span>
+          <h1 className="mt-6 text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
+          <p className="mt-2 text-sm text-slate-500">Login to your Ticketing AI account</p>
+        </div>
 
-        <label className="block text-sm font-medium">
-          Username
-          <input
-            type="text"
+        <form
+          onSubmit={handleSubmit}
+          className="mt-8 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <TextField
+            label="Username"
             required
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 font-normal"
           />
-        </label>
-
-        <label className="block text-sm font-medium">
-          Password
-          <input
+          <TextField
+            label="Password"
             type="password"
             required
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 font-normal"
           />
-        </label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <Alert message={error} />}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-        >
-          {submitting ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
+          <Button type="submit" disabled={submitting} className="w-full">
+            {submitting ? 'Logging in...' : 'Login'}
+          </Button>
+        </form>
+      </div>
     </main>
   )
 }

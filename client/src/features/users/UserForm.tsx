@@ -1,6 +1,10 @@
 import { useState, type SubmitEvent } from 'react'
-import { ApiError } from '@/shared/api/apiClient'
 import { createUser, updateUser, type Department, type User } from '@/features/users/usersApi'
+import { ApiError } from '@/shared/api/apiClient'
+import Alert from '@/shared/components/Alert'
+import Button from '@/shared/components/Button'
+import { SelectField, TextField } from '@/shared/components/Field'
+import Modal from '@/shared/components/Modal'
 
 interface UserFormProps {
   user: User | null
@@ -8,8 +12,6 @@ interface UserFormProps {
   onSaved: () => void
   onCancel: () => void
 }
-
-const inputClass = 'mt-1 w-full rounded border border-gray-300 px-3 py-2 font-normal disabled:bg-gray-100'
 
 export default function UserForm({ user, departments, onSaved, onCancel }: UserFormProps) {
   const isEdit = user !== null
@@ -40,90 +42,58 @@ export default function UserForm({ user, departments, onSaved, onCancel }: UserF
   }
 
   return (
-    <div className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 px-6">
-      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4 rounded-lg bg-white p-6">
-        <h2 className="text-xl font-bold">{isEdit ? 'Edit user' : 'Add user'}</h2>
-
-        <label className="block text-sm font-medium">
-          Username
-          <input
+    <Modal title={isEdit ? 'Edit user' : 'Add user'} onClose={onCancel}>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <TextField
+            label="Username"
             required
             disabled={isEdit}
             maxLength={50}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className={inputClass}
           />
-        </label>
-
-        <label className="block text-sm font-medium">
-          Full name
-          <input
+          <TextField
+            label="Full name"
             required
             maxLength={100}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className={inputClass}
           />
-        </label>
+        </div>
 
-        <label className="block text-sm font-medium">
-          Email
-          <input
-            required
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-          />
-        </label>
+        <TextField label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
 
-        <label className="block text-sm font-medium">
-          {isEdit ? 'New password (leave blank to keep)' : 'Password'}
-          <input
-            required={!isEdit}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <TextField
+            label={isEdit ? 'New password' : 'Password'}
             type="password"
+            required={!isEdit}
             autoComplete="new-password"
+            placeholder={isEdit ? 'Leave blank to keep' : undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
           />
-        </label>
-
-        <label className="block text-sm font-medium">
-          Department
-          <select
-            value={departmentId}
-            onChange={(e) => setDepartmentId(Number(e.target.value))}
-            className={inputClass}
-          >
+          <SelectField label="Department" value={departmentId} onChange={(e) => setDepartmentId(Number(e.target.value))}>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectField>
+        </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <Alert message={error} />}
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
-          >
+        <div className="flex justify-end gap-3 pt-1">
+          <Button variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-          >
+          </Button>
+          <Button type="submit" disabled={submitting}>
             {submitting ? 'Saving...' : 'Save'}
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   )
 }

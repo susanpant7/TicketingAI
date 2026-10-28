@@ -8,7 +8,7 @@ export interface AuthUser {
 export interface AuthContextValue {
   user: AuthUser | null
   isAuthenticated: boolean
-  login: (username: string, password: string) => Promise<boolean>
+  login: (username: string, password: string) => Promise<AuthUser | null>
   logout: () => void
 }
 
