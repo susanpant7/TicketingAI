@@ -146,6 +146,40 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.ToTable("Settings");
                 });
 
+            modelBuilder.Entity("TicketingAI.Data.Entities.Ticket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AssignedToId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ReportedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToId");
+
+                    b.HasIndex("ReportedById");
+
+                    b.ToTable("Tickets");
+                });
+
             modelBuilder.Entity("TicketingAI.Data.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -322,6 +356,25 @@ namespace TicketingAI.Data.Persistence.Migrations
                             Password = "user",
                             Username = "roshan"
                         });
+                });
+
+            modelBuilder.Entity("TicketingAI.Data.Entities.Ticket", b =>
+                {
+                    b.HasOne("TicketingAI.Data.Entities.User", "AssignedTo")
+                        .WithMany()
+                        .HasForeignKey("AssignedToId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TicketingAI.Data.Entities.User", "ReportedBy")
+                        .WithMany()
+                        .HasForeignKey("ReportedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedTo");
+
+                    b.Navigation("ReportedBy");
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.User", b =>
