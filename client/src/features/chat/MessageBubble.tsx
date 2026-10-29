@@ -21,7 +21,7 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
         </p>
         {message.sources && message.sources.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-400">Related:</span>
+            <span className="text-xs text-slate-400">Sources:</span>
             {message.sources.map((source) => (
               <span
                 key={`${source.documentTitle}-${source.heading}`}

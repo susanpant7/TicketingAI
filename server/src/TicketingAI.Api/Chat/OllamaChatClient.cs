@@ -14,8 +14,9 @@ public class OllamaChatClient(HttpClient http, IOptions<OllamaOptions> options) 
         {
             model = _options.ChatModel,
             stream = false,
-            // A larger context than Ollama's default, so the knowledge sections are not cut off. Low temperature keeps answers factual.
-            options = new { num_ctx = 4096, temperature = 0.2 },
+            // A larger context than Ollama's default, so the knowledge sections are not cut off.
+            // Temperature 0 makes replies factual and repeatable, and keeps the small model following the reply format.
+            options = new { num_ctx = 4096, temperature = 0 },
             messages = messages.Select(m => new { role = m.Role, content = m.Content })
         };
 
