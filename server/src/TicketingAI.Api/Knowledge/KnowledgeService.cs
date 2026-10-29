@@ -56,6 +56,18 @@ public class KnowledgeService(
         return new ReloadResult(deleted, chunks.Count, sections.Select(s => s.SourceFile).Distinct().Count());
     }
 
+    public async Task<List<KnowledgeSearchResult>> SearchAsync(string query, int topK, CancellationToken cancellationToken)
+    {
+        // nomic-embed-text expects this prefix on queries, matching the "search_document:" prefix used when storing.
+        var vectors = await embeddingClient.EmbedAsync([$"search_query: {query}"], cancellationToken);
+
+        var rows = await repository.SearchAsync(vectors[0], topK);
+        return rows
+            .Select(r => new KnowledgeSearchResult(
+                r.Id, r.DocumentTitle, r.Category, r.Heading, r.Content, r.SourceFile, 1 - r.Distance))
+            .ToList();
+    }
+
     // The title and heading give the section context, and the prefix is what nomic-embed-text expects for documents.
     private static string ToEmbeddingText(KnowledgeSection section) =>
         $"search_document: {section.DocumentTitle} - {section.Heading}\n{section.Content}";

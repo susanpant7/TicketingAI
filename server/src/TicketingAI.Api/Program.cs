@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TicketingAI.Api.Auth;
+using TicketingAI.Api.Chat;
 using TicketingAI.Api.Departments;
 using TicketingAI.Api.Knowledge;
 using TicketingAI.Api.Users;
@@ -49,6 +50,14 @@ builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>((service
     client.BaseAddress = new Uri(services.GetRequiredService<IOptions<OllamaOptions>>().Value.BaseUrl);
     client.Timeout = TimeSpan.FromMinutes(5);
 });
+builder.Services.AddOptions<ChatOptions>().BindConfiguration(ChatOptions.SectionName).ValidateDataAnnotations();
+builder.Services.AddHttpClient<IChatModelClient, OllamaChatClient>((services, client) =>
+{
+    client.BaseAddress = new Uri(services.GetRequiredService<IOptions<OllamaOptions>>().Value.BaseUrl);
+    // A 7B model on a CPU can take a while to read the sections and write the answer.
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddSingleton<IKnowledgeDocumentReader, KnowledgeDocumentReader>();
 builder.Services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();
 builder.Services.AddScoped<IKnowledgeService, KnowledgeService>();

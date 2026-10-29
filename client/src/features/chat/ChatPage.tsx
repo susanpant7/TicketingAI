@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import ChatInput from '@/features/chat/ChatInput'
 import { sendMessage, type ChatMessage } from '@/features/chat/chatApi'
 import MessageBubble, { TypingIndicator } from '@/features/chat/MessageBubble'
+import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import { SparkleIcon } from '@/shared/components/icons'
 
@@ -23,13 +24,17 @@ export default function ChatPage() {
 
   async function handleSend(text: string) {
     setError('')
+    const history = messages
     setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'user', content: text }])
     setSending(true)
     try {
-      const reply = await sendMessage(text)
-      setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'assistant', content: reply }])
-    } catch {
-      setError('Something went wrong. Please try again.')
+      const reply = await sendMessage(text, history)
+      setMessages((current) => [
+        ...current,
+        { id: crypto.randomUUID(), role: 'assistant', content: reply.answer, sources: reply.sources },
+      ])
+    } catch (err) {
+      setError(errorMessage(err, 'Something went wrong. Please try again.'))
     } finally {
       setSending(false)
     }

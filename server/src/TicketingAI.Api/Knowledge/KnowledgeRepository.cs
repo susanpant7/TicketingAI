@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 using TicketingAI.Data.Entities;
 using TicketingAI.Data.Persistence;
@@ -24,4 +25,15 @@ public class KnowledgeRepository(AppDbContext db) : IKnowledgeRepository
         await transaction.CommitAsync();
         return deleted;
     }
+
+    // Raw SQL because EF Core's LINQ does not know sqlite-vec's functions. The extension is loaded by the connection interceptor.
+    public Task<List<KnowledgeSearchRow>> SearchAsync(float[] queryVector, int topK) =>
+        db.Database.SqlQuery<KnowledgeSearchRow>($"""
+                SELECT Id, DocumentTitle, Category, Heading, Content, SourceFile,
+                       vec_distance_cosine(Embedding, {MemoryMarshal.AsBytes(queryVector.AsSpan()).ToArray()}) AS Distance
+                FROM KnowledgeChunks
+                ORDER BY Distance
+                LIMIT {topK}
+                """)
+            .ToListAsync();
 }
