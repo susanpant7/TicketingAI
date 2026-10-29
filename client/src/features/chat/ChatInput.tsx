@@ -14,7 +14,9 @@ export default function ChatInput({ disabled, onSend }: ChatInputProps) {
     const textarea = textareaRef.current
     if (!textarea) return
     textarea.style.height = 'auto'
-    textarea.style.height = `${textarea.scrollHeight}px`
+
+    // A hidden textarea (the chat window while it is minimized) measures 0. In that case keep its normal height.
+    if (textarea.scrollHeight > 0) textarea.style.height = `${textarea.scrollHeight}px`
   }, [text])
 
   function submit() {

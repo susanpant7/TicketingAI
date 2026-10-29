@@ -18,7 +18,7 @@ Every message goes through the same seven steps:
 | 4 | The API builds a prompt and sends it to the chat model. |
 | 5 | The chat model replies. |
 | 6 | The API reads the reply and returns the answer and the department. |
-| 7 | The page shows the answer. |
+| 7 | The chat window shows the answer. |
 
 **Where the examples come from.** They were captured on 2026-10-29 from a running server with the default settings (chat model `qwen2.5:7b`, embedding model `nomic-embed-text`, both in Ollama). The embedding numbers, search scores and the chat model's replies are from that recording. The requests to the chat model show the current code: they use `"stream": false` and include `top_p` and `num_predict`, which were added after the recording. Scores and wording will change if the documents or the prompt change.
 
@@ -196,7 +196,7 @@ Content-Type: application/json
 
 ## Step 7. What the user sees
 
-The page shows a typing indicator while it waits, then the reply bubble: **"Hello! How are you doing today?"**. The page does not use the department.
+The chat window shows a typing indicator while it waits, then the reply bubble: **"Hello! How are you doing today?"**. The chat window does not use the department.
 
 ---
 
@@ -379,7 +379,7 @@ Content-Type: application/json
 
 ## Step 7. What the user sees
 
-The reply bubble: **"You get 12 days of paid sick leave per year. A medical certificate from a registered doctor is required when sick leave lasts more than 3 consecutive working days."** The page does not show the department.
+The reply bubble: **"You get 12 days of paid sick leave per year. A medical certificate from a registered doctor is required when sick leave lasts more than 3 consecutive working days."** The chat window does not show the department.
 
 ---
 
@@ -529,7 +529,7 @@ Content-Type: application/json
 
 ## Step 7. What the user sees
 
-The reply bubble with the answer text. The page does not show the department.
+The reply bubble with the answer text. The chat window does not show the department.
 
 ---
 
@@ -617,7 +617,7 @@ These were observed with `qwen2.5:7b`. The prompt is a request to the model, and
 | Embedding the message and searching | `Knowledge/KnowledgeService.cs`, `Knowledge/KnowledgeRepository.cs` |
 | Reading and editing settings | `Settings/SettingsService.cs`, `Settings/SettingsController.cs` |
 | Default settings and the default system prompt | `server/src/TicketingAI.Data/Persistence/SettingDefaults.cs` |
-| The chat page | `client/src/features/chat/ChatPage.tsx`, `chatApi.ts` |
+| The chat window and its floating button (on every page, for every logged-in user) | `client/src/features/chat/ChatWidget.tsx`, `ChatPanel.tsx`, `chatApi.ts` |
 | The settings page | `client/src/features/settings/` |
 
 ---

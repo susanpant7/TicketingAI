@@ -72,3 +72,9 @@ export const SendIcon = (props: IconProps) => (
     <path d="m11.5 13.5 8.5-9.5" />
   </Icon>
 )
+
+export const ChevronDownIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 9l6 6 6-6" />
+  </Icon>
+)
