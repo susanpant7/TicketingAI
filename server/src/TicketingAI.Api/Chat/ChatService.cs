@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using TicketingAI.Api.Knowledge;
 using TicketingAI.Api.Settings;
@@ -18,8 +16,7 @@ public class ChatService(
     private static readonly Regex LeadingDepartmentLine = new(@"^\s*Department:[ \t]*(?<name>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
     private static readonly Regex TrailingDepartmentLine = new(@"\s*Department:[ \t]*(?<name>[^\r\n]*)\s*$", RegexOptions.IgnoreCase);
 
-    public async IAsyncEnumerable<ChatStreamEvent> AskAsync(
-        ChatRequest request, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async Task<ChatResponse> AskAsync(ChatRequest request, CancellationToken cancellationToken)
     {
         // Read the settings first, so a change in the Settings table applies to this message.
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
@@ -37,19 +34,9 @@ public class ChatService(
         var chatOptions = new ChatModelOptions(
             settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens);
 
-        var filter = new DepartmentLineStreamFilter();
-        var reply = new StringBuilder();
-        await foreach (var chunk in model.ChatStreamAsync(prompt, chatOptions, cancellationToken))
-        {
-            reply.Append(chunk);
+        var reply = await model.ChatAsync(prompt, chatOptions, cancellationToken);
 
-            var visible = filter.Push(chunk);
-            if (visible.Length > 0)
-                yield return ChatStreamEvent.Token(visible);
-        }
-
-        // The final event is authoritative: it carries the cleaned-up answer and the department.
-        yield return ChatStreamEvent.Done(BuildResponse(reply.ToString().Trim()));
+        return BuildResponse(reply.Trim());
     }
 
     /// <summary>Takes the "Department:" line off the reply. Anything other than HR, IT or Finance (such as "none") means no department.</summary>

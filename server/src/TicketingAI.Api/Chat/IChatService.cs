@@ -2,6 +2,6 @@ namespace TicketingAI.Api.Chat;
 
 public interface IChatService
 {
-    /// <summary>Answers a message, streaming the reply as it is written and ending with the final answer and sources.</summary>
-    IAsyncEnumerable<ChatStreamEvent> AskAsync(ChatRequest request, CancellationToken cancellationToken);
+    /// <summary>Answers a message: finds the matching knowledge, asks the chat model, and returns the answer and its department.</summary>
+    Task<ChatResponse> AskAsync(ChatRequest request, CancellationToken cancellationToken);
 }

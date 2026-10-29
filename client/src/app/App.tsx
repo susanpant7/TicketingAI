@@ -9,6 +9,7 @@ import ProtectedRoute from '@/features/auth/ProtectedRoute'
 import HomePage from '@/features/dashboard/HomePage'
 import TicketsPage from '@/features/tickets/TicketsPage'
 import KnowledgePage from '@/features/knowledge/KnowledgePage'
+import SettingsPage from '@/features/settings/SettingsPage'
 import UsersPage from '@/features/users/UsersPage'
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
               <Route element={<AdminRoute />}>
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/knowledge" element={<KnowledgePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>
           </Route>

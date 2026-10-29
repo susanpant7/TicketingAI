@@ -12,6 +12,7 @@ const privateLinks = [
 const adminLinks = [
   { to: '/users', label: 'Users' },
   { to: '/knowledge', label: 'Knowledge' },
+  { to: '/settings', label: 'Settings' },
 ]
 
 export default function Navbar() {

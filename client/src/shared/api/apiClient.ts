@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path: string, init: RequestInit): Promise<Response> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   if (init.body) headers.set('Content-Type', 'application/json')
 
@@ -24,15 +24,6 @@ async function request(path: string, init: RequestInit): Promise<Response> {
     throw new ApiError(response.status, problem?.detail)
   }
 
-  return response
-}
-
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await request(path, init)
-
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
-
-/** For streamed responses: returns the response without reading the body. */
-export const apiStream = (path: string, init: RequestInit = {}) => request(path, init)

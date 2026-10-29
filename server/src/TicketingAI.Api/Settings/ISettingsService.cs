@@ -7,4 +7,13 @@ public interface ISettingsService
     /// so a change made in the table is used by the next message.
     /// </summary>
     Task<AiSettings> GetAiSettingsAsync(CancellationToken cancellationToken = default);
+
+    Task<List<SettingDto>> GetAllAsync();
+    Task<SettingResult> CreateAsync(CreateSettingRequest request);
+
+    /// <summary>
+    /// Changes a setting. Changing the embedding model also deletes all knowledge sections, because vectors made with
+    /// different models cannot be compared. The knowledge data has to be reloaded afterwards.
+    /// </summary>
+    Task<SettingResult> UpdateAsync(string key, UpdateSettingRequest request);
 }
