@@ -18,6 +18,10 @@ public class SettingsController(ISettingsService settingsService) : ControllerBa
         return result.Saved is null ? Fail(result) : Created($"api/settings/{result.Saved.Setting.Key}", result.Saved.Setting);
     }
 
+    [HttpPost("restore-defaults")]
+    public async Task<ActionResult<RestoreDefaultsResult>> RestoreDefaults() =>
+        new RestoreDefaultsResult(await settingsService.RestoreDefaultsAsync());
+
     [HttpPut("{key}")]
     public async Task<ActionResult<SettingSaved>> Update(string key, UpdateSettingRequest request)
     {

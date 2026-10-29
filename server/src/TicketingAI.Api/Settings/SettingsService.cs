@@ -84,6 +84,17 @@ public partial class SettingsService(ISettingRepository settings, ILogger<Settin
         return new SettingResult(new SettingSaved(ToDto(setting), knowledgeDeleted));
     }
 
+    public async Task<int> RestoreDefaultsAsync()
+    {
+        var current = await settings.GetAsync(SettingKeys.EmbeddingModel);
+        var embeddingModelChanged = current is not null && current.Value != DefaultOf(SettingKeys.EmbeddingModel);
+
+        var defaults = SettingDefaults.All
+            .Select(d => new Setting { Key = d.Key, Label = d.Label, Description = d.Description, Value = d.Value })
+            .ToList();
+        return await settings.ReplaceAllAsync(defaults, deleteKnowledge: embeddingModelChanged);
+    }
+
     private static string? Check(string key, string label, string description, string value)
     {
         if (string.IsNullOrWhiteSpace(label) || label.Trim().Length > MaxLabelLength)

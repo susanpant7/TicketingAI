@@ -16,4 +16,10 @@ public interface ISettingsService
     /// different models cannot be compared. The knowledge data has to be uploaded again afterwards.
     /// </summary>
     Task<SettingResult> UpdateAsync(string key, UpdateSettingRequest request);
+
+    /// <summary>
+    /// Deletes every setting (including added ones) and inserts the defaults again. If that changes the embedding model,
+    /// all knowledge sections are deleted too. Returns how many.
+    /// </summary>
+    Task<int> RestoreDefaultsAsync();
 }

@@ -8,4 +8,6 @@ public enum SettingError
     Invalid
 }
 
+public record RestoreDefaultsResult(int KnowledgeDeleted);
+
 public record SettingResult(SettingSaved? Saved, SettingError Error = SettingError.None, string? Message = null);

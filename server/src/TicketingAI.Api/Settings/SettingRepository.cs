@@ -19,6 +19,20 @@ public class SettingRepository(AppDbContext db) : ISettingRepository
         await db.SaveChangesAsync();
     }
 
+    public async Task<int> ReplaceAllAsync(IReadOnlyList<Setting> settings, bool deleteKnowledge)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        await db.Settings.ExecuteDeleteAsync();
+        db.ChangeTracker.Clear();
+        db.Settings.AddRange(settings);
+        await db.SaveChangesAsync();
+        var deleted = deleteKnowledge ? await db.KnowledgeChunks.ExecuteDeleteAsync() : 0;
+
+        await transaction.CommitAsync();
+        return deleted;
+    }
+
     public async Task<int> UpdateAsync(Setting setting, bool deleteKnowledge)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();

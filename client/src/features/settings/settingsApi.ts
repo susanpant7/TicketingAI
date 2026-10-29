@@ -20,5 +20,8 @@ export const getSettings = () => apiFetch<Setting[]>('/settings')
 export const createSetting = (input: Setting) =>
   apiFetch<Setting>('/settings', { method: 'POST', body: JSON.stringify(input) })
 
+export const restoreDefaults = () =>
+  apiFetch<{ knowledgeDeleted: number }>('/settings/restore-defaults', { method: 'POST' })
+
 export const updateSetting = (key: string, input: Omit<Setting, 'key'>) =>
   apiFetch<SavedSetting>(`/settings/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(input) })

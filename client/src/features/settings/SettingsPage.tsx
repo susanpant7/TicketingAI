@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import SettingForm from '@/features/settings/SettingForm'
-import { EMBEDDING_MODEL_KEY, getSettings, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
+import { EMBEDDING_MODEL_KEY, getSettings, restoreDefaults, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
+import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import PageHeader from '@/shared/components/PageHeader'
 
 // Settings are grouped by the first part of their key: "chat.model" is in the "Chat" group.
@@ -21,6 +22,8 @@ export default function SettingsPage() {
   const [editing, setEditing] = useState<Setting | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [version, setVersion] = useState(0)
+  const [confirmingRestore, setConfirmingRestore] = useState(false)
+  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     let ignore = false
@@ -61,6 +64,37 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleRestore() {
+    setError('')
+    setRestoring(true)
+    try {
+      const { knowledgeDeleted } = await restoreDefaults()
+      setVersion((v) => v + 1)
+      setNotice(
+        knowledgeDeleted > 0
+          ? {
+              variant: 'warning',
+              message: (
+                <>
+                  The defaults were restored. The embedding model changed, so {knowledgeDeleted} knowledge sections were
+                  deleted. Open the{' '}
+                  <Link to="/knowledge" className="font-semibold underline">
+                    Knowledge page
+                  </Link>{' '}
+                  and upload the knowledge files again.
+                </>
+              ),
+            }
+          : { variant: 'success', message: 'The default settings were restored.' },
+      )
+    } catch (err) {
+      setError(errorMessage(err, 'Restoring the defaults failed. Please try again.'))
+    } finally {
+      setRestoring(false)
+      setConfirmingRestore(false)
+    }
+  }
+
   const groups = [...new Set(settings.map((s) => groupName(s.key)))].sort()
 
   return (
@@ -68,7 +102,14 @@ export default function SettingsPage() {
       <PageHeader
         title="Settings"
         description="How the assistant searches the knowledge and writes its answers. Changes apply to the next message."
-        action={<Button onClick={() => openForm(null)}>Add setting</Button>}
+        action={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setConfirmingRestore(true)}>
+              Restore defaults
+            </Button>
+            <Button onClick={() => openForm(null)}>Add setting</Button>
+          </div>
+        }
       />
 
       <div className="mt-6 space-y-3">
@@ -102,6 +143,17 @@ export default function SettingsPage() {
             </div>
           </section>
         ))
+      )}
+
+      {confirmingRestore && (
+        <ConfirmDialog
+          title="Restore default settings"
+          message="This deletes every setting, including the ones you added or edited, and puts the default settings back. If the embedding model is different from the default, all the knowledge data is deleted too."
+          confirmLabel="Restore defaults"
+          busy={restoring}
+          onConfirm={handleRestore}
+          onCancel={() => setConfirmingRestore(false)}
+        />
       )}
 
       {formOpen && (

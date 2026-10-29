@@ -10,6 +10,12 @@ public interface ISettingRepository
     Task AddAsync(Setting setting);
 
     /// <summary>
+    /// Deletes every setting and inserts the given ones in a single transaction. When deleteKnowledge is true, all knowledge
+    /// sections are deleted in the same transaction. Returns how many were deleted.
+    /// </summary>
+    Task<int> ReplaceAllAsync(IReadOnlyList<Setting> settings, bool deleteKnowledge);
+
+    /// <summary>
     /// Saves the changes made to a setting loaded with <see cref="GetAsync"/>. When deleteKnowledge is true, all knowledge
     /// sections are deleted in the same transaction. Returns how many were deleted.
     /// </summary>
