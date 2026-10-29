@@ -20,7 +20,7 @@ Every message goes through the same seven steps:
 | 6 | The API reads the reply and returns the answer and the department. |
 | 7 | The chat window shows the answer. |
 
-**Where the examples come from.** They were captured on 2026-10-29 from a running server with the default settings (chat model `qwen2.5:7b`, embedding model `nomic-embed-text`, both in Ollama). The embedding numbers, search scores and the chat model's replies are from that recording. The requests to the chat model show the current code: they use `"stream": false` and include `top_p` and `num_predict`, which were added after the recording. Scores and wording will change if the documents or the prompt change.
+**Where the examples come from.** They were captured on 2026-10-29 from a running server with the default settings (chat model `qwen2.5:7b`, embedding model `nomic-embed-text`, both in Ollama). The embedding numbers, search scores and the chat model's replies are from that recording. The requests to the chat model show the current code: they use `"stream": false` and include `top_p` and `num_predict`, which were added after the recording. Scores and wording will change if the documents or the prompt change. The recording was made before the department names were taken from the Departments table: the prompt then named HR, IT and Finance directly. The requests in this document show the current text, with those departments filled in.
 
 ---
 
@@ -115,7 +115,7 @@ LIMIT 5
 
 **The logic.** The API builds a list of messages:
 
-1. **System message:** the rules. It is the setting `chat.system_prompt`, shown as **System prompt** on the settings page. Its default text is in the Appendix.
+1. **System message:** the rules. It is the setting `chat.system_prompt`, shown as **System prompt** on the settings page. Its default text is in the Appendix. The names of the departments are not written in it: the text has placeholders (`{{departments}}`, `{{department_names}}`) that the API fills in from the **Departments** table for every message (see *The departments* in the Reference).
 2. **The earlier conversation:** the history, as plain text. Empty here.
 3. **The new message:** the sections that were kept, the user's message, and a short reminder (setting `chat.format_reminder`). When no section was kept, it says so instead of listing sections.
 
@@ -150,7 +150,7 @@ Content-Type: application/json
     },
     {
       "role": "user",
-      "content": "No company documents matched this message.\n\nMessage: Hello\n\n(Begin your reply with the Department line. Use HR, IT or Finance for anything about work, and none only for casual chat and requests unrelated to work.)"
+      "content": "No company documents matched this message.\n\nMessage: Hello\n\n(Begin your reply with the Department line. Use one of Finance, HR, IT for anything about work, and none only for casual chat and requests unrelated to work.)"
     }
   ]
 }
@@ -178,7 +178,7 @@ The reply is in `message.content`. The system prompt makes the model start every
 
 **The logic.** The API reads the first line of `message.content`:
 - It removes the `Department:` line, so the answer is the text after it: `Hello! How are you doing today?`
-- The department is taken from that line. Only `HR`, `IT` and `Finance` count, in any capitalization. Anything else, such as `none`, means there is no department, and the response has `null`.
+- The department is taken from that line. Only the name of a department in the Departments table counts (here Finance, HR and IT), in any capitalization. Anything else, such as `none`, means there is no department, and the response has `null`.
 
 **Response to the browser**
 
@@ -335,7 +335,7 @@ POST http://localhost:11434/api/chat
     },
     {
       "role": "user",
-      "content": "Sections:\n\n[Leave Policy - Sick leave | HR]\nEmployees get 12 days of paid sick leave per year. A medical certificate from a registered doctor is required when sick leave lasts more than 3 consecutive working days. Tell your manager as early as possible on the first day of absence, ideally before 10:00.\n\n[Leave Policy - How to apply for leave | HR]\nApply for leave in the HR portal under Leave > New Request. Give at least 3 working days notice for 1 to 2 days of leave, and at least 2 weeks notice for more than 5 days. Your manager approves or rejects the request in the portal, usually within 2 working days. Sick leave can be recorded after the fact.\n\n[Leave Policy - Carry forward of unused leave | HR]\nUnused annual leave is not lost at the end of the year. It accumulates up to a maximum of 90 days, and unused sick leave accumulates up to 45 days. Casual leave does not carry over. Accumulated annual leave is paid out in cash when you leave the company, calculated on your basic salary.\n\n[Leave Policy - Casual leave | HR]\nEmployees get 5 days of casual leave per year for short personal matters. Casual leave can be taken for a single day at a time, needs no reason beyond manager approval, and cannot be combined with annual leave for a stretch of more than 10 consecutive days.\n\n[Leave Policy - Public holidays | HR]\nThe company observes at least 13 public holidays per year, following the government holiday list, including the Dashain and Tihar holidays. The full list is published in the HR portal each Baisakh. If a public holiday falls on Saturday, the weekly day off, it is not moved to another day. See the public holidays and festivals document for details.\n\nMessage: How many sick days do I get?\n\n(Begin your reply with the Department line. Use HR, IT or Finance for anything about work, and none only for casual chat and requests unrelated to work.)"
+      "content": "Sections:\n\n[Leave Policy - Sick leave | HR]\nEmployees get 12 days of paid sick leave per year. A medical certificate from a registered doctor is required when sick leave lasts more than 3 consecutive working days. Tell your manager as early as possible on the first day of absence, ideally before 10:00.\n\n[Leave Policy - How to apply for leave | HR]\nApply for leave in the HR portal under Leave > New Request. Give at least 3 working days notice for 1 to 2 days of leave, and at least 2 weeks notice for more than 5 days. Your manager approves or rejects the request in the portal, usually within 2 working days. Sick leave can be recorded after the fact.\n\n[Leave Policy - Carry forward of unused leave | HR]\nUnused annual leave is not lost at the end of the year. It accumulates up to a maximum of 90 days, and unused sick leave accumulates up to 45 days. Casual leave does not carry over. Accumulated annual leave is paid out in cash when you leave the company, calculated on your basic salary.\n\n[Leave Policy - Casual leave | HR]\nEmployees get 5 days of casual leave per year for short personal matters. Casual leave can be taken for a single day at a time, needs no reason beyond manager approval, and cannot be combined with annual leave for a stretch of more than 10 consecutive days.\n\n[Leave Policy - Public holidays | HR]\nThe company observes at least 13 public holidays per year, following the government holiday list, including the Dashain and Tihar holidays. The full list is published in the HR portal each Baisakh. If a public holiday falls on Saturday, the weekly day off, it is not moved to another day. See the public holidays and festivals document for details.\n\nMessage: How many sick days do I get?\n\n(Begin your reply with the Department line. Use one of Finance, HR, IT for anything about work, and none only for casual chat and requests unrelated to work.)"
     }
   ]
 }
@@ -361,7 +361,7 @@ The model answered from the first section, and named `HR`, the department shown 
 
 ## Step 6. Reading the reply and returning the response
 
-The API removes the `Department: HR` line. `HR` is one of the three known departments, so it is kept.
+The API removes the `Department: HR` line. `HR` is the name of a department in the Departments table, so it is kept.
 
 **Response to the browser**
 
@@ -483,7 +483,7 @@ POST http://localhost:11434/api/chat
     },
     {
       "role": "user",
-      "content": "Sections:\n\n[Finance Support and Contacts - The finance portal | Finance]\nMost finance requests are made in the finance portal, including purchase requests, cards, budgets, payments and billing. Sign in with your company login and multi-factor authentication. The portal needs the VPN when you work outside the office.\n\n[Banking, Digital Payments and Foreign Currency - How the company pays | Finance]\nThe company pays vendors, salaries and reimbursements by bank transfer, using the Nepal banking system, for example through connectIPS or the bank's own transfer service. Large payments must always go through a bank. Finance does not make cash payments except from petty cash, within its limits.\n\n[Budgets and Approval Limits - Contracts and signing authority | Finance]\nOnly the CFO and the CEO can sign contracts on behalf of the company. Employees cannot sign contracts with vendors or customers, even for small amounts. Send contracts to legal and finance for review before any signature.\n\n[Corporate Credit Card - Who can have a corporate card | Finance]\nCorporate credit cards are issued to managers and to employees who travel or buy for the company often. Ask your manager to request a card for you through the finance portal under Cards > New Card Request. Cards are issued within 10 working days after approval by your department head and finance.\n\n[VPN Access - When you need the VPN | IT]\nYou must connect to the company VPN whenever you access internal systems from outside the office, such as the HR portal, internal wikis, file shares and the ticketing system. You do not need the VPN inside the office network. Email and chat work without the VPN.\n\nMessage: Can I get a loan from the company?\n\n(Begin your reply with the Department line. Use HR, IT or Finance for anything about work, and none only for casual chat and requests unrelated to work.)"
+      "content": "Sections:\n\n[Finance Support and Contacts - The finance portal | Finance]\nMost finance requests are made in the finance portal, including purchase requests, cards, budgets, payments and billing. Sign in with your company login and multi-factor authentication. The portal needs the VPN when you work outside the office.\n\n[Banking, Digital Payments and Foreign Currency - How the company pays | Finance]\nThe company pays vendors, salaries and reimbursements by bank transfer, using the Nepal banking system, for example through connectIPS or the bank's own transfer service. Large payments must always go through a bank. Finance does not make cash payments except from petty cash, within its limits.\n\n[Budgets and Approval Limits - Contracts and signing authority | Finance]\nOnly the CFO and the CEO can sign contracts on behalf of the company. Employees cannot sign contracts with vendors or customers, even for small amounts. Send contracts to legal and finance for review before any signature.\n\n[Corporate Credit Card - Who can have a corporate card | Finance]\nCorporate credit cards are issued to managers and to employees who travel or buy for the company often. Ask your manager to request a card for you through the finance portal under Cards > New Card Request. Cards are issued within 10 working days after approval by your department head and finance.\n\n[VPN Access - When you need the VPN | IT]\nYou must connect to the company VPN whenever you access internal systems from outside the office, such as the HR portal, internal wikis, file shares and the ticketing system. You do not need the VPN inside the office network. Email and chat work without the VPN.\n\nMessage: Can I get a loan from the company?\n\n(Begin your reply with the Department line. Use one of Finance, HR, IT for anything about work, and none only for casual chat and requests unrelated to work.)"
     }
   ]
 }
@@ -563,12 +563,33 @@ All of these are rows in the `Settings` table (columns `Key`, `Label`, `Descript
 | `chat.num_ctx` | `4096` | Step 4: how many tokens the model can read at once |
 | `chat.max_tokens` | `500` | Step 4: the longest reply |
 | `chat.history_messages` | `6` | Step 4: how much of the conversation is sent |
-| `chat.system_prompt` | System prompt in the settings page (default text in the Appendix) | Step 4: the rules |
-| `chat.format_reminder` | see Step 4 | Step 4: added to the end of the new message |
+| `chat.system_prompt` | System prompt in the settings page (default text in the Appendix) | Step 4: the rules. May contain `{{departments}}` and `{{department_names}}` |
+| `chat.format_reminder` | see Step 4 | Step 4: added to the end of the new message. May contain `{{department_names}}` |
 
 - A missing or invalid value falls back to the default, and a warning is logged.
 - Changing `embedding.model` deletes all knowledge sections, because vectors made by different models cannot be compared. The Settings page warns about this, and the knowledge data must be reloaded afterwards.
 - The Ollama address is not a setting. It stays in `appsettings.json`.
+
+## The departments
+
+No department name is written in the code. The chat reads the **Departments** table (the Departments page) for every message. Each department has a **name**, **what it handles** and a **contact**. For the three departments that exist at the start, the table holds:
+
+| Name | What it handles | Contact |
+|---|---|---|
+| Finance | purchases, payments, expenses, budgets, invoices | finance@ticket.com |
+| HR | leave, benefits, policies, conduct, onboarding | hr@ticket.com (payroll and salary: payroll@ticket.com) |
+| IT | laptops, accounts, access to systems, tools or data, VPN, software, network | it-help@ticket.com or extension 100 |
+
+Before the prompt is sent, two placeholders in the system prompt and in the format reminder are replaced:
+
+| Placeholder | Replaced with | With the table above |
+|---|---|---|
+| `{{department_names}}` | The names, separated by commas | `Finance, HR, IT` |
+| `{{departments}}` | One line per department: name, what it handles, contact | `- Finance (purchases, payments, ...): finance@ticket.com` and one line each for HR and IT |
+
+A prompt text without the placeholders is used as it is. Add a department on the Departments page and the next message already knows about it. The department the model names in its reply is checked against the same table.
+
+The knowledge sections are labelled with the `category` written in each Markdown document. For the model to name the right department for a section, the category should be the name of a department.
 
 ## The department line
 
@@ -626,10 +647,12 @@ These were observed with `qwen2.5:7b`. The prompt is a request to the model, and
 
 This is the default text of the `chat.system_prompt` setting (from `SettingDefaults.cs`). The text the chat really uses is the row in the `Settings` table, which may have been edited. This copy is not updated automatically.
 
-```
-You are the Ticketing AI assistant, the friendly internal support assistant of Ticketing AI Pvt. Ltd. You help employees with HR, IT and Finance questions.
+`{{department_names}}` and `{{departments}}` are placeholders. They are replaced with the departments from the Departments table before the prompt is sent (see *The departments* in the Reference), so the payloads in the examples above show the filled-in text.
 
-Format of every reply: the first line is "Department:" followed by HR, IT, Finance or none. Then a blank line, then your reply. Never mention the department line anywhere else in the reply. Each kind below says which department to use.
+```
+You are the Ticketing AI assistant, the friendly internal support assistant of Ticketing AI Pvt. Ltd. You help employees with questions for these departments: {{department_names}}.
+
+Format of every reply: the first line is "Department:" followed by one of {{department_names}}, or none. Then a blank line, then your reply. Never mention the department line anywhere else in the reply. Each kind below says which department to use.
 
 Each message from the employee is one of four kinds. Decide which one it is and reply accordingly.
 
@@ -639,18 +662,16 @@ Each message from the employee is one of four kinds. Decide which one it is and 
 
 2. A question about work or the company that the sections do not answer, or when no sections were found.
    Do not guess, do not give general advice, do not suggest alternatives or workarounds, and never say that the company does or does not offer, allow or have something unless a section says so. Reply in one or two sentences: say that you do not have that information, and tell the employee to contact the right department:
-   - HR (leave, benefits, policies, conduct, onboarding): hr@ticket.com. Payroll and salary: payroll@ticket.com.
-   - IT (laptops, accounts, access to systems, tools or data, VPN, software, network): it-help@ticket.com or extension 100.
-   - Finance (purchases, payments, expenses, budgets, invoices): finance@ticket.com.
-   Department: the one you tell the employee to contact (HR, IT or Finance). Never none for a question about work.
+   {{departments}}
+   Department: the one you tell the employee to contact (one of {{department_names}}). Never none for a question about work.
 
 3. Casual conversation: a greeting, thanks, small talk, how the employee feels, or a question about you.
-   Reply naturally and briefly to what the employee actually said, like a friendly colleague: answer a greeting with a greeting, thanks with a warm acknowledgement, a question about you with who you are. You may offer to help with HR, IT and Finance questions. Use different wording each time, and do not use the sections.
+   Reply naturally and briefly to what the employee actually said, like a friendly colleague: answer a greeting with a greeting, thanks with a warm acknowledgement, a question about you with who you are. You may offer to help with work questions. Use different wording each time, and do not use the sections.
    This is only for chatting. A request to write or do something is not casual conversation.
    Department: none.
 
 4. A request that has nothing to do with work, such as trivia, jokes, poems, stories, essays, code or homework.
-   NEVER do the task, even if asked politely. Do not write the poem, joke, story or code and do not answer the trivia. Politely say that you can only help with HR, IT and Finance questions.
+   NEVER do the task, even if asked politely. Do not write the poem, joke, story or code and do not answer the trivia. Politely say that you can only help with work questions for these departments: {{department_names}}.
    Department: none.
 
 A message can start with a greeting and still contain a question. Judge it by the question, and answer it as kind 1 or 2.

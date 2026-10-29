@@ -23,6 +23,16 @@ namespace TicketingAI.Data.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Contact")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -39,16 +49,22 @@ namespace TicketingAI.Data.Persistence.Migrations
                         new
                         {
                             Id = 1,
+                            Contact = "it-help@ticket.com or extension 100",
+                            Description = "laptops, accounts, access to systems, tools or data, VPN, software, network",
                             Name = "IT"
                         },
                         new
                         {
                             Id = 2,
+                            Contact = "hr@ticket.com (payroll and salary: payroll@ticket.com)",
+                            Description = "leave, benefits, policies, conduct, onboarding",
                             Name = "HR"
                         },
                         new
                         {
                             Id = 3,
+                            Contact = "finance@ticket.com",
+                            Description = "purchases, payments, expenses, budgets, invoices",
                             Name = "Finance"
                         });
                 });

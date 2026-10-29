@@ -8,6 +8,7 @@ const publicLinks = [{ to: '/', label: 'Home' }]
 const privateLinks = [{ to: '/tickets', label: 'Tickets' }]
 const adminLinks = [
   { to: '/users', label: 'Users' },
+  { to: '/departments', label: 'Departments' },
   { to: '/knowledge', label: 'Knowledge' },
   { to: '/settings', label: 'Settings' },
 ]

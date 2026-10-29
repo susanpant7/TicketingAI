@@ -82,7 +82,7 @@ export default function KnowledgePage() {
     <main className="mx-auto max-w-6xl px-6 py-10">
       <PageHeader
         title="Knowledge"
-        description="The assistant answers from this knowledge base, built from the HR, IT and Finance documents."
+        description="The assistant answers from this knowledge base, built from the company documents."
         action={
           <Button onClick={handleReload} disabled={reloading}>
             {reloading ? 'Reloading...' : 'Reload knowledge data'}

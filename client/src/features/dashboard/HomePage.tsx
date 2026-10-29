@@ -7,7 +7,7 @@ const features = [
   {
     icon: TicketIcon,
     title: 'Track tickets',
-    text: 'Raise and follow IT and HR requests in one place, from first report to resolution.',
+    text: 'Raise and follow support requests in one place, from first report to resolution.',
   },
   {
     icon: ChatIcon,
@@ -17,7 +17,7 @@ const features = [
   {
     icon: UsersIcon,
     title: 'One team, one view',
-    text: 'IT, HR and Finance share the same workspace, so requests reach the right people.',
+    text: 'Every department shares the same workspace, so requests reach the right people.',
   },
 ]
 
@@ -35,7 +35,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-b from-indigo-50 via-white to-slate-50">
         <div className="mx-auto max-w-4xl px-6 py-24 text-center">
           <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-            IT &amp; HR support
+            Company support
           </span>
           <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
             Support that answers

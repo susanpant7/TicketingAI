@@ -69,7 +69,7 @@ export default function ChatPanel({ open, onMinimize, onReply }: ChatPanelProps)
         </span>
         <div className="min-w-0 flex-1 leading-tight">
           <p className="text-sm font-semibold">Ticketing AI assistant</p>
-          <p className="text-xs text-indigo-100">Ask about HR, IT or Finance</p>
+          <p className="text-xs text-indigo-100">Ask a question about work</p>
         </div>
         <button
           type="button"

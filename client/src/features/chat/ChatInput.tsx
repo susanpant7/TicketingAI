@@ -49,7 +49,7 @@ export default function ChatInput({ disabled, onSend }: ChatInputProps) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask about IT or HR, or describe your issue..."
+        placeholder="Type your question..."
         className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
       />
       <button

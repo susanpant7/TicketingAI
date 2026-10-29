@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using TicketingAI.Api.Departments;
 using TicketingAI.Api.Knowledge;
 using TicketingAI.Api.Settings;
 
@@ -7,12 +8,10 @@ namespace TicketingAI.Api.Chat;
 public class ChatService(
     IKnowledgeService knowledge,
     IChatModelClient model,
-    ISettingsService settingsService) : IChatService
+    ISettingsService settingsService,
+    IDepartmentRepository departmentRepository) : IChatService
 {
-    // The departments the model may name. They must match the categories of the knowledge documents.
-    private static readonly string[] Departments = ["HR", "IT", "Finance"];
-
-    // The model is asked to start every reply with "Department: <HR, IT, Finance or none>". Small models sometimes put the line at the end instead, so both ends are accepted.
+    // The model is asked to start every reply with "Department: <a department name or none>". Small models sometimes put the line at the end instead, so both ends are accepted.
     private static readonly Regex LeadingDepartmentLine = new(@"^\s*Department:[ \t]*(?<name>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
     private static readonly Regex TrailingDepartmentLine = new(@"\s*Department:[ \t]*(?<name>[^\r\n]*)\s*$", RegexOptions.IgnoreCase);
 
@@ -20,6 +19,9 @@ public class ChatService(
     {
         // Read the settings first, so a change in the Settings table applies to this message.
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
+
+        // The departments are read from the Departments table, so the prompt and the check of the reply follow any change made there.
+        var departments = await departmentRepository.GetAllAsync();
 
         var message = request.Message.Trim();
         var history = (request.History ?? [])
@@ -30,23 +32,42 @@ public class ChatService(
         var sections = await FindSectionsAsync(message, history, settings, cancellationToken);
 
         // The model always answers. The prompt tells it what to do when the sections answer the question, when they do not, and for casual chat.
-        var prompt = ChatPromptBuilder.Build(history, sections, message, settings.SystemPrompt, settings.FormatReminder);
+        var prompt = ChatPromptBuilder.Build(
+            history, sections, message,
+            FillDepartments(settings.SystemPrompt, departments), FillDepartments(settings.FormatReminder, departments));
         var chatOptions = new ChatModelOptions(
             settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens);
 
         var reply = await model.ChatAsync(prompt, chatOptions, cancellationToken);
 
-        return BuildResponse(reply.Trim());
+        return BuildResponse(reply.Trim(), departments);
     }
 
-    /// <summary>Takes the "Department:" line off the reply. Anything other than HR, IT or Finance (such as "none") means no department.</summary>
-    private static ChatResponse BuildResponse(string reply)
+    /// <summary>
+    /// Fills the departments into a prompt text. {{departments}} becomes one line per department (name, what it handles, how to
+    /// reach it) and {{department_names}} becomes the names. A text without these placeholders is used as it is.
+    /// </summary>
+    private static string FillDepartments(string text, IReadOnlyList<DepartmentDto> departments)
+    {
+        const string none = "(no departments are set up)";
+
+        var names = departments.Count == 0 ? none : string.Join(", ", departments.Select(d => d.Name));
+        var lines = departments.Count == 0 ? $"- {none}" : string.Join("\n   ", departments.Select(Describe));
+
+        return text.Replace("{{departments}}", lines).Replace("{{department_names}}", names);
+    }
+
+    private static string Describe(DepartmentDto d) =>
+        $"- {d.Name}{(d.Description.Length > 0 ? $" ({d.Description})" : "")}{(d.Contact.Length > 0 ? $": {d.Contact}" : "")}";
+
+    /// <summary>Takes the "Department:" line off the reply. Anything that is not the name of a department (such as "none") means no department.</summary>
+    private static ChatResponse BuildResponse(string reply, IReadOnlyList<DepartmentDto> departments)
     {
         var (answer, name) = SplitDepartmentLine(reply);
         if (answer.Length == 0)
             return new ChatResponse(reply, null);
 
-        var department = Departments.FirstOrDefault(d => d.Equals(name, StringComparison.OrdinalIgnoreCase));
+        var department = departments.FirstOrDefault(d => d.Name.Equals(name, StringComparison.OrdinalIgnoreCase))?.Name;
         return new ChatResponse(answer, department);
     }
 

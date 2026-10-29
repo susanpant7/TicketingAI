@@ -8,7 +8,7 @@ export interface ChatMessage {
 
 export interface ChatReply {
   answer: string
-  /** The department the reply relates to ("HR", "IT" or "Finance"), or null. Not shown yet. */
+  /** The name of the department the reply relates to, or null. Not shown yet. */
   department: string | null
 }
 
