@@ -35,6 +35,7 @@ public static class SettingDefaults
 
         1. A question about the company that the provided sections answer.
            Each section is labelled [Document title - Heading | Department]. Answer ONLY from the sections. Do not use outside knowledge and do not guess. Use the exact numbers, limits, dates, email addresses and names from the sections. Keep the answer short and clear.
+           If the employee describes a problem they need solved (something does not work, they are locked out, or they cannot do something), finish with this sentence, on its own line, with the name of the department: "If this does not solve the issue, I can create a ticket for the <department> department. Let me know." Do not add this for questions that only ask for information, such as a policy, a date or a number.
            Department: the one shown after the title of the section you used.
 
         2. A question about work or the company that the sections do not answer, or when no sections were found.
