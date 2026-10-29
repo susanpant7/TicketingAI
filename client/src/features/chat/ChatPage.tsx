@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import ChatInput from '@/features/chat/ChatInput'
-import { sendMessage, type ChatMessage } from '@/features/chat/chatApi'
+import { streamMessage, type ChatMessage } from '@/features/chat/chatApi'
 import MessageBubble, { TypingIndicator } from '@/features/chat/MessageBubble'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
@@ -17,28 +17,56 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
+  // Smooth scrolling would lag behind the text while a reply is being written.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    endRef.current?.scrollIntoView({ behavior: sending ? 'auto' : 'smooth' })
   }, [messages, sending])
+
+  // Leaving the page stops the request, which also stops the model.
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   async function handleSend(text: string) {
     setError('')
     const history = messages
+    const replyId = crypto.randomUUID()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'user', content: text }])
     setSending(true)
+
+    let started = false
     try {
-      const reply = await sendMessage(text, history)
-      setMessages((current) => [
-        ...current,
-        { id: crypto.randomUUID(), role: 'assistant', content: reply.answer, sources: reply.sources },
-      ])
+      const reply = await streamMessage(
+        text,
+        history,
+        (token) => {
+          // The reply bubble appears with the first words. Until then the typing dots are shown.
+          if (!started) {
+            started = true
+            setMessages((current) => [...current, { id: replyId, role: 'assistant', content: token }])
+          } else {
+            setMessages((current) => current.map((m) => (m.id === replyId ? { ...m, content: m.content + token } : m)))
+          }
+        },
+        controller.signal,
+      )
+
+      // The final reply is cleaned up by the server and carries the sources.
+      const finalMessage: ChatMessage = { id: replyId, role: 'assistant', content: reply.answer, sources: reply.sources }
+      setMessages((current) =>
+        current.some((m) => m.id === replyId) ? current.map((m) => (m.id === replyId ? finalMessage : m)) : [...current, finalMessage],
+      )
     } catch (err) {
-      setError(errorMessage(err, 'Something went wrong. Please try again.'))
+      if (!controller.signal.aborted) setError(errorMessage(err, 'Something went wrong. Please try again.'))
     } finally {
       setSending(false)
     }
   }
+
+  const waitingForFirstWords = sending && messages[messages.length - 1]?.role === 'user'
 
   return (
     <main className="mx-auto flex h-[calc(100vh-4rem)] max-w-3xl flex-col px-4">
@@ -69,7 +97,7 @@ export default function ChatPage() {
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
-            {sending && <TypingIndicator />}
+            {waitingForFirstWords && <TypingIndicator />}
           </>
         )}
         <div ref={endRef} />

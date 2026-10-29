@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using TicketingAI.Api.Knowledge;
@@ -18,7 +20,8 @@ public class ChatService(
 
     private readonly ChatOptions _options = options.Value;
 
-    public async Task<ChatResponse> AskAsync(ChatRequest request, CancellationToken cancellationToken)
+    public async IAsyncEnumerable<ChatStreamEvent> AskAsync(
+        ChatRequest request, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var message = request.Message.Trim();
         var history = (request.History ?? [])
@@ -29,9 +32,21 @@ public class ChatService(
         var sections = await FindSectionsAsync(message, history, cancellationToken);
 
         // The model always answers. The prompt tells it what to do when the sections answer the question, when they do not, and for casual chat.
-        var answer = await model.ChatAsync(ChatPromptBuilder.Build(history, sections, message), cancellationToken);
+        var prompt = ChatPromptBuilder.Build(history, sections, message);
 
-        return BuildResponse(answer.Trim(), sections);
+        var filter = new SourceLineStreamFilter();
+        var reply = new StringBuilder();
+        await foreach (var chunk in model.ChatStreamAsync(prompt, cancellationToken))
+        {
+            reply.Append(chunk);
+
+            var visible = filter.Push(chunk);
+            if (visible.Length > 0)
+                yield return ChatStreamEvent.Token(visible);
+        }
+
+        // The final event is authoritative: it carries the cleaned-up answer and the sources.
+        yield return ChatStreamEvent.Done(BuildResponse(reply.ToString().Trim(), sections));
     }
 
     /// <summary>

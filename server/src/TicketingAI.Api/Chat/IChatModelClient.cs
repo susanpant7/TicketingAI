@@ -2,5 +2,6 @@ namespace TicketingAI.Api.Chat;
 
 public interface IChatModelClient
 {
-    Task<string> ChatAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken);
+    /// <summary>Streams the model's reply as it is written, in small pieces.</summary>
+    IAsyncEnumerable<string> ChatStreamAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken);
 }
