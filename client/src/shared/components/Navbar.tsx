@@ -18,7 +18,7 @@ export default function Navbar() {
   const isAdmin = user?.role === 'Admin'
   const links = [
     ...publicLinks,
-    ...(isAuthenticated && !isAdmin ? privateLinks : []),
+    ...(isAuthenticated ? privateLinks : []),
     ...(isAdmin ? adminLinks : []),
   ]
 

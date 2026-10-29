@@ -3,7 +3,6 @@ import MainLayout from '@/app/MainLayout'
 import AdminRoute from '@/features/auth/AdminRoute'
 import AuthProvider from '@/features/auth/AuthProvider'
 import LoginPage from '@/features/auth/LoginPage'
-import UserRoute from '@/features/auth/UserRoute'
 import ProtectedRoute from '@/features/auth/ProtectedRoute'
 import HomePage from '@/features/dashboard/HomePage'
 import TicketsPage from '@/features/tickets/TicketsPage'
@@ -21,9 +20,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute />}>
-              <Route element={<UserRoute />}>
-                <Route path="/tickets" element={<TicketsPage />} />
-              </Route>
+              <Route path="/tickets" element={<TicketsPage />} />
               <Route element={<AdminRoute />}>
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/departments" element={<DepartmentsPage />} />

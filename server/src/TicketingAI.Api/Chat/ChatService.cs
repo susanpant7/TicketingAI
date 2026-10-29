@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using TicketingAI.Api.Departments;
 using TicketingAI.Api.Knowledge;
 using TicketingAI.Api.Settings;
+using TicketingAI.Api.Tickets;
 
 namespace TicketingAI.Api.Chat;
 
@@ -9,13 +10,19 @@ public class ChatService(
     IKnowledgeService knowledge,
     IChatModelClient model,
     ISettingsService settingsService,
-    IDepartmentRepository departmentRepository) : IChatService
+    IDepartmentRepository departmentRepository,
+    ITicketService ticketService) : IChatService
 {
     // The model is asked to start every reply with "Department: <a department name or none>". Small models sometimes put the line at the end instead, so both ends are accepted.
     private static readonly Regex LeadingDepartmentLine = new(@"^\s*Department:[ \t]*(?<name>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
     private static readonly Regex TrailingDepartmentLine = new(@"\s*Department:[ \t]*(?<name>[^\r\n]*)\s*$", RegexOptions.IgnoreCase);
 
-    public async Task<ChatResponse> AskAsync(ChatRequest request, CancellationToken cancellationToken)
+    private const int MaxTitleLength = 200;
+    private const int MaxDescriptionLength = 4000;
+
+    private static readonly Regex TicketLine = new(@"^\s*(?<key>Action|Title|Description):[ \t]*(?<value>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
+
+    public async Task<ChatResponse> AskAsync(ChatRequest request, int? employeeId, CancellationToken cancellationToken)
     {
         // Read the settings first, so a change in the Settings table applies to this message.
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
@@ -40,8 +47,65 @@ public class ChatService(
 
         var reply = await model.ChatAsync(prompt, chatOptions, cancellationToken);
 
-        return BuildResponse(reply.Trim(), departments);
+        var response = BuildResponse(reply.Trim(), departments);
+        return await CreateTicketIfAgreedAsync(response, employeeId, departments);
     }
+
+    /// <summary>
+    /// When the employee agreed to a ticket, the reply has "Action: create_ticket", "Title:" and "Description:" lines. They are taken
+    /// off the reply, and the server (not the model) creates the ticket and tells the employee who got it.
+    /// </summary>
+    private async Task<ChatResponse> CreateTicketIfAgreedAsync(
+        ChatResponse response, int? employeeId, IReadOnlyList<DepartmentDto> departments)
+    {
+        var (answer, draft) = SplitTicketLines(response.Answer);
+        if (draft is null)
+            return response with { Answer = answer };
+
+        if (employeeId is null)
+            return response with { Answer = "Tickets can only be created for employees. Please log in with an employee account." };
+
+        var department = departments.FirstOrDefault(d => d.Name == response.Department);
+        if (department is null)
+            return response with { Answer = "I could not tell which department the ticket is for. Please tell me which one it should go to." };
+
+        var ticket = await ticketService.CreateAsync(employeeId.Value, department.Id, draft.Title, draft.Description);
+        if (ticket is null)
+            return response with { Answer = $"I could not create the ticket, because the {department.Name} department has no members yet." };
+
+        var created = $"Ticket #{ticket.Id} was created and assigned to {ticket.AssignedTo} ({ticket.Department}).";
+        return response with { Answer = answer.Length == 0 ? created : $"{answer}\n\n{created}" };
+    }
+
+    private record TicketDraft(string Title, string Description);
+
+    private static (string Answer, TicketDraft? Draft) SplitTicketLines(string answer)
+    {
+        string? action = null, title = null, description = null;
+        var rest = answer;
+
+        for (var match = TicketLine.Match(rest); match.Success; match = TicketLine.Match(rest))
+        {
+            var value = match.Groups["value"].Value.Trim();
+            switch (match.Groups["key"].Value.ToLowerInvariant())
+            {
+                case "action": action = value; break;
+                case "title": title = value; break;
+                default: description = value; break;
+            }
+            rest = rest[match.Length..];
+        }
+
+        if (action is null && title is null && description is null)
+            return (answer, null);
+
+        var draft = action?.Equals("create_ticket", StringComparison.OrdinalIgnoreCase) == true && !string.IsNullOrWhiteSpace(title)
+            ? new TicketDraft(Clip(title, MaxTitleLength), Clip(string.IsNullOrWhiteSpace(description) ? title : description, MaxDescriptionLength))
+            : null;
+        return (rest.Trim(), draft);
+    }
+
+    private static string Clip(string text, int max) => text.Length <= max ? text : text[..max];
 
     /// <summary>
     /// Fills the departments into a prompt text. {{departments}} becomes one line per department (name, what it handles, how to

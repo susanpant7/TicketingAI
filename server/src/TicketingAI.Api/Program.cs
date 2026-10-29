@@ -8,6 +8,7 @@ using TicketingAI.Api.Chat;
 using TicketingAI.Api.Departments;
 using TicketingAI.Api.Knowledge;
 using TicketingAI.Api.Settings;
+using TicketingAI.Api.Tickets;
 using TicketingAI.Api.Users;
 using TicketingAI.Data.Persistence;
 
@@ -46,6 +47,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ISettingRepository, SettingRepository>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddOptions<OllamaOptions>().BindConfiguration(OllamaOptions.SectionName).ValidateDataAnnotations();

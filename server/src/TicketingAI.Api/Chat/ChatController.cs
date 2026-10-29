@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TicketingAI.Api.Common;
 using TicketingAI.Api.Knowledge;
 
 namespace TicketingAI.Api.Chat;
@@ -14,7 +15,7 @@ public class ChatController(IChatService chatService) : ControllerBase
     {
         try
         {
-            return await chatService.AskAsync(request, cancellationToken);
+            return await chatService.AskAsync(request, User.GetEmployeeId(), cancellationToken);
         }
         catch (Exception ex) when (ex is ChatModelException or EmbeddingException)
         {
