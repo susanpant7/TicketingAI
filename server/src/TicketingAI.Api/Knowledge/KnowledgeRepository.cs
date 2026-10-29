@@ -24,6 +24,4 @@ public class KnowledgeRepository(AppDbContext db) : IKnowledgeRepository
         await transaction.CommitAsync();
         return deleted;
     }
-
-    public Task<int> DeleteAllAsync() => db.KnowledgeChunks.ExecuteDeleteAsync();
 }

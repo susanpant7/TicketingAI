@@ -11,12 +11,16 @@ public class KnowledgeController(IKnowledgeService knowledgeService) : Controlle
     [HttpGet("chunks")]
     public async Task<List<KnowledgeChunkDto>> GetChunks() => await knowledgeService.GetChunksAsync();
 
-    [HttpPost("ingest")]
-    public async Task<ActionResult<IngestResult>> Ingest(CancellationToken cancellationToken)
+    [HttpPost("reload")]
+    public async Task<ActionResult<ReloadResult>> Reload(CancellationToken cancellationToken)
     {
         try
         {
-            return await knowledgeService.IngestAsync(cancellationToken);
+            return await knowledgeService.ReloadAsync(cancellationToken);
+        }
+        catch (ReloadInProgressException ex)
+        {
+            return Problem(ex.Message, statusCode: StatusCodes.Status409Conflict);
         }
         catch (EmbeddingException ex)
         {
@@ -27,7 +31,4 @@ public class KnowledgeController(IKnowledgeService knowledgeService) : Controlle
             return Problem(ex.Message, statusCode: StatusCodes.Status422UnprocessableEntity);
         }
     }
-
-    [HttpDelete("chunks")]
-    public async Task<ActionResult<object>> DeleteAll() => new { Deleted = await knowledgeService.DeleteAllAsync() };
 }

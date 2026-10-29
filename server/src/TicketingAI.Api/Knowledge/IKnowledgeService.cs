@@ -4,8 +4,6 @@ public interface IKnowledgeService
 {
     Task<List<KnowledgeChunkDto>> GetChunksAsync();
 
-    /// <summary>Deletes all chunks, then reads, embeds and inserts every document section.</summary>
-    Task<IngestResult> IngestAsync(CancellationToken cancellationToken);
-
-    Task<int> DeleteAllAsync();
+    /// <summary>Reads every document section, embeds it, then deletes all chunks and inserts the new ones.</summary>
+    Task<ReloadResult> ReloadAsync(CancellationToken cancellationToken);
 }

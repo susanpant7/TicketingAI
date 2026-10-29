@@ -2,10 +2,12 @@ import { getToken } from '@/shared/api/token'
 
 export class ApiError extends Error {
   status: number
+  detail?: string
 
-  constructor(status: number, message = `Request failed with status ${status}`) {
-    super(message)
+  constructor(status: number, detail?: string) {
+    super(detail ?? `Request failed with status ${status}`)
     this.status = status
+    this.detail = detail
   }
 }
 

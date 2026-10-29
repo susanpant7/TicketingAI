@@ -10,9 +10,27 @@ public class KnowledgeService(
     IEmbeddingClient embeddingClient,
     IKnowledgeRepository repository) : IKnowledgeService
 {
+    // Only one reload may run at a time, across all requests.
+    private static readonly SemaphoreSlim ReloadLock = new(1, 1);
+
     public Task<List<KnowledgeChunkDto>> GetChunksAsync() => repository.GetAllAsync();
 
-    public async Task<IngestResult> IngestAsync(CancellationToken cancellationToken)
+    public async Task<ReloadResult> ReloadAsync(CancellationToken cancellationToken)
+    {
+        if (!await ReloadLock.WaitAsync(0, CancellationToken.None))
+            throw new ReloadInProgressException();
+
+        try
+        {
+            return await ReloadCoreAsync(cancellationToken);
+        }
+        finally
+        {
+            ReloadLock.Release();
+        }
+    }
+
+    private async Task<ReloadResult> ReloadCoreAsync(CancellationToken cancellationToken)
     {
         var sections = reader.ReadSections();
         if (sections.Count == 0)
@@ -35,10 +53,8 @@ public class KnowledgeService(
         }).ToList();
 
         var deleted = await repository.ReplaceAllAsync(chunks);
-        return new IngestResult(deleted, chunks.Count, sections.Select(s => s.SourceFile).Distinct().Count());
+        return new ReloadResult(deleted, chunks.Count, sections.Select(s => s.SourceFile).Distinct().Count());
     }
-
-    public Task<int> DeleteAllAsync() => repository.DeleteAllAsync();
 
     // The title and heading give the section context, and the prefix is what nomic-embed-text expects for documents.
     private static string ToEmbeddingText(KnowledgeSection section) =>

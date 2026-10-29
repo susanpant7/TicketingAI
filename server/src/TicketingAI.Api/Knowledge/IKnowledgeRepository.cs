@@ -8,6 +8,4 @@ public interface IKnowledgeRepository
 
     /// <summary>Deletes every chunk and inserts the new ones in a single transaction. Returns the number deleted.</summary>
     Task<int> ReplaceAllAsync(IReadOnlyList<KnowledgeChunk> chunks);
-
-    Task<int> DeleteAllAsync();
 }

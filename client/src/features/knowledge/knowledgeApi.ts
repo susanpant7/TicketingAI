@@ -10,7 +10,7 @@ export interface KnowledgeChunk {
   ingestedAt: string
 }
 
-export interface IngestResult {
+export interface ReloadResult {
   deleted: number
   inserted: number
   documents: number
@@ -18,6 +18,4 @@ export interface IngestResult {
 
 export const getChunks = () => apiFetch<KnowledgeChunk[]>('/knowledge/chunks')
 
-export const ingestDocuments = () => apiFetch<IngestResult>('/knowledge/ingest', { method: 'POST' })
-
-export const deleteAllChunks = () => apiFetch<{ deleted: number }>('/knowledge/chunks', { method: 'DELETE' })
+export const reloadKnowledge = () => apiFetch<ReloadResult>('/knowledge/reload', { method: 'POST' })
