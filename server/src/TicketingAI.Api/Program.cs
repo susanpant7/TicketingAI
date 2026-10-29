@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TicketingAI.Api.Auth;
 using TicketingAI.Api.Departments;
+using TicketingAI.Api.Knowledge;
 using TicketingAI.Api.Users;
 using TicketingAI.Data.Persistence;
 
@@ -42,6 +43,15 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddOptions<OllamaOptions>().BindConfiguration(OllamaOptions.SectionName).ValidateDataAnnotations();
+builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>((services, client) =>
+{
+    client.BaseAddress = new Uri(services.GetRequiredService<IOptions<OllamaOptions>>().Value.BaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(5);
+});
+builder.Services.AddSingleton<IKnowledgeDocumentReader, KnowledgeDocumentReader>();
+builder.Services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();
+builder.Services.AddScoped<IKnowledgeService, KnowledgeService>();
 
 Directory.CreateDirectory("data");
 
