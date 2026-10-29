@@ -1,5 +1,4 @@
 namespace TicketingAI.Api.Chat;
 
-public record ChatSource(string DocumentTitle, string Heading, string Category, double Score);
-
-public record ChatResponse(string Answer, List<ChatSource> Sources);
+/// <summary>The final reply. Department is "HR", "IT" or "Finance" when the reply relates to one, otherwise null.</summary>
+public record ChatResponse(string Answer, string? Department);

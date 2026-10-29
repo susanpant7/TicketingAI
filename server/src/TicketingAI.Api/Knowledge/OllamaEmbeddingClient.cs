@@ -10,22 +10,22 @@ public class OllamaEmbeddingClient(HttpClient http, IOptions<OllamaOptions> opti
     private readonly OllamaOptions _options = options.Value;
 
     public async Task<IReadOnlyList<float[]>> EmbedAsync(
-        IReadOnlyList<string> texts, CancellationToken cancellationToken = default)
+        IReadOnlyList<string> texts, string model, CancellationToken cancellationToken = default)
     {
         var vectors = new List<float[]>(texts.Count);
         foreach (var batch in texts.Chunk(BatchSize))
-            vectors.AddRange(await EmbedBatchAsync(batch, cancellationToken));
+            vectors.AddRange(await EmbedBatchAsync(batch, model, cancellationToken));
 
         return vectors;
     }
 
-    private async Task<float[][]> EmbedBatchAsync(string[] batch, CancellationToken cancellationToken)
+    private async Task<float[][]> EmbedBatchAsync(string[] batch, string model, CancellationToken cancellationToken)
     {
         HttpResponseMessage response;
         try
         {
             response = await http.PostAsJsonAsync(
-                "/api/embed", new { model = _options.EmbeddingModel, input = batch }, cancellationToken);
+                "/api/embed", new { model, input = batch }, cancellationToken);
         }
         catch (HttpRequestException ex)
         {
@@ -39,8 +39,8 @@ public class OllamaEmbeddingClient(HttpClient http, IOptions<OllamaOptions> opti
             {
                 var detail = await response.Content.ReadAsStringAsync(cancellationToken);
                 throw new EmbeddingException(
-                    $"Ollama returned {(int)response.StatusCode} for model '{_options.EmbeddingModel}': {detail}. " +
-                    $"If the model is missing, run: ollama pull {_options.EmbeddingModel}");
+                    $"Ollama returned {(int)response.StatusCode} for model '{model}': {detail}. " +
+                    $"If the model is missing, run: ollama pull {model}");
             }
 
             var body = await response.Content.ReadFromJsonAsync<EmbedResponse>(cancellationToken);

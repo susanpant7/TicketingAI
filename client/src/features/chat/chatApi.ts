@@ -1,22 +1,15 @@
 import { ApiError, apiStream } from '@/shared/api/apiClient'
 
-export interface ChatSource {
-  documentTitle: string
-  heading: string
-  category: string
-  score: number
-}
-
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
-  sources?: ChatSource[]
 }
 
 export interface ChatReply {
   answer: string
-  sources: ChatSource[]
+  /** The department the reply relates to ("HR", "IT" or "Finance"). Missing when there is none. Not shown yet. */
+  department?: string
 }
 
 // The server streams one JSON object per line: text as it is written, then the final reply, or an error.
@@ -26,7 +19,8 @@ type StreamEvent =
   | { type: 'error'; message: string }
 
 // The server keeps no conversation state yet, so the recent messages are sent along with each question.
-const HISTORY_LENGTH = 6
+// The server uses the last ones, as many as the "chat.history_messages" setting says.
+const HISTORY_LENGTH = 20
 
 /** Sends a message and calls onToken with each piece of the reply as it arrives. Resolves with the final reply. */
 export async function streamMessage(

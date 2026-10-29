@@ -13,15 +13,13 @@ public class OllamaChatClient(HttpClient http, IOptions<OllamaOptions> options) 
     private readonly OllamaOptions _options = options.Value;
 
     public async IAsyncEnumerable<string> ChatStreamAsync(
-        IReadOnlyList<ChatMessage> messages, [EnumeratorCancellation] CancellationToken cancellationToken)
+        IReadOnlyList<ChatMessage> messages, ChatModelOptions chat, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var request = new
         {
-            model = _options.ChatModel,
+            model = chat.Model,
             stream = true,
-            // A larger context than Ollama's default, so the knowledge sections are not cut off.
-            // Temperature 0 makes replies factual and repeatable, and keeps the small model following the reply format.
-            options = new { num_ctx = 4096, temperature = 0 },
+            options = new { num_ctx = chat.NumCtx, temperature = chat.Temperature, top_p = chat.TopP, num_predict = chat.MaxTokens },
             messages = messages.Select(m => new { role = m.Role, content = m.Content })
         };
 
@@ -44,8 +42,8 @@ public class OllamaChatClient(HttpClient http, IOptions<OllamaOptions> options) 
             {
                 var detail = await response.Content.ReadAsStringAsync(cancellationToken);
                 throw new ChatModelException(
-                    $"Ollama returned {(int)response.StatusCode} for model '{_options.ChatModel}': {detail}. " +
-                    $"If the model is missing, run: ollama pull {_options.ChatModel}");
+                    $"Ollama returned {(int)response.StatusCode} for model '{chat.Model}': {detail}. " +
+                    $"If the model is missing, run: ollama pull {chat.Model}");
             }
 
             // Ollama streams one JSON object per line.

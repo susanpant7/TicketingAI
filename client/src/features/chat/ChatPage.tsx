@@ -54,8 +54,8 @@ export default function ChatPage() {
         controller.signal,
       )
 
-      // The final reply is cleaned up by the server and carries the sources.
-      const finalMessage: ChatMessage = { id: replyId, role: 'assistant', content: reply.answer, sources: reply.sources }
+      // The final reply is cleaned up by the server.
+      const finalMessage: ChatMessage = { id: replyId, role: 'assistant', content: reply.answer }
       setMessages((current) =>
         current.some((m) => m.id === replyId) ? current.map((m) => (m.id === replyId ? finalMessage : m)) : [...current, finalMessage],
       )

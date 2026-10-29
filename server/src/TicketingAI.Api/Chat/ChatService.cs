@@ -1,42 +1,45 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Options;
 using TicketingAI.Api.Knowledge;
+using TicketingAI.Api.Settings;
 
 namespace TicketingAI.Api.Chat;
 
 public class ChatService(
     IKnowledgeService knowledge,
     IChatModelClient model,
-    IOptions<ChatOptions> options) : IChatService
+    ISettingsService settingsService) : IChatService
 {
-    // Questions this short are usually follow-ups ("and for sick leave?") that only make sense with the previous question.
-    private const int FollowUpMaxWords = 5;
+    // The departments the model may name. They must match the categories of the knowledge documents.
+    private static readonly string[] Departments = ["HR", "IT", "Finance"];
 
-    // The model is asked to start every reply with "Source: <document title>" or "Source: none". Small models sometimes put the line at the end instead, so both ends are accepted.
-    private static readonly Regex LeadingSourceLine = new(@"^\s*Source:[ \t]*(?<title>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
-    private static readonly Regex TrailingSourceLine = new(@"\s*Source:[ \t]*(?<title>[^\r\n]*)\s*$", RegexOptions.IgnoreCase);
-
-    private readonly ChatOptions _options = options.Value;
+    // The model is asked to start every reply with "Department: <HR, IT, Finance or none>". Small models sometimes put the line at the end instead, so both ends are accepted.
+    private static readonly Regex LeadingDepartmentLine = new(@"^\s*Department:[ \t]*(?<name>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
+    private static readonly Regex TrailingDepartmentLine = new(@"\s*Department:[ \t]*(?<name>[^\r\n]*)\s*$", RegexOptions.IgnoreCase);
 
     public async IAsyncEnumerable<ChatStreamEvent> AskAsync(
         ChatRequest request, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        // Read the settings first, so a change in the Settings table applies to this message.
+        var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
+
         var message = request.Message.Trim();
         var history = (request.History ?? [])
             .Where(m => m.Role is "user" or "assistant" && !string.IsNullOrWhiteSpace(m.Content))
-            .TakeLast(_options.HistoryMessages)
+            .TakeLast(settings.HistoryMessages)
             .ToList();
 
-        var sections = await FindSectionsAsync(message, history, cancellationToken);
+        var sections = await FindSectionsAsync(message, history, settings, cancellationToken);
 
         // The model always answers. The prompt tells it what to do when the sections answer the question, when they do not, and for casual chat.
-        var prompt = ChatPromptBuilder.Build(history, sections, message);
+        var prompt = ChatPromptBuilder.Build(history, sections, message, settings.SystemPrompt, settings.FormatReminder);
+        var chatOptions = new ChatModelOptions(
+            settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens);
 
-        var filter = new SourceLineStreamFilter();
+        var filter = new DepartmentLineStreamFilter();
         var reply = new StringBuilder();
-        await foreach (var chunk in model.ChatStreamAsync(prompt, cancellationToken))
+        await foreach (var chunk in model.ChatStreamAsync(prompt, chatOptions, cancellationToken))
         {
             reply.Append(chunk);
 
@@ -45,48 +48,43 @@ public class ChatService(
                 yield return ChatStreamEvent.Token(visible);
         }
 
-        // The final event is authoritative: it carries the cleaned-up answer and the sources.
-        yield return ChatStreamEvent.Done(BuildResponse(reply.ToString().Trim(), sections));
+        // The final event is authoritative: it carries the cleaned-up answer and the department.
+        yield return ChatStreamEvent.Done(BuildResponse(reply.ToString().Trim()));
     }
 
-    /// <summary>
-    /// Takes the "Source:" line off the reply. Sources are shown only when it names a document the model was given,
-    /// so replies that used no document (chat, "contact HR") show none.
-    /// </summary>
-    private static ChatResponse BuildResponse(string reply, IReadOnlyList<KnowledgeSearchResult> sections)
+    /// <summary>Takes the "Department:" line off the reply. Anything other than HR, IT or Finance (such as "none") means no department.</summary>
+    private static ChatResponse BuildResponse(string reply)
     {
-        var (answer, title) = SplitSourceLine(reply);
+        var (answer, name) = SplitDepartmentLine(reply);
         if (answer.Length == 0)
-            return new ChatResponse(reply, []);
+            return new ChatResponse(reply, null);
 
-        var cited = sections.Where(s => title.StartsWith(s.DocumentTitle, StringComparison.OrdinalIgnoreCase)).ToList();
-
-        return new ChatResponse(
-            answer,
-            cited.Select(s => new ChatSource(s.DocumentTitle, s.Heading, s.Category, Math.Round(s.Score, 3))).ToList());
+        var department = Departments.FirstOrDefault(d => d.Equals(name, StringComparison.OrdinalIgnoreCase));
+        return new ChatResponse(answer, department);
     }
 
-    private static (string Answer, string Title) SplitSourceLine(string reply)
+    private static (string Answer, string Name) SplitDepartmentLine(string reply)
     {
-        var leading = LeadingSourceLine.Match(reply);
+        var leading = LeadingDepartmentLine.Match(reply);
         if (leading.Success)
-            return (reply[leading.Length..].Trim(), leading.Groups["title"].Value.Trim());
+            return (reply[leading.Length..].Trim(), leading.Groups["name"].Value.Trim());
 
-        var trailing = TrailingSourceLine.Match(reply);
+        var trailing = TrailingDepartmentLine.Match(reply);
         return trailing.Success
-            ? (reply[..trailing.Index].Trim(), trailing.Groups["title"].Value.Trim())
+            ? (reply[..trailing.Index].Trim(), trailing.Groups["name"].Value.Trim())
             : (reply, "");
     }
 
     private async Task<List<KnowledgeSearchResult>> FindSectionsAsync(
-        string message, IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken) =>
-        (await knowledge.SearchAsync(BuildSearchQuery(message, history), _options.TopK, cancellationToken))
-            .Where(s => s.Score >= _options.MinScore)
+        string message, IReadOnlyList<ChatMessage> history, AiSettings settings, CancellationToken cancellationToken) =>
+        (await knowledge.SearchAsync(BuildSearchQuery(message, history, settings.FollowUpMaxWords), settings.TopK, cancellationToken))
+            .Where(s => s.Score >= settings.MinScore)
             .ToList();
 
-    private static string BuildSearchQuery(string message, IReadOnlyList<ChatMessage> history)
+    // Messages this short are usually follow-ups ("and for sick leave?") that only make sense with the previous question.
+    private static string BuildSearchQuery(string message, IReadOnlyList<ChatMessage> history, int followUpMaxWords)
     {
-        var isFollowUp = message.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= FollowUpMaxWords;
+        var isFollowUp = message.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= followUpMaxWords;
         var previousQuestion = history.LastOrDefault(m => m.Role == "user")?.Content;
 
         return isFollowUp && previousQuestion is not null ? $"{previousQuestion} {message}" : message;

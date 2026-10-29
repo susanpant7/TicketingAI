@@ -7,6 +7,7 @@ using TicketingAI.Api.Auth;
 using TicketingAI.Api.Chat;
 using TicketingAI.Api.Departments;
 using TicketingAI.Api.Knowledge;
+using TicketingAI.Api.Settings;
 using TicketingAI.Api.Users;
 using TicketingAI.Data.Persistence;
 
@@ -44,13 +45,13 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddOptions<OllamaOptions>().BindConfiguration(OllamaOptions.SectionName).ValidateDataAnnotations();
 builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>((services, client) =>
 {
     client.BaseAddress = new Uri(services.GetRequiredService<IOptions<OllamaOptions>>().Value.BaseUrl);
     client.Timeout = TimeSpan.FromMinutes(5);
 });
-builder.Services.AddOptions<ChatOptions>().BindConfiguration(ChatOptions.SectionName).ValidateDataAnnotations();
 builder.Services.AddHttpClient<IChatModelClient, OllamaChatClient>((services, client) =>
 {
     client.BaseAddress = new Uri(services.GetRequiredService<IOptions<OllamaOptions>>().Value.BaseUrl);
@@ -73,6 +74,8 @@ using (var scope = app.Services.CreateScope())
 
     var vecVersion = db.Database.SqlQueryRaw<string>("SELECT vec_version() AS Value").Single();
     app.Logger.LogInformation("sqlite-vec {Version} loaded", vecVersion);
+
+    await SettingsSeeder.SeedAsync(db);
 }
 
 app.UseAuthentication();

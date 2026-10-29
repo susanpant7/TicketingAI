@@ -8,10 +8,4 @@ public class OllamaOptions
 
     [Required]
     public string BaseUrl { get; init; } = "http://localhost:11434";
-
-    [Required]
-    public string EmbeddingModel { get; init; } = "nomic-embed-text";
-
-    [Required]
-    public string ChatModel { get; init; } = "qwen2.5:7b";
 }

@@ -15,25 +15,9 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   return (
     <div className="flex items-start gap-3">
       <AssistantAvatar />
-      <div className="max-w-[80%]">
-        <p className="whitespace-pre-wrap rounded-2xl rounded-tl-md bg-white px-4 py-2.5 text-sm leading-6 text-slate-800 shadow-sm ring-1 ring-slate-200">
-          {message.content}
-        </p>
-        {message.sources && message.sources.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-400">Sources:</span>
-            {message.sources.map((source) => (
-              <span
-                key={`${source.documentTitle}-${source.heading}`}
-                title={`${source.category} · match ${Math.round(source.score * 100)}%`}
-                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"
-              >
-                {source.documentTitle} › {source.heading}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-tl-md bg-white px-4 py-2.5 text-sm leading-6 text-slate-800 shadow-sm ring-1 ring-slate-200">
+        {message.content}
+      </p>
     </div>
   )
 }
