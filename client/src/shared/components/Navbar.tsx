@@ -9,7 +9,10 @@ const privateLinks = [
   { to: '/chat', label: 'Chat' },
   { to: '/tickets', label: 'Tickets' },
 ]
-const adminLinks = [{ to: '/users', label: 'Users' }]
+const adminLinks = [
+  { to: '/users', label: 'Users' },
+  { to: '/knowledge', label: 'Knowledge' },
+]
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()

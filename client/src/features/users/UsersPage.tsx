@@ -1,17 +1,11 @@
 import { useEffect, useState } from 'react'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
+import CategoryBadge from '@/shared/components/CategoryBadge'
 import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import PageHeader from '@/shared/components/PageHeader'
 import UserForm from '@/features/users/UserForm'
 import { deleteUser, getDepartments, getUsers, type Department, type User } from '@/features/users/usersApi'
-
-const departmentStyles: Record<string, string> = {
-  IT: 'bg-indigo-50 text-indigo-700',
-  HR: 'bg-emerald-50 text-emerald-700',
-  Finance: 'bg-amber-50 text-amber-700',
-}
-const defaultDepartmentStyle = 'bg-slate-100 text-slate-700'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -115,11 +109,7 @@ export default function UsersPage() {
                   </td>
                   <td className="hidden px-6 py-4 text-slate-600 md:table-cell">{user.username}</td>
                   <td className="px-6 py-4">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${departmentStyles[user.departmentName] ?? defaultDepartmentStyle}`}
-                    >
-                      {user.departmentName}
-                    </span>
+                    <CategoryBadge name={user.departmentName} />
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-1">
