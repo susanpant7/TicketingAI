@@ -98,7 +98,7 @@ export default function SettingForm({ setting, onSaved, onCancel }: SettingFormP
         {isEmbeddingModel && (
           <Alert
             variant="warning"
-            message="Warning: changing the embedding model deletes all the knowledge data. Vectors made by different models cannot be compared, so you will need to reload the knowledge data afterwards. Until then, the assistant has no knowledge to search."
+            message="Warning: changing the embedding model deletes all the knowledge data. Vectors made by different models cannot be compared, so you will need to upload the knowledge files again afterwards. Until then, the assistant has no knowledge to search."
           />
         )}
 
@@ -106,8 +106,8 @@ export default function SettingForm({ setting, onSaved, onCancel }: SettingFormP
           <div className="rounded-lg bg-red-50 p-4 ring-1 ring-inset ring-red-200">
             <p className="text-sm font-semibold text-red-800">Delete all knowledge data and change the model?</p>
             <p className="mt-1 text-sm text-red-700">
-              Every knowledge section will be deleted when you save. Open the Knowledge page and click Reload knowledge
-              data afterwards.
+              Every knowledge section will be deleted when you save. Open the Knowledge page and upload the knowledge
+              files again afterwards.
             </p>
           </div>
         )}

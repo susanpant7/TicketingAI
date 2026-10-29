@@ -1,9 +1,7 @@
 ---
 title: Customer Invoicing and Collections
-category: Finance
+department: Finance
 ---
-
-# Customer Invoicing and Collections
 
 ## Requesting a customer invoice
 To invoice a customer, submit an invoice request in the finance portal under Billing > New Invoice or email billing@ticket.com. Include the customer name and billing address, the customer's PO number if they gave one, what was delivered, the amount and the agreed payment terms. Finance issues the invoice within 2 working days.

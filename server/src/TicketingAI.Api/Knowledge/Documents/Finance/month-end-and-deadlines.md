@@ -1,9 +1,7 @@
 ---
 title: Month-End and Finance Deadlines
-category: Finance
+department: Finance
 ---
-
-# Month-End and Finance Deadlines
 
 ## Why finance deadlines matter
 Finance closes its books every month, and anything submitted after a deadline is recorded in the following month. This affects when you are reimbursed and how budgets look. Plan to submit everything before the deadlines below. All dates in this document refer to Nepali (BS) calendar months.

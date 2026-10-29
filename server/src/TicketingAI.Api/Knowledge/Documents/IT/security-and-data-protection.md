@@ -1,9 +1,7 @@
 ---
 title: Security and Data Protection
-category: IT
+department: IT
 ---
-
-# Security and Data Protection
 
 ## Protecting your laptop
 Lock your screen with Windows+L whenever you leave your desk, and never leave your laptop unattended in public places or in a car. Screens lock automatically after 5 minutes of inactivity. Keep disk encryption and endpoint protection on.

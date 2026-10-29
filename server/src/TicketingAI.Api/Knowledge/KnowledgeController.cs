@@ -8,6 +8,8 @@ namespace TicketingAI.Api.Knowledge;
 [Route("api/[controller]")]
 public class KnowledgeController(IKnowledgeService knowledgeService) : ControllerBase
 {
+    private const long MaxFileBytes = 1_000_000;
+
     [HttpGet("chunks")]
     public async Task<List<KnowledgeChunkDto>> GetChunks() => await knowledgeService.GetChunksAsync();
 
@@ -28,24 +30,49 @@ public class KnowledgeController(IKnowledgeService knowledgeService) : Controlle
         }
     }
 
-    [HttpPost("reload")]
-    public async Task<ActionResult<ReloadResult>> Reload(CancellationToken cancellationToken)
+    [HttpDelete("department/{departmentId:int}")]
+    public async Task<ActionResult<DeleteKnowledgeResult>> DeleteDepartment(int departmentId)
     {
         try
         {
-            return await knowledgeService.ReloadAsync(cancellationToken);
+            return new DeleteKnowledgeResult(await knowledgeService.DeleteDepartmentKnowledgeAsync(departmentId));
         }
-        catch (ReloadInProgressException ex)
+        catch (UploadDepartmentNotFoundException ex)
         {
-            return Problem(ex.Message, statusCode: StatusCodes.Status409Conflict);
+            return Problem(ex.Message, statusCode: StatusCodes.Status404NotFound);
         }
-        catch (EmbeddingException ex)
+    }
+
+    [HttpPost("upload")]
+    [RequestSizeLimit(20_000_000)]
+    public async Task<ActionResult<List<UploadFileResult>>> Upload(
+        [FromForm] int departmentId, [FromForm] bool flush, [FromForm] List<IFormFile> files, CancellationToken cancellationToken)
+    {
+        if (files.Count == 0)
+            return Problem("Select at least one file.", statusCode: StatusCodes.Status400BadRequest);
+
+        var uploaded = new List<UploadedFile>();
+        var rejected = new List<UploadFileResult>();
+        foreach (var file in files)
         {
-            return Problem(ex.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
+            if (file.Length > MaxFileBytes)
+            {
+                rejected.Add(new UploadFileResult(file.FileName, 0, "The file is larger than 1 MB."));
+                continue;
+            }
+
+            using var reader = new StreamReader(file.OpenReadStream());
+            uploaded.Add(new UploadedFile(Path.GetFileName(file.FileName), await reader.ReadToEndAsync(cancellationToken)));
         }
-        catch (InvalidOperationException ex)
+
+        try
         {
-            return Problem(ex.Message, statusCode: StatusCodes.Status422UnprocessableEntity);
+            var results = await knowledgeService.UploadAsync(departmentId, flush, uploaded, cancellationToken);
+            return results.Concat(rejected).ToList();
+        }
+        catch (UploadDepartmentNotFoundException ex)
+        {
+            return Problem(ex.Message, statusCode: StatusCodes.Status404NotFound);
         }
     }
 }

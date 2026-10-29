@@ -52,7 +52,7 @@ export default function SettingsPage() {
             <Link to="/knowledge" className="font-semibold underline">
               Knowledge page
             </Link>{' '}
-            and click Reload knowledge data.
+            and upload the knowledge files again.
           </>
         ),
       })

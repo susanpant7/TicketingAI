@@ -1,9 +1,7 @@
 ---
 title: Banking, Digital Payments and Foreign Currency
-category: Finance
+department: Finance
 ---
-
-# Banking, Digital Payments and Foreign Currency
 
 ## How the company pays
 The company pays vendors, salaries and reimbursements by bank transfer, using the Nepal banking system, for example through connectIPS or the bank's own transfer service. Large payments must always go through a bank. Finance does not make cash payments except from petty cash, within its limits.

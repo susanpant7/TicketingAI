@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { getChunks, reloadKnowledge, type KnowledgeChunk } from '@/features/knowledge/knowledgeApi'
+import { useEffect, useState } from 'react'
+import { getChunks, type KnowledgeChunk } from '@/features/knowledge/knowledgeApi'
+import UploadForm from '@/features/knowledge/UploadForm'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
-import Button from '@/shared/components/Button'
 import CategoryBadge from '@/shared/components/CategoryBadge'
 import PageHeader from '@/shared/components/PageHeader'
 import Tabs from '@/shared/components/Tabs'
@@ -15,12 +15,9 @@ const formatDate = (iso: string) => new Date(iso.endsWith('Z') ? iso : `${iso}Z`
 export default function KnowledgePage() {
   const [chunks, setChunks] = useState<KnowledgeChunk[]>([])
   const [loading, setLoading] = useState(true)
-  const [reloading, setReloading] = useState(false)
-  const reloadInFlight = useRef(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState(ALL)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
@@ -38,29 +35,7 @@ export default function KnowledgePage() {
     }
   }, [version])
 
-  const reload = () => setVersion((v) => v + 1)
-
-  async function handleReload() {
-    // Checked synchronously, so a fast double click cannot start two reloads before the button disables.
-    if (reloadInFlight.current) return
-    reloadInFlight.current = true
-
-    setError('')
-    setNotice('')
-    setReloading(true)
-    try {
-      const result = await reloadKnowledge()
-      setNotice(
-        `Reloaded ${result.inserted} sections from ${result.documents} documents (replaced ${result.deleted} existing).`,
-      )
-      reload()
-    } catch (err) {
-      setError(errorMessage(err, 'Reloading the knowledge data failed. Please try again.'))
-    } finally {
-      reloadInFlight.current = false
-      setReloading(false)
-    }
-  }
+  const refresh = () => setVersion((v) => v + 1)
 
   // One tab per category found in the data, so a new category in the documents gets its own tab automatically.
   const categories = [...new Set(chunks.map((c) => c.category))].sort()
@@ -82,26 +57,19 @@ export default function KnowledgePage() {
     <main className="mx-auto max-w-6xl px-6 py-10">
       <PageHeader
         title="Knowledge"
-        description="The assistant answers from this knowledge base, built from the company documents."
-        action={
-          <Button onClick={handleReload} disabled={reloading}>
-            {reloading ? 'Reloading...' : 'Reload knowledge data'}
-          </Button>
-        }
+        description="The assistant answers from this knowledge base, built from the files uploaded below."
       />
 
+      <UploadForm onUploaded={refresh} />
+
       <div className="mt-6 space-y-3">
-        {reloading && (
-          <Alert variant="success" message="Embedding all documents. This can take a minute, please keep this page open." />
-        )}
-        {notice && <Alert variant="success" message={notice} />}
         {error && <Alert message={error} />}
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Sections" value={String(chunks.length)} />
         <Stat label="Documents" value={String(documentCount)} />
-        <Stat label="Last reloaded" value={lastIngested ? formatDate(lastIngested) : 'Never'} />
+        <Stat label="Last uploaded" value={lastIngested ? formatDate(lastIngested) : 'Never'} />
       </div>
 
       {(loading || chunks.length > 0 || !error) && (
@@ -110,7 +78,7 @@ export default function KnowledgePage() {
             <p className="px-6 py-12 text-center text-sm text-slate-500">Loading...</p>
           ) : chunks.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-slate-500">
-              The knowledge base is empty. Click "Reload knowledge data" to load the documents.
+              The knowledge base is empty. Upload knowledge files above.
             </p>
           ) : (
             <>

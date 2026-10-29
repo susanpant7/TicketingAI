@@ -1,9 +1,7 @@
 ---
 title: Festival Allowance and Bonus
-category: HR
+department: HR
 ---
-
-# Festival Allowance and Bonus
 
 ## Dashain allowance
 Employees receive a Dashain allowance equal to one month of basic salary. It is paid before the Dashain holidays begin, usually in the month of Ashwin, together with or just before the salary. Payroll publishes the exact payment date in the HR portal each year.

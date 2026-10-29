@@ -61,7 +61,6 @@ builder.Services.AddHttpClient<IChatModelClient, OllamaChatClient>((services, cl
     client.Timeout = TimeSpan.FromMinutes(10);
 });
 builder.Services.AddScoped<IChatService, ChatService>();
-builder.Services.AddSingleton<IKnowledgeDocumentReader, KnowledgeDocumentReader>();
 builder.Services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();
 builder.Services.AddScoped<IKnowledgeService, KnowledgeService>();
 

@@ -1,9 +1,7 @@
 ---
 title: Remote Work Policy
-category: HR
+department: HR
 ---
-
-# Remote Work Policy
 
 ## Hybrid work model
 The company follows a hybrid model. Employees work from the office at least 3 days a week and may work remotely on the other days. Teams agree their in-office days together, so that everyone is in on the same days at least twice a week.

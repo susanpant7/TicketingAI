@@ -1,9 +1,7 @@
 ---
 title: Vendor Invoices and Payments
-category: Finance
+department: Finance
 ---
-
-# Vendor Invoices and Payments
 
 ## Where vendors send invoices
 Vendors must send invoices to ap@ticket.com, the accounts payable mailbox, and not to individual employees. Every invoice must show the purchase order number, the company name and PAN, the invoice date, the amount and tax, and the vendor's bank details. If you receive an invoice directly, forward it to ap@ticket.com the same day.

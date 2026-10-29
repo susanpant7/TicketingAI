@@ -1,9 +1,7 @@
 ---
 title: Wi-Fi and Network
-category: IT
+department: IT
 ---
-
-# Wi-Fi and Network
 
 ## Office Wi-Fi for employees
 Employees connect to the "Corp-WiFi" network using their company email and password. The first connection asks you to accept a certificate, which is expected. Your laptop remembers the network afterwards. Do not connect company laptops to guest Wi-Fi.

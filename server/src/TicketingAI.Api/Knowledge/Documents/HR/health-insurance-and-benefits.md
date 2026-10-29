@@ -1,9 +1,7 @@
 ---
 title: Health Insurance and Benefits
-category: HR
+department: HR
 ---
-
-# Health Insurance and Benefits
 
 ## Medical insurance coverage
 All full-time employees are covered by company-paid medical insurance from their first day. Coverage extends to your spouse and up to 2 dependent children at no cost to you. The annual coverage limit is NPR 500,000 (5 lakh) per family.

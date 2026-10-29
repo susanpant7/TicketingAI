@@ -1,9 +1,7 @@
 ---
 title: Income Tax, TDS and PAN for Employees
-category: HR
+department: HR
 ---
-
-# Income Tax, TDS and PAN for Employees
 
 ## PAN is required
 Every employee needs a Permanent Account Number (PAN) from the Inland Revenue Department (IRD). Give your PAN to HR on your first day. Without a PAN, tax is deducted at a higher rate and you cannot claim deductions. If you do not have a PAN yet, ask HR to guide you through applying for one.

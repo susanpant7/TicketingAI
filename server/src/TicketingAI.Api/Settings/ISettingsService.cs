@@ -13,7 +13,7 @@ public interface ISettingsService
 
     /// <summary>
     /// Changes a setting. Changing the embedding model also deletes all knowledge sections, because vectors made with
-    /// different models cannot be compared. The knowledge data has to be reloaded afterwards.
+    /// different models cannot be compared. The knowledge data has to be uploaded again afterwards.
     /// </summary>
     Task<SettingResult> UpdateAsync(string key, UpdateSettingRequest request);
 }

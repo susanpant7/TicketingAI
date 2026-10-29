@@ -1,9 +1,7 @@
 ---
 title: Nepali Language and Unicode Support
-category: IT
+department: IT
 ---
-
-# Nepali Language and Unicode Support
 
 ## Typing in Nepali on your laptop
 Company laptops support typing in Nepali (Devanagari). Open Settings > Time & language > Language & region, add "Nepali (Nepal)", and choose a keyboard layout, such as Nepali Romanized or Nepali Traditional. Switch between English and Nepali with the Windows key and the space bar, or from the language icon in the taskbar.

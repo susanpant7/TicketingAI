@@ -1,9 +1,7 @@
 ---
 title: Emergencies and Business Continuity
-category: HR
+department: HR
 ---
-
-# Emergencies and Business Continuity
 
 ## Emergency numbers
 In an emergency in Nepal, call the police on 100, the fire brigade on 101 and an ambulance on 102. The tourist police can be reached on 1144. Save these numbers, and the HR emergency line, which is on the back of your access card.

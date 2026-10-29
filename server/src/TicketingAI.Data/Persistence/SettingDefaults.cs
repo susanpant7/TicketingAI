@@ -64,13 +64,13 @@ public static class SettingDefaults
     public static IReadOnlyList<SettingDefinition> All { get; } =
     [
         new(SettingKeys.EmbeddingModel, "Embedding model",
-            "Model that converts text into vectors. Changing it requires re-embedding all knowledge chunks (use Reload knowledge data), because old and new vectors cannot be compared. Change the two prefixes below to match the new model.",
+            "Model that converts text into vectors. Changing it requires re-embedding all knowledge chunks (upload the knowledge files again), because old and new vectors cannot be compared. Change the two prefixes below to match the new model.",
             "nomic-embed-text"),
         new(SettingKeys.EmbeddingQueryPrefix, "Embedding query prefix",
             "Text put before the user's question when it is converted to a vector, joined with one space. It depends on the embedding model: nomic-embed-text expects search_query:.",
             "search_query:"),
         new(SettingKeys.EmbeddingDocumentPrefix, "Embedding document prefix",
-            "Text put before each knowledge chunk when it is converted to a vector, joined with one space. It depends on the embedding model: nomic-embed-text expects search_document:. After changing it, reload the knowledge data.",
+            "Text put before each knowledge chunk when it is converted to a vector, joined with one space. It depends on the embedding model: nomic-embed-text expects search_document:. After changing it, upload the knowledge files again.",
             "search_document:"),
         new(SettingKeys.RetrievalTopK, "Results to retrieve",
             "How many of the closest knowledge chunks are sent to the chat model. Higher gives more coverage but adds noise and a larger, slower prompt. Typical: 3 to 5.",

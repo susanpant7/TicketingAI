@@ -18,8 +18,4 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="Knowledge\Documents\**\*.md" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
 </Project>

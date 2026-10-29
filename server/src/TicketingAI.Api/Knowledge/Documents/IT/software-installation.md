@@ -1,9 +1,7 @@
 ---
 title: Software Installation
-category: IT
+department: IT
 ---
-
-# Software Installation
 
 ## Standard software on your laptop
 Every laptop includes Microsoft 365 with Outlook, Word, Excel, PowerPoint and Teams, a web browser (Edge and Chrome), the VPN client, and a password manager. These are updated automatically, so you do not need to update them yourself.

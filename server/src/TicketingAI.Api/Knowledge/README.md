@@ -16,21 +16,20 @@ Documents/
 
 ## Document format
 
-Markdown with a front matter block, then sections under `##` headings:
+The admin uploads these files on the Knowledge page. `title` and `department` come first, then sections under `##` headings. The `---` lines are optional, and there is no `# Title` line, because the title is already at the top:
 
 ```markdown
 ---
 title: Leave Policy
-category: HR
+department: HR
 ---
-
-# Leave Policy
 
 ## Annual leave entitlement
 ...
 ```
 
-- `category` (`HR`, `IT` or `Finance`) is the source of truth, and is used to filter retrieval.
+- `department` must equal the department chosen in the upload form (names are compared ignoring case); otherwise the file is discarded.
+- Upload mode **Add** keeps existing knowledge (a file with the same name replaces its earlier sections). **Flush and Add** deletes all existing knowledge first.
 - Each `##` section is one retrieval chunk, so it must make sense on its own: name the topic in the section text instead of relying on the heading above it.
 
 ## Retrieval test questions (HR)

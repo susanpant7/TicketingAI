@@ -1,9 +1,7 @@
 ---
 title: Onboarding and Probation
-category: HR
+department: HR
 ---
-
-# Onboarding and Probation
 
 ## First day
 On your first day, arrive at 09:30 at reception. HR will welcome you, check your identity documents, and sign your employment paperwork. IT will hand over your laptop and accounts, and you will meet your manager and your onboarding buddy.

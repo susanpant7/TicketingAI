@@ -1,9 +1,7 @@
 ---
 title: Domestic Travel Policy
-category: HR
+department: HR
 ---
-
-# Domestic Travel Policy
 
 ## Approval and booking
 Business travel inside Nepal needs your manager's approval before you book. Submit a travel request in the HR portal with the destination, dates and purpose. Book through the travel desk where possible, so that tickets and hotels are booked at company rates.

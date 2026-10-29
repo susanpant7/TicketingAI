@@ -14,17 +14,30 @@ public class KnowledgeRepository(AppDbContext db) : IKnowledgeRepository
                 c.Id, c.DocumentTitle, c.Category, c.Heading, c.Content, c.SourceFile, c.IngestedAt))
             .ToListAsync();
 
-    public async Task<int> ReplaceAllAsync(IReadOnlyList<KnowledgeChunk> chunks)
+    public async Task ReplaceAllAsync(IReadOnlyList<KnowledgeChunk> chunks)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
 
-        var deleted = await db.KnowledgeChunks.ExecuteDeleteAsync();
+        await db.KnowledgeChunks.ExecuteDeleteAsync();
         db.KnowledgeChunks.AddRange(chunks);
         await db.SaveChangesAsync();
 
         await transaction.CommitAsync();
-        return deleted;
     }
+
+    public async Task ReplaceFileAsync(string sourceFile, IReadOnlyList<KnowledgeChunk> chunks)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        await db.KnowledgeChunks.Where(c => c.SourceFile == sourceFile).ExecuteDeleteAsync();
+        db.KnowledgeChunks.AddRange(chunks);
+        await db.SaveChangesAsync();
+
+        await transaction.CommitAsync();
+    }
+
+    public Task<int> DeleteByDepartmentAsync(string department) =>
+        db.KnowledgeChunks.Where(c => c.Category == department).ExecuteDeleteAsync();
 
     // Raw SQL because EF Core's LINQ does not know sqlite-vec's functions. The extension is loaded by the connection interceptor.
     public Task<List<KnowledgeSearchRow>> SearchAsync(float[] queryVector, int topK) =>

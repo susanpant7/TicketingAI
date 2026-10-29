@@ -1,9 +1,7 @@
 ---
 title: Purchase Requests and Procurement
-category: Finance
+department: Finance
 ---
-
-# Purchase Requests and Procurement
 
 ## When you need a purchase request
 Raise a purchase request for any purchase of goods or services above NPR 10,000 that is paid by the company, such as equipment, software subscriptions, consultants and event costs. Purchases of NPR 10,000 or less can be paid by the employee and claimed as an expense. Never order or commit to a vendor before the purchase request is approved.

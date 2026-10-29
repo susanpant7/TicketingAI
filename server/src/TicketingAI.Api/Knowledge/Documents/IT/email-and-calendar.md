@@ -1,9 +1,7 @@
 ---
 title: Email and Calendar
-category: IT
+department: IT
 ---
-
-# Email and Calendar
 
 ## Email setup
 Company email runs on Outlook with Microsoft 365. On a company laptop, Outlook is already set up with your company account. On the web, you can sign in at outlook.office.com from anywhere using your company login and multi-factor authentication.

@@ -1,9 +1,7 @@
 ---
 title: Payroll and Salary
-category: HR
+department: HR
 ---
-
-# Payroll and Salary
 
 ## Salary payment date
 Salaries are paid on the last working day of each Nepali (BS) month by bank transfer. If the last day of the month is a Saturday or public holiday, salary is paid on the working day before it. All dates in HR and payroll policies, such as the 15th or the 20th, refer to BS calendar months unless stated otherwise.

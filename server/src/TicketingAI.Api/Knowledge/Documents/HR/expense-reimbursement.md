@@ -1,9 +1,7 @@
 ---
 title: Expense Reimbursement
-category: HR
+department: HR
 ---
-
-# Expense Reimbursement
 
 ## What can be reimbursed
 The company reimburses reasonable business expenses that were approved in advance, such as travel, accommodation, client meals, and equipment or software needed for your work. Personal expenses and fines are never reimbursed.

@@ -1,9 +1,7 @@
 ---
 title: Nepali Fiscal Year and Statutory Deadlines
-category: Finance
+department: Finance
 ---
-
-# Nepali Fiscal Year and Statutory Deadlines
 
 ## The Nepali fiscal year
 The company uses the Nepali fiscal year, which starts on 1 Shrawan and ends on the last day of Ashadh. This is roughly mid-July to mid-July in the English calendar. Budgets, accounts and tax are all based on this year, and finance works in Bikram Sambat (BS) dates.

@@ -1,9 +1,7 @@
 ---
 title: Power Backup and Internet Outages
-category: IT
+department: IT
 ---
-
-# Power Backup and Internet Outages
 
 ## Power cuts at the office
 The office has an uninterruptible power supply (UPS) and a backup generator. When the electricity goes off, the lights, servers, network and Wi-Fi stay on, and the generator starts within about a minute. Your laptop's battery covers any short gap, so you do not need to do anything.

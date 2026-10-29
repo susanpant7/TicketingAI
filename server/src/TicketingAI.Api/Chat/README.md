@@ -309,7 +309,7 @@ and in the message it becomes:
 Employees get 12 days of paid sick leave per year. A medical certificate from a registered doctor is required when sick leave lasts more than 3 consecutive working days. Tell your manager as early as possible on the first day of absence, ideally before 10:00.
 ```
 
-The only things the server adds around the rows are the word `Sections:` at the start, the blank lines between the sections, `Message: <what the user typed>` after the last section, and the reminder. The data in the table itself came from the Markdown files in the `Knowledge/Documents` folder: the **Reload knowledge data** button splits each file by its `##` headings and stores one row per section.
+The only things the server adds around the rows are the word `Sections:` at the start, the blank lines between the sections, `Message: <what the user typed>` after the last section, and the reminder. The data in the table itself came from Markdown files (samples are in the `Knowledge/Documents` folder): the admin uploads on the Knowledge page; each file is split by its `##` headings and stored as one row per section.
 
 ```
 POST http://localhost:11434/api/chat
@@ -567,7 +567,7 @@ All of these are rows in the `Settings` table (columns `Key`, `Label`, `Descript
 | `chat.format_reminder` | see Step 4 | Step 4: added to the end of the new message. May contain `{{department_names}}` |
 
 - A missing or invalid value falls back to the default, and a warning is logged.
-- Changing `embedding.model` deletes all knowledge sections, because vectors made by different models cannot be compared. The Settings page warns about this, and the knowledge data must be reloaded afterwards.
+- Changing `embedding.model` deletes all knowledge sections, because vectors made by different models cannot be compared. The Settings page warns about this, and the knowledge files must be uploaded again afterwards.
 - The Ollama address is not a setting. It stays in `appsettings.json`.
 
 ## The departments

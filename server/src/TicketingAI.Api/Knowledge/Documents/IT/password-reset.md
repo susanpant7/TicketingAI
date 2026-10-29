@@ -1,9 +1,7 @@
 ---
 title: Password Reset and Account Lockout
-category: IT
+department: IT
 ---
-
-# Password Reset and Account Lockout
 
 ## Password rules
 Your company password must be at least 12 characters long and contain upper-case and lower-case letters, a number and a symbol. You cannot reuse any of your last 10 passwords. Passwords expire every 90 days, and you get a reminder email 14 days before expiry.

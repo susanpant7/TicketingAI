@@ -1,9 +1,7 @@
 ---
 title: Code of Conduct and Working Hours
-category: HR
+department: HR
 ---
-
-# Code of Conduct and Working Hours
 
 ## Working hours
 Standard working hours are 09:30 to 17:30, Sunday to Friday, with a one-hour lunch break. Saturday is the weekly day off. This is 42 working hours a week, within the 48-hour weekly limit of the Labour Act. Flexible start times are possible within the core hours rules in the remote work policy.

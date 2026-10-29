@@ -1,9 +1,7 @@
 ---
 title: Multi-Factor Authentication
-category: IT
+department: IT
 ---
-
-# Multi-Factor Authentication
 
 ## What multi-factor authentication is
 Multi-factor authentication (MFA) asks for a second proof of identity, in addition to your password, when you sign in. It protects your account even if someone learns your password. MFA is mandatory for all employees for email, VPN and internal systems.

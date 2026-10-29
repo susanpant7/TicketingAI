@@ -1,9 +1,7 @@
 ---
 title: VPN Access
-category: IT
+department: IT
 ---
-
-# VPN Access
 
 ## When you need the VPN
 You must connect to the company VPN whenever you access internal systems from outside the office, such as the HR portal, internal wikis, file shares and the ticketing system. You do not need the VPN inside the office network. Email and chat work without the VPN.

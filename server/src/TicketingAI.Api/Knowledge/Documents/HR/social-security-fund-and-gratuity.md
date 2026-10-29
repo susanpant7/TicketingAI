@@ -1,9 +1,7 @@
 ---
 title: Social Security Fund and Gratuity
-category: HR
+department: HR
 ---
-
-# Social Security Fund and Gratuity
 
 ## What the Social Security Fund is
 The Social Security Fund (SSF) is Nepal's government-run fund for the social protection of employees. The company enrols every employee in SSF from the first month of employment. Contributions are deducted from your salary and matched by the company, and the company deposits both parts to SSF every month.

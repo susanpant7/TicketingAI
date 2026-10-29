@@ -1,9 +1,7 @@
 ---
 title: Finance Support and Contacts
-category: Finance
+department: Finance
 ---
-
-# Finance Support and Contacts
 
 ## Who to contact in finance
 For general finance questions, email finance@ticket.com. For vendor invoices and payments, email ap@ticket.com. For customer invoices and collections, email billing@ticket.com. For salary and payslip questions, email payroll@ticket.com, which is handled with HR.

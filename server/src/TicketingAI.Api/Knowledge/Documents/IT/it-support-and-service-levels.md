@@ -1,9 +1,7 @@
 ---
 title: IT Support and Service Levels
-category: IT
+department: IT
 ---
-
-# IT Support and Service Levels
 
 ## How to contact IT support
 You can reach IT support by email at it-help@ticket.com, by phone on extension 100, or by raising a ticket in the ticketing system. Raising a ticket is the preferred way, because it is tracked and prioritized. Walk-ins are welcome at the IT desk on the ground floor.

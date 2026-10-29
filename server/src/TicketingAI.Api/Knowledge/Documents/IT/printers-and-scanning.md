@@ -1,9 +1,7 @@
 ---
 title: Printers and Scanning
-category: IT
+department: IT
 ---
-
-# Printers and Scanning
 
 ## Adding a printer
 Office printers are shared and managed on the print server. On a company laptop, open Software Center and install "Office Printers", or add the printer from Settings > Printers using the address \\print.ticket.com. Choose the printer on your floor, which is named with the floor number, for example "Floor3-Color".

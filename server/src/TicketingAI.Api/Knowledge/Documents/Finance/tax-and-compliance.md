@@ -1,9 +1,7 @@
 ---
 title: Tax and Compliance
-category: Finance
+department: Finance
 ---
-
-# Tax and Compliance
 
 ## Tax invoices
 Every business expense claim above NPR 1,000 needs a receipt, and purchases from vendors need a proper tax invoice showing the company name, the company PAN, the vendor's PAN, the date, the amount and the tax. Ask the vendor for the company details before you pay. Invoices that do not show these details may not be accepted for reimbursement.

@@ -1,9 +1,7 @@
 ---
 title: Public Holidays and Festivals
-category: HR
+department: HR
 ---
-
-# Public Holidays and Festivals
 
 ## How the holiday list works
 The company follows the Nepal government public holiday list, which has at least 13 holidays a year. Many festival dates follow the lunar calendar, so they change every year. HR publishes the full list in the HR portal each Baisakh, using Bikram Sambat (BS) dates with the matching English dates. Saturday is the weekly day off, so holidays that fall on Saturday are not moved.

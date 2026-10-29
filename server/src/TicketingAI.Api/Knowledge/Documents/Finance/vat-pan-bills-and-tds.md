@@ -1,9 +1,7 @@
 ---
 title: VAT Bills, PAN Bills and TDS
-category: Finance
+department: Finance
 ---
-
-# VAT Bills, PAN Bills and TDS
 
 ## Two kinds of bills in Nepal
 Vendors in Nepal issue either a VAT bill or a PAN bill. A VAT bill comes from a VAT-registered vendor, and shows the VAT of 13 percent as a separate amount. A PAN bill comes from a vendor who is registered for PAN but not for VAT, and has no VAT. Both must show the vendor's PAN or VAT number.

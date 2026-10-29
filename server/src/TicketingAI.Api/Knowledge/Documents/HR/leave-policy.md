@@ -1,9 +1,7 @@
 ---
 title: Leave Policy
-category: HR
+department: HR
 ---
-
-# Leave Policy
 
 ## Annual leave entitlement
 Every full-time employee gets 18 days of paid annual leave per year, called home leave in Nepali labour law. This follows the Labour Act accrual of 1 day for every 20 days worked. Annual leave accrues monthly, and new joiners accrue from their start date.

@@ -1,9 +1,7 @@
 ---
 title: Laptops and Hardware
-category: IT
+department: IT
 ---
-
-# Laptops and Hardware
 
 ## Standard laptop
 Every full-time employee gets a company laptop on their first day. Standard laptops are Windows laptops, and developers can request a MacBook. All laptops have encrypted disks, endpoint protection and automatic updates enabled, and these settings must not be turned off.

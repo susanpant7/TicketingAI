@@ -1,9 +1,7 @@
 ---
 title: Corporate Credit Card
-category: Finance
+department: Finance
 ---
-
-# Corporate Credit Card
 
 ## Who can have a corporate card
 Corporate credit cards are issued to managers and to employees who travel or buy for the company often. Ask your manager to request a card for you through the finance portal under Cards > New Card Request. Cards are issued within 10 working days after approval by your department head and finance.

@@ -1,9 +1,7 @@
 ---
 title: Petty Cash and Cash Advances
-category: Finance
+department: Finance
 ---
-
-# Petty Cash and Cash Advances
 
 ## What petty cash is for
 Petty cash covers small, urgent office expenses that cannot be paid by card or invoice, such as courier fees, stationery or refreshments for a visitor. Each purchase is limited to NPR 5,000. Larger amounts need a purchase request or an expense claim.

@@ -1,9 +1,7 @@
 ---
 title: Budgets and Approval Limits
-category: Finance
+department: Finance
 ---
-
-# Budgets and Approval Limits
 
 ## Financial year and budget cycle
 The financial year follows the Nepali fiscal year and runs from 1 Shrawan to the end of Ashadh (mid-July to mid-July). Annual budget planning takes place in Baisakh and Jestha, and department heads submit budget proposals to finance by 15 Jestha. The final budgets are approved by the CFO in Ashadh and apply from 1 Shrawan.
