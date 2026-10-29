@@ -11,6 +11,18 @@ public class TicketService(ITicketRepository repository, IOptions<AdminOptions> 
 
     public Task<List<TicketDto>> GetAllAsync(int? userId) => repository.GetAllAsync(userId);
 
+    public async Task<TicketResult> UpdateStatusAsync(int ticketId, int? employeeId, TicketStatus status)
+    {
+        var assigneeId = await repository.GetAssigneeIdAsync(ticketId);
+        if (assigneeId is null)
+            return new TicketResult(null, TicketError.NotFound);
+        if (assigneeId != employeeId)
+            return new TicketResult(null, TicketError.NotAssignee);
+
+        await repository.SetStatusAsync(ticketId, status);
+        return new TicketResult(await repository.GetByIdAsync(ticketId));
+    }
+
     public async Task<TicketDto?> CreateAsync(int reportedById, int departmentId, string title, string description)
     {
         await AssignLock.WaitAsync();

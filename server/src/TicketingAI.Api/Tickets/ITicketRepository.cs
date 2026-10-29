@@ -16,5 +16,10 @@ public interface ITicketRepository
     /// </summary>
     Task<User?> GetNextAssigneeAsync(int departmentId, int reportedById, string adminUsername);
 
+    /// <summary>The id of the user the ticket is assigned to, or null if there is no such ticket.</summary>
+    Task<int?> GetAssigneeIdAsync(int id);
+
+    Task SetStatusAsync(int id, TicketStatus status);
+
     Task AddAsync(Ticket ticket);
 }

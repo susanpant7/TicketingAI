@@ -34,6 +34,12 @@ public class TicketRepository(AppDbContext db) : ITicketRepository
         return candidates.FirstOrDefault(u => u.Id > lastAssigneeId) ?? candidates[0];
     }
 
+    public Task<int?> GetAssigneeIdAsync(int id) =>
+        db.Tickets.Where(t => t.Id == id).Select(t => (int?)t.AssignedToId).FirstOrDefaultAsync();
+
+    public Task SetStatusAsync(int id, TicketStatus status) =>
+        db.Tickets.Where(t => t.Id == id).ExecuteUpdateAsync(s => s.SetProperty(t => t.Status, status));
+
     public async Task AddAsync(Ticket ticket)
     {
         db.Tickets.Add(ticket);
@@ -42,7 +48,7 @@ public class TicketRepository(AppDbContext db) : ITicketRepository
 
     private static IQueryable<TicketDto> Dtos(IQueryable<Ticket> tickets) =>
         tickets.Select(t => new TicketDto(
-            t.Id, t.Title, t.Description, t.AssignedTo.Department.Name,
+            t.Id, t.Title, t.Description, t.AssignedTo.Department.Name, t.Status,
             t.ReportedBy.FullName, t.ReportedBy.Username,
             t.AssignedTo.FullName, t.AssignedTo.Username,
             t.CreatedAt));

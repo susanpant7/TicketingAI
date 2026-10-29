@@ -166,6 +166,13 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.Property<int>("ReportedById")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("New");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)

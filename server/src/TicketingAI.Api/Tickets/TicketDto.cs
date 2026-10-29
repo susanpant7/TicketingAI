@@ -1,3 +1,5 @@
+using TicketingAI.Data.Entities;
+
 namespace TicketingAI.Api.Tickets;
 
 public record TicketDto(
@@ -5,6 +7,7 @@ public record TicketDto(
     string Title,
     string Description,
     string Department,
+    TicketStatus Status,
     string ReportedBy,
     string ReportedByUsername,
     string AssignedTo,

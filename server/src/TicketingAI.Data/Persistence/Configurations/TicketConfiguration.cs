@@ -10,6 +10,7 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
     {
         builder.Property(t => t.Title).HasMaxLength(200);
         builder.Property(t => t.Description).HasMaxLength(4000);
+        builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(20).HasDefaultValue(TicketStatus.New);
 
         // Users with tickets cannot be deleted.
         builder.HasOne(t => t.ReportedBy)
