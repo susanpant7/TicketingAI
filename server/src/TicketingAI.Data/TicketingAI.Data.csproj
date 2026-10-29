@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*" />
+    <PackageReference Include="sqlite-vec" Version="0.1.7-alpha.2.1" />
   </ItemGroup>
 
 </Project>

@@ -12,7 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+    options.UseSqlite(builder.Configuration.GetConnectionString("Default"))
+        .AddInterceptors(new SqliteVecConnectionInterceptor()));
 
 builder.Services.AddOptionsWithValidateOnStart<AdminOptions>()
     .BindConfiguration(AdminOptions.SectionName)
@@ -48,7 +49,11 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+
+    var vecVersion = db.Database.SqlQueryRaw<string>("SELECT vec_version() AS Value").Single();
+    app.Logger.LogInformation("sqlite-vec {Version} loaded", vecVersion);
 }
 
 app.UseAuthentication();
