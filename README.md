@@ -98,6 +98,55 @@ A new database is empty. Log in as the admin and do these in order:
 
 Then log in as an employee (for example `aarav` with the password you chose), open the chat button at the bottom right, and ask a question. If the answer does not help, say so, and the assistant offers to create a ticket. Tickets are listed on the Tickets page, where the assignee can change the status.
 
+## Changing the AI model
+
+**The default models are `qwen2.5:7b` (chat answers) and `nomic-embed-text` (embeddings).** The defaults live in `server/src/TicketingAI.Data/Persistence/SettingDefaults.cs` and are stored in the database as settings. `qwen2.5:7b` needs about 8 GB of memory or more. A smaller model such as `qwen2.5:3b` is faster and needs about half the memory, but its answers should be re-tested, because the prompt was tuned on the 7B model.
+
+Example: switch the chat model from `qwen2.5:7b` to `qwen2.5:3b`. Two things must change, because the model has to exist in Ollama **and** the app has to be told to use it.
+
+**With Docker**
+
+1. **Docker side: download the model.** In `docker-compose.yml`, in the `pull-models` service, change the `entrypoint` line:
+
+   ```yaml
+   # before
+   entrypoint: ["/bin/sh", "-c", "ollama pull qwen2.5:7b && ollama pull nomic-embed-text"]
+   # after
+   entrypoint: ["/bin/sh", "-c", "ollama pull qwen2.5:3b && ollama pull nomic-embed-text"]
+   ```
+
+   Then run `docker compose up -d`. The changed service runs again and downloads the model. To skip the compose edit for a one-off test, run `docker compose exec ollama ollama pull qwen2.5:3b` instead (the compose edit is only needed so a new machine downloads it automatically).
+
+2. **App side: use the model.** Log in as admin, open **Settings**, find **Chat model**, click **Edit**, change the value to `qwen2.5:3b`, and save. It applies to the next message, with no restart.
+
+3. **Optional: make it the default for new installs.** On the Settings page, **Restore defaults** puts the model back to whatever the default in `SettingDefaults.cs` says, which is `qwen2.5:7b`. To make `qwen2.5:3b` the default, change the `ChatModel` value in `SettingDefaults.cs` (`"qwen2.5:7b"` to `"qwen2.5:3b"`), rebuild (`docker compose up --build`), and click **Restore defaults** once on an existing database.
+
+**Without Docker:** run `ollama pull qwen2.5:3b`, then do step 2.
+
+**Changing the embedding model** (`nomic-embed-text`) is different: it **deletes all the knowledge** (old and new vectors cannot be compared) and the two prefixes (`search_document:` and `search_query:`) must match the new model. Do the same pull, change **Embedding model** and the prefixes on the Settings page, then upload the knowledge files again.
+
+## Clean restart with Docker
+
+Use these when something is stuck or you want a fresh start. Run them in the project folder.
+
+**Fresh database, keep the downloaded models** (for example after changing the migrations, or an error such as `table ... already exists`):
+
+```bash
+docker compose down
+docker volume rm ticketing-ai_server-data
+docker compose up --build
+```
+
+**Clean everything and start over** (deletes the database, the settings, the tickets **and the downloaded models**, so the 5 GB download happens again):
+
+```bash
+docker compose down -v --remove-orphans
+docker compose build --no-cache
+docker compose up
+```
+
+After a fresh database, do the [first-time setup](#first-time-setup-in-the-app) again: load departments and users, and upload the knowledge files.
+
 ## Troubleshooting
 
 | Problem | Cause and fix |
