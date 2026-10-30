@@ -79,7 +79,7 @@ public static class SettingDefaults
     public static IReadOnlyList<SettingDefinition> All { get; } =
     [
         new(SettingKeys.EmbeddingModel, "Embedding model",
-            "Model that converts text into vectors. Changing it requires re-embedding all knowledge chunks (upload the knowledge files again), because old and new vectors cannot be compared. Change the two prefixes below to match the new model.",
+            "Model that converts text into vectors. Changing it requires re-embedding all knowledge chunks (upload the knowledge files again), because old and new vectors cannot be compared. Change the two prefixes below to match the new model. The model must also exist in Ollama: when the app runs in Docker, pull it first with `docker compose exec ollama ollama pull <model>` (otherwise embedding fails with a model-not-found error), and add it to the pull-models service in docker-compose.yml to have it downloaded automatically on a new machine.",
             "nomic-embed-text"),
         new(SettingKeys.EmbeddingQueryPrefix, "Embedding query prefix",
             "Text put before the user's question when it is converted to a vector, joined with one space. It depends on the embedding model: nomic-embed-text expects search_query:.",
@@ -97,7 +97,7 @@ public static class SettingDefaults
             "Messages with this many words or fewer are searched together with the previous question, so short follow-ups such as 'and casual leave?' still find the right topic. Set 0 to turn this off.",
             "5"),
         new(SettingKeys.ChatModel, "Chat model",
-            "Model that writes the final answer from the retrieved context. Can be changed without re-embedding anything. The rules and the reply format were tested with qwen2.5:7b, so re-test after changing it.",
+            "Model that writes the final answer from the retrieved context. Can be changed without re-embedding anything. The rules and the reply format were tested with qwen2.5:7b, so re-test after changing it. The model must also exist in Ollama: when the app runs in Docker, pull it first with `docker compose exec ollama ollama pull <model>` (otherwise chat fails with a model-not-found error), and add it to the pull-models service in docker-compose.yml to have it downloaded automatically on a new machine. A bigger model also needs more memory for Docker.",
             "qwen2.5:7b"),
         new(SettingKeys.ChatTemperature, "Temperature",
             "Controls randomness. Lower gives focused, repeatable answers; higher gives more varied ones. Use 0 to 0.3 for factual answers. With qwen2.5:7b, 0 gave the most repeatable replies and the most reliable reply format.",
