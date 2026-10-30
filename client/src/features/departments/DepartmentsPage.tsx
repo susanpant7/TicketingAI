@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import DepartmentForm from '@/features/departments/DepartmentForm'
-import { deleteDepartment, getDepartments, type Department } from '@/features/departments/departmentsApi'
+import { deleteDepartment, getDepartments, loadDefaultDepartments, type Department } from '@/features/departments/departmentsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
@@ -15,6 +15,8 @@ export default function DepartmentsPage() {
   const [editing, setEditing] = useState<Department | null>(null)
   const [deleting, setDeleting] = useState<Department | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [loadingDefaults, setLoadingDefaults] = useState(false)
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
@@ -44,6 +46,25 @@ export default function DepartmentsPage() {
     reload()
   }
 
+  async function handleLoadDefaults() {
+    setError('')
+    setNotice('')
+    setLoadingDefaults(true)
+    try {
+      const { added, skipped } = await loadDefaultDepartments()
+      setNotice(
+        added === 0
+          ? 'The default departments already exist.'
+          : `Added ${added} default ${added === 1 ? 'department' : 'departments'}${skipped > 0 ? ` (${skipped} already existed)` : ''}.`,
+      )
+      reload()
+    } catch (err) {
+      setError(errorMessage(err, 'Could not load the default departments. Please try again.'))
+    } finally {
+      setLoadingDefaults(false)
+    }
+  }
+
   async function confirmDelete() {
     if (!deleting) return
     setDeleteBusy(true)
@@ -66,12 +87,20 @@ export default function DepartmentsPage() {
       <PageHeader
         title="Departments"
         description="Add, rename and delete departments. A department that still has users cannot be deleted."
-        action={<Button onClick={() => openForm(null)}>Add department</Button>}
+        action={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={handleLoadDefaults} disabled={loadingDefaults}>
+              {loadingDefaults ? 'Loading...' : 'Load default departments'}
+            </Button>
+            <Button onClick={() => openForm(null)}>Add department</Button>
+          </div>
+        }
       />
 
-      {error && (
-        <div className="mt-6">
-          <Alert message={error} />
+      {(notice || error) && (
+        <div className="mt-6 space-y-3">
+          {notice && <Alert variant="success" message={notice} />}
+          {error && <Alert message={error} />}
         </div>
       )}
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TicketingAI.Api.Common;
 
 namespace TicketingAI.Api.Departments;
 
@@ -19,6 +20,10 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
         var result = await departmentService.CreateAsync(request);
         return result.Department is null ? Fail(result) : Created($"api/departments/{result.Department.Id}", result.Department);
     }
+
+    [HttpPost("load-defaults")]
+    [Authorize(Roles = "Admin")]
+    public async Task<LoadDefaultsResult> LoadDefaults() => await departmentService.LoadDefaultsAsync();
 
     [HttpPut("{id:int}")]
     [Authorize(Roles = "Admin")]

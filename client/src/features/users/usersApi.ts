@@ -29,6 +29,14 @@ export interface UpdateUserInput {
   password?: string
 }
 
+export interface LoadDefaultsResult {
+  added: number
+  skipped: number
+}
+
+export const loadDefaultUsers = (password: string) =>
+  apiFetch<LoadDefaultsResult>('/users/load-defaults', { method: 'POST', body: JSON.stringify({ password }) })
+
 export const getUsers = () => apiFetch<User[]>('/users')
 
 export const getDepartments = () => apiFetch<Department[]>('/departments')

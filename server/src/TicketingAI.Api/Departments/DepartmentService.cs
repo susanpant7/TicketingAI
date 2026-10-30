@@ -1,3 +1,4 @@
+using TicketingAI.Api.Common;
 using TicketingAI.Data.Entities;
 
 namespace TicketingAI.Api.Departments;
@@ -43,6 +44,26 @@ public class DepartmentService(IDepartmentRepository departments) : IDepartmentS
         await departments.UpdateAsync(department);
 
         return new DepartmentResult(ToDto(department, await departments.CountUsersAsync(id)));
+    }
+
+    public async Task<LoadDefaultsResult> LoadDefaultsAsync()
+    {
+        var added = 0;
+        foreach (var defaults in DefaultDepartments.All)
+        {
+            if (await departments.NameExistsAsync(defaults.Name))
+                continue;
+
+            await departments.AddAsync(new Department
+            {
+                Name = defaults.Name,
+                Description = defaults.Description ?? "",
+                Contact = defaults.Contact ?? ""
+            });
+            added++;
+        }
+
+        return new LoadDefaultsResult(added, DefaultDepartments.All.Count - added);
     }
 
     public async Task<DepartmentResult> DeleteAsync(int id)

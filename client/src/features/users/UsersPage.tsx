@@ -4,8 +4,17 @@ import Button from '@/shared/components/Button'
 import CategoryBadge from '@/shared/components/CategoryBadge'
 import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import PageHeader from '@/shared/components/PageHeader'
+import { Link } from 'react-router-dom'
+import LoadDefaultsForm from '@/features/users/LoadDefaultsForm'
 import UserForm from '@/features/users/UserForm'
-import { deleteUser, getDepartments, getUsers, type Department, type User } from '@/features/users/usersApi'
+import {
+  deleteUser,
+  getDepartments,
+  getUsers,
+  type Department,
+  type LoadDefaultsResult,
+  type User,
+} from '@/features/users/usersApi'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -16,6 +25,8 @@ export default function UsersPage() {
   const [editing, setEditing] = useState<User | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [loadDefaultsOpen, setLoadDefaultsOpen] = useState(false)
+  const [notice, setNotice] = useState('')
 
   const [version, setVersion] = useState(0)
   const reload = () => setVersion((v) => v + 1)
@@ -55,6 +66,16 @@ export default function UsersPage() {
     }
   }
 
+  function handleDefaultsLoaded({ added, skipped }: LoadDefaultsResult) {
+    setLoadDefaultsOpen(false)
+    setNotice(
+      added === 0
+        ? 'The default users already exist.'
+        : `Added ${added} default ${added === 1 ? 'user' : 'users'}${skipped > 0 ? ` (${skipped} already existed)` : ''}.`,
+    )
+    reload()
+  }
+
   function handleSaved() {
     setFormOpen(false)
     reload()
@@ -66,17 +87,35 @@ export default function UsersPage() {
         title="Users"
         description="Add, edit and remove users, and manage their departments."
         action={
-          <Button onClick={() => openForm(null)} disabled={departments.length === 0}>
-            Add user
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setLoadDefaultsOpen(true)} disabled={departments.length === 0}>
+              Load default users
+            </Button>
+            <Button onClick={() => openForm(null)} disabled={departments.length === 0}>
+              Add user
+            </Button>
+          </div>
         }
       />
 
-      {error && (
-        <div className="mt-6">
-          <Alert message={error} />
-        </div>
-      )}
+      <div className="mt-6 space-y-3">
+        {!loading && departments.length === 0 && (
+          <Alert
+            variant="warning"
+            message={
+              <>
+                Users belong to a department, so create the departments first on the{' '}
+                <Link to="/departments" className="font-semibold underline">
+                  Departments page
+                </Link>
+                .
+              </>
+            }
+          />
+        )}
+        {notice && <Alert variant="success" message={notice} />}
+        {error && <Alert message={error} />}
+      </div>
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
@@ -135,6 +174,14 @@ export default function UsersPage() {
           departments={departments}
           onSaved={handleSaved}
           onCancel={() => setFormOpen(false)}
+        />
+      )}
+
+      {loadDefaultsOpen && (
+        <LoadDefaultsForm
+          departmentCount={departments.length}
+          onLoaded={handleDefaultsLoaded}
+          onCancel={() => setLoadDefaultsOpen(false)}
         />
       )}
 

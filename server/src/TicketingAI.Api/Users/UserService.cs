@@ -1,3 +1,4 @@
+using TicketingAI.Api.Common;
 using TicketingAI.Api.Departments;
 using TicketingAI.Data.Entities;
 
@@ -64,6 +65,36 @@ public class UserService(IUserRepository users, IDepartmentRepository department
 
         await users.DeleteAsync(user);
         return true;
+    }
+
+    public async Task<LoadDefaultsResult?> LoadDefaultsAsync(string password)
+    {
+        var all = (await departments.GetAllAsync()).OrderBy(d => d.Id).ToList();
+        if (all.Count == 0)
+            return null;
+
+        var added = 0;
+        for (var i = 0; i < DefaultUsers.All.Count; i++)
+        {
+            var (first, last) = DefaultUsers.All[i];
+            var username = first.ToLowerInvariant();
+            var email = $"{username}@ticket.com";
+            if (await users.UsernameExistsAsync(username) || await users.EmailExistsAsync(email))
+                continue;
+
+            await users.AddAsync(new User
+            {
+                Username = username,
+                FullName = $"{first} {last}",
+                Email = email,
+                Password = password,
+                // Block i * departments / users: with 15 users and 3 departments, 5 users each, in order.
+                DepartmentId = all[i * all.Count / DefaultUsers.All.Count].Id
+            });
+            added++;
+        }
+
+        return new LoadDefaultsResult(added, DefaultUsers.All.Count - added);
     }
 
     private static UserDto ToDto(User user) =>

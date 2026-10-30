@@ -1,6 +1,6 @@
 # TicketingAI.Data
 
-SQLite database layer (EF Core): entities, `AppDbContext`, configurations (including seed data) and migrations.
+SQLite database layer (EF Core): entities, `AppDbContext`, configurations and migrations (the default departments and users are loaded by an admin from the app, not seeded).
 
 The database file is created at `server/src/TicketingAI.Api/data/ticketing.db` when running locally
 (`/app/data/ticketing.db` in Docker, inside the `server-data` volume).

@@ -14,6 +14,9 @@ export type DepartmentInput = Pick<Department, 'name' | 'description' | 'contact
 
 export const getDepartments = () => apiFetch<Department[]>('/departments')
 
+export const loadDefaultDepartments = () =>
+  apiFetch<{ added: number; skipped: number }>('/departments/load-defaults', { method: 'POST' })
+
 export const createDepartment = (input: DepartmentInput) =>
   apiFetch<Department>('/departments', { method: 'POST', body: JSON.stringify(input) })
 

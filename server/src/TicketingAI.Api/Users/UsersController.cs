@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TicketingAI.Api.Common;
 
 namespace TicketingAI.Api.Users;
 
@@ -25,6 +26,15 @@ public class UsersController(IUserService userService) : ControllerBase
         return result.User is null
             ? Fail(result.Error)
             : CreatedAtAction(nameof(GetById), new { id = result.User.Id }, result.User);
+    }
+
+    [HttpPost("load-defaults")]
+    public async Task<ActionResult<LoadDefaultsResult>> LoadDefaults(LoadDefaultUsersRequest request)
+    {
+        var result = await userService.LoadDefaultsAsync(request.Password);
+        return result is null
+            ? Problem("There are no departments yet. Create the departments first, because every user belongs to one.", statusCode: StatusCodes.Status400BadRequest)
+            : result;
     }
 
     [HttpPut("{id:int}")]
