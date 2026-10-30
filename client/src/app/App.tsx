@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import MainLayout from '@/app/MainLayout'
 import AdminRoute from '@/features/auth/AdminRoute'
@@ -11,6 +12,9 @@ import KnowledgePage from '@/features/knowledge/KnowledgePage'
 import SettingsPage from '@/features/settings/SettingsPage'
 import UsersPage from '@/features/users/UsersPage'
 
+// Loaded only when the page is opened, because the Markdown renderer is large.
+const DocsPage = lazy(() => import('@/features/docs/DocsPage'))
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -19,6 +23,14 @@ export default function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/docs"
+              element={
+                <Suspense fallback={<p className="mt-8 text-center text-sm text-slate-500">Loading...</p>}>
+                  <DocsPage />
+                </Suspense>
+              }
+            />
             <Route element={<ProtectedRoute />}>
               <Route path="/tickets" element={<TicketsPage />} />
               <Route element={<AdminRoute />}>

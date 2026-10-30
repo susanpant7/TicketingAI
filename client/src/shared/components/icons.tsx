@@ -78,3 +78,25 @@ export const ChevronDownIcon = (props: IconProps) => (
     <path d="M6 9l6 6 6-6" />
   </Icon>
 )
+
+export const BuildingIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 9h5a1 1 0 0 1 1 1v11M3 21h18M8 8h2M8 12h2M8 16h2" />
+  </Icon>
+)
+
+export const BookIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5Z" />
+    <path d="M4 19a2 2 0 0 1 2-2h13" />
+  </Icon>
+)
+
+export const SlidersIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0" />
+    <circle cx="15" cy="6" r="2" />
+    <circle cx="9" cy="12" r="2" />
+    <circle cx="17" cy="18" r="2" />
+  </Icon>
+)

@@ -8,7 +8,7 @@ An internal support app for IT, HR and Finance. Employees chat with an AI assist
 | `server/` | .NET 10 Web API (`TicketingAI.Api`) and the database layer (`TicketingAI.Data`), SQLite with the sqlite-vec extension |
 | Ollama | Runs the models: `qwen2.5:7b` writes the answers, `nomic-embed-text` turns text into vectors |
 
-More detail: [chat workflow](server/src/TicketingAI.Api/Chat/README.md), [knowledge file format](server/src/TicketingAI.Api/Knowledge/README.md), [database commands](server/src/TicketingAI.Data/README.md).
+More detail: the **Docs** page in the app (public, no login needed), with the developer docs on AI and RAG (ingestion, retrieval, the prompt, the model's reply, ticket creation, tuning and debugging; the source is [technical-guide.md](client/src/features/docs/technical-guide.md)), [chat workflow](server/src/TicketingAI.Api/Chat/README.md), [knowledge file format](server/src/TicketingAI.Api/Knowledge/README.md), [database commands](server/src/TicketingAI.Data/README.md).
 
 ## Run with Docker
 
