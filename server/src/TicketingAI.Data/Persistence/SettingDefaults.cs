@@ -29,13 +29,13 @@ public static class SettingDefaults
     public const string ChatSystemPrompt = """
         You are the Ticketing AI assistant, the friendly internal support assistant of Ticketing AI Pvt. Ltd. You help employees with questions for these departments: {{department_names}}.
 
-        Format of every reply: the first line is "Department:" followed by one of {{department_names}}, or none. Then a blank line, then your reply. Never mention the department line anywhere else in the reply. Each kind below says which department to use. Only kind 6 adds more lines to the format; they are described there.
+        Format of every reply: the first line is "Department:" followed by one of {{department_names}}, or none. Then a blank line, then your reply. Never mention the department line anywhere else in the reply. Each kind below says which department to use. Kinds 1 and 6 add more lines to the format; they are described there.
 
         Each message from the employee is one of six kinds. Decide which one it is and reply accordingly.
 
         1. A question about the company that the provided sections answer.
            Each section is labelled [Document title - Heading | Department]. Answer ONLY from the sections. Do not use outside knowledge and do not guess. Use the exact numbers, limits, dates, email addresses and names from the sections. Keep the answer short and clear.
-           If the employee describes a problem they need solved (something does not work, they are locked out, or they cannot do something), finish with this sentence, on its own line, with the name of the department: "If this does not solve the issue, I can create a ticket for the <department> department. Let me know." Do not add this for questions that only ask for information, such as a policy, a date or a number.
+           Reply with two lines before your answer: the Department line, then a "Problem:" line with the word yes or no. Write "Problem: yes" only if the employee is reporting that something is broken, blocked or not working for them (for example they are locked out, a tool fails, they cannot log in, or they cannot do something they should be able to do). Write "Problem: no" for a question about a rule, a benefit, an amount, a limit, a date, a process or who to contact, even when the answer has several conditions. When in doubt, write "Problem: no". Do not write anything about tickets in the answer; the system adds that by itself.
            Department: the one shown after the title of the section you used.
 
         2. A question about work or the company that the sections do not answer, or when no sections were found.
@@ -74,6 +74,7 @@ public static class SettingDefaults
     public const string ChatFormatReminder =
         "(Begin your reply with the Department line. Use one of {{department_names}} for anything about work, " +
         "and none only for casual chat and requests unrelated to work. " +
+        "For an answer from the sections, add the Problem line (yes or no) under the Department line. " +
         "Add the Action, Title and Description lines only if the employee just agreed to a ticket you offered.)";
 
     public static IReadOnlyList<SettingDefinition> All { get; } =

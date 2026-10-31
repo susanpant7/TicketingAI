@@ -20,7 +20,7 @@ public class ChatService(
     private const int MaxTitleLength = 200;
     private const int MaxDescriptionLength = 4000;
 
-    private static readonly Regex TicketLine = new(@"^\s*(?<key>Action|Title|Description):[ \t]*(?<value>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
+    private static readonly Regex TicketLine = new(@"^\s*(?<key>Action|Title|Description|Problem):[ \t]*(?<value>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
 
     public async Task<ChatResponse> AskAsync(ChatRequest request, int? employeeId, CancellationToken cancellationToken)
     {
@@ -58,9 +58,16 @@ public class ChatService(
     private async Task<ChatResponse> CreateTicketIfAgreedAsync(
         ChatResponse response, int? employeeId, IReadOnlyList<DepartmentDto> departments)
     {
-        var (answer, draft) = SplitTicketLines(response.Answer);
+        var (answer, draft, isProblem) = SplitTicketLines(response.Answer);
         if (draft is null)
-            return response with { Answer = answer };
+        {
+            // The model only labels the message as a problem report. The server adds the ticket offer, so the wording is fixed
+            // and the model cannot add it by habit to an ordinary question.
+            var offerTo = departments.FirstOrDefault(d => d.Name == response.Department)?.Name;
+            return isProblem && employeeId is not null && offerTo is not null
+                ? response with { Answer = $"{answer}\n\nIf this does not solve the issue, I can create a ticket for the {offerTo} department. Let me know." }
+                : response with { Answer = answer };
+        }
 
         if (employeeId is null)
             return response with { Answer = "Tickets can only be created for employees. Please log in with an employee account." };
@@ -79,9 +86,9 @@ public class ChatService(
 
     private record TicketDraft(string Title, string Description);
 
-    private static (string Answer, TicketDraft? Draft) SplitTicketLines(string answer)
+    private static (string Answer, TicketDraft? Draft, bool IsProblem) SplitTicketLines(string answer)
     {
-        string? action = null, title = null, description = null;
+        string? action = null, title = null, description = null, problem = null;
         var rest = answer;
 
         for (var match = TicketLine.Match(rest); match.Success; match = TicketLine.Match(rest))
@@ -91,18 +98,19 @@ public class ChatService(
             {
                 case "action": action = value; break;
                 case "title": title = value; break;
+                case "problem": problem = value; break;
                 default: description = value; break;
             }
             rest = rest[match.Length..];
         }
 
-        if (action is null && title is null && description is null)
-            return (answer, null);
+        if (action is null && title is null && description is null && problem is null)
+            return (answer, null, false);
 
         var draft = action?.Equals("create_ticket", StringComparison.OrdinalIgnoreCase) == true && !string.IsNullOrWhiteSpace(title)
             ? new TicketDraft(Clip(title, MaxTitleLength), Clip(string.IsNullOrWhiteSpace(description) ? title : description, MaxDescriptionLength))
             : null;
-        return (rest.Trim(), draft);
+        return (rest.Trim(), draft, problem?.Equals("yes", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     private static string Clip(string text, int max) => text.Length <= max ? text : text[..max];

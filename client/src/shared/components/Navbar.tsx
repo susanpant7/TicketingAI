@@ -6,6 +6,7 @@ import { SparkleIcon } from '@/shared/components/icons'
 
 const publicLinks = [
   { to: '/', label: 'Home' },
+  { to: '/guide', label: 'Guide' },
   { to: '/docs', label: 'Docs' },
 ]
 const privateLinks = [{ to: '/tickets', label: 'Tickets' }]

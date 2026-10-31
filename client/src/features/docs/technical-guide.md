@@ -476,7 +476,7 @@ POST {Ollama:BaseUrl}/api/chat
 ```json
 {
   "model": "qwen2.5:7b",
-  "message": { "role": "assistant", "content": "Department: IT\n\nYou can try resetting your password at password.ticket.com ...\n\nIf this does not solve the issue, I can create a ticket for the IT department. Let me know." },
+  "message": { "role": "assistant", "content": "Department: IT\nProblem: yes\n\nYou can try resetting your password at password.ticket.com ..." },
   "done": true
 }
 ```
@@ -489,7 +489,7 @@ Every message is handled by the same prompt. The model decides which kind it is,
 
 | # | Kind | What the model must do |
 | --- | --- | --- |
-| 1 | A question the sections answer | Answer only from the sections, with the exact numbers, names and addresses. If the employee describes a problem to solve, finish with the ticket sentence. Department of the section used |
+| 1 | A question the sections answer | Answer only from the sections, with the exact numbers, names and addresses. The reply also has a `Problem: yes` or `Problem: no` line: yes only when the employee reports something broken or blocked, no for a question about a rule, amount or date. Department of the section used |
 | 2 | A work question the sections do not answer | Say it has no such information, and give the contact of the right department. Never guess, never say the company does or does not offer something |
 | 3 | Casual chat (greeting, thanks, small talk) | A short friendly reply in different words each time. `Department: none` |
 | 4 | An unrelated task (poems, trivia, code) | Decline politely. `Department: none` |
@@ -501,7 +501,7 @@ Every message is handled by the same prompt. The model decides which kind it is,
 The model answers in text. The server parses it (`ChatService`):
 
 1. **Department line.** The first line `Department: <name>` is taken off (it is also accepted at the end of the reply). If the name matches a row in `Departments` (ignoring case) it becomes `department`, otherwise `null`. So a made-up department can never be returned.
-2. **Ticket lines.** `Action:`, `Title:` and `Description:` lines at the start of what remains are always taken off, so they are never shown to the employee. See section 11.
+2. **Problem and ticket lines.** `Problem:`, `Action:`, `Title:` and `Description:` lines at the start of what remains are always taken off, so they are never shown to the employee. If the `Problem` line says `yes` (and the caller is an employee and the department is known), the **server** adds the ticket offer sentence at the end of the answer. The model only labels the message; it does not write the offer, so it cannot add it by habit to an ordinary question. See section 11.
 3. The rest is the answer.
 
 ```json
@@ -519,11 +519,18 @@ The model never creates a ticket. It writes lines, and the **server** acts on th
 
 ### 7.1 A conversation
 
-**1. The employee describes a problem.** The reply (kind 1) ends with the ticket sentence:
+**1. The employee describes a problem.** The model's raw reply (kind 1) labels it as a problem:
 
 ```
 Department: IT
+Problem: yes
 
+You can try resetting your password at password.ticket.com ...
+```
+
+The server removes the `Problem` line and, because it said `yes`, adds the ticket offer, so the employee sees:
+
+```
 You can try resetting your password at password.ticket.com ...
 
 If this does not solve the issue, I can create a ticket for the IT department. Let me know.

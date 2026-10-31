@@ -14,6 +14,7 @@ import UsersPage from '@/features/users/UsersPage'
 
 // Loaded only when the page is opened, because the Markdown renderer is large.
 const DocsPage = lazy(() => import('@/features/docs/DocsPage'))
+const GuidePage = lazy(() => import('@/features/docs/GuidePage'))
 
 export default function App() {
   return (
@@ -28,6 +29,14 @@ export default function App() {
               element={
                 <Suspense fallback={<p className="mt-8 text-center text-sm text-slate-500">Loading...</p>}>
                   <DocsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/guide"
+              element={
+                <Suspense fallback={<p className="mt-8 text-center text-sm text-slate-500">Loading...</p>}>
+                  <GuidePage />
                 </Suspense>
               }
             />
