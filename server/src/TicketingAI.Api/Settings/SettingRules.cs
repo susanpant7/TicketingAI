@@ -34,6 +34,7 @@ public static class SettingRules
         [SettingKeys.ChatNumCtx] = new(SettingKind.Int, Min: 256),
         [SettingKeys.ChatMaxTokens] = new(SettingKind.Int, Min: 1),
         [SettingKeys.ChatHistoryMessages] = new(SettingKind.Int, Min: 0),
+        [SettingKeys.ChatKeepAlive] = new(SettingKind.Text),
         [SettingKeys.ChatSystemPrompt] = new(SettingKind.Text),
         [SettingKeys.ChatFormatReminder] = new(SettingKind.Text)
     };

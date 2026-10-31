@@ -12,6 +12,11 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- The default knowledge files, copied next to the app so the admin can load them on Settings → Manage App Data. -->
+  <ItemGroup>
+    <None Include="Knowledge\Documents\**\*.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

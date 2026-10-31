@@ -6,7 +6,7 @@ namespace TicketingAI.Api.Settings;
 [ApiController]
 [Authorize(Roles = "Admin")]
 [Route("api/[controller]")]
-public class SettingsController(ISettingsService settingsService) : ControllerBase
+public class SettingsController(ISettingsService settingsService, DataCleanup dataCleanup) : ControllerBase
 {
     [HttpGet]
     public async Task<List<SettingDto>> GetAll() => await settingsService.GetAllAsync();
@@ -21,6 +21,14 @@ public class SettingsController(ISettingsService settingsService) : ControllerBa
     [HttpPost("restore-defaults")]
     public async Task<ActionResult<RestoreDefaultsResult>> RestoreDefaults() =>
         new RestoreDefaultsResult(await settingsService.RestoreDefaultsAsync());
+
+    /// <summary>Deletes all data (tickets, users, knowledge, departments and settings), as on a fresh start.</summary>
+    [HttpPost("clean-up")]
+    public async Task<IActionResult> CleanUp()
+    {
+        await dataCleanup.CleanUpAsync();
+        return NoContent();
+    }
 
     [HttpPut("{key}")]
     public async Task<ActionResult<SettingSaved>> Update(string key, UpdateSettingRequest request)

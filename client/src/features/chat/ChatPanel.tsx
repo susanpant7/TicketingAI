@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import ChatInput from '@/features/chat/ChatInput'
-import { sendMessage, type ChatMessage } from '@/features/chat/chatApi'
+import { streamMessage, type ChatMessage } from '@/features/chat/chatApi'
 import MessageBubble, { TypingIndicator } from '@/features/chat/MessageBubble'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
@@ -26,13 +26,15 @@ interface ChatPanelProps {
 export default function ChatPanel({ open, onMinimize, onReply }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [sending, setSending] = useState(false)
+  // The reply while it is being written, shown in place of the typing dots.
+  const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, sending, open])
+  }, [messages, sending, draft, open])
 
   // Logging out (or leaving the app) stops a request that is still running, which also stops the model.
   useEffect(() => () => abortRef.current?.abort(), [])
@@ -46,13 +48,14 @@ export default function ChatPanel({ open, onMinimize, onReply }: ChatPanelProps)
     setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'user', content: text }])
     setSending(true)
     try {
-      const reply = await sendMessage(text, history, controller.signal)
+      const reply = await streamMessage(text, history, controller.signal, setDraft)
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'assistant', content: reply.answer }])
       onReply()
     } catch (err) {
       if (!controller.signal.aborted) setError(errorMessage(err, 'Something went wrong. Please try again.'))
     } finally {
       setSending(false)
+      setDraft('')
     }
   }
 
@@ -104,7 +107,8 @@ export default function ChatPanel({ open, onMinimize, onReply }: ChatPanelProps)
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
-            {sending && <TypingIndicator />}
+            {sending &&
+              (draft ? <MessageBubble message={{ id: 'draft', role: 'assistant', content: draft }} /> : <TypingIndicator />)}
           </>
         )}
         <div ref={endRef} />

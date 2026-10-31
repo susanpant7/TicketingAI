@@ -36,6 +36,11 @@ public class KnowledgeRepository(AppDbContext db) : IKnowledgeRepository
         await transaction.CommitAsync();
     }
 
+    public Task<int> DeleteFileAsync(string sourceFile) =>
+        db.KnowledgeChunks.Where(c => c.SourceFile == sourceFile).ExecuteDeleteAsync();
+
+    public Task<bool> FileExistsAsync(string sourceFile) => db.KnowledgeChunks.AnyAsync(c => c.SourceFile == sourceFile);
+
     public Task<int> DeleteByDepartmentAsync(string department) =>
         db.KnowledgeChunks.Where(c => c.Category == department).ExecuteDeleteAsync();
 

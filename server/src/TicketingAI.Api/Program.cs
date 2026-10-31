@@ -15,6 +15,14 @@ using TicketingAI.Data.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+// A client hosted on another address (for example Vercel) needs its address here: Cors:AllowedOrigins, separated by commas.
+// With no value, CORS stays off, which is right when the page and the API share an address (Vite dev server, nginx).
+var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+if (allowedOrigins.Length > 0)
+    builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default"))
         .AddInterceptors(new SqliteVecConnectionInterceptor()));
@@ -51,6 +59,7 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ISettingRepository, SettingRepository>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
+builder.Services.AddScoped<DataCleanup>();
 builder.Services.AddOptions<OllamaOptions>().BindConfiguration(OllamaOptions.SectionName).ValidateDataAnnotations();
 builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>((services, client) =>
 {
@@ -81,6 +90,9 @@ using (var scope = app.Services.CreateScope())
 
     await SettingsSeeder.SeedAsync(db);
 }
+
+if (allowedOrigins.Length > 0)
+    app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();

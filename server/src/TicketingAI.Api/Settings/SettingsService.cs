@@ -32,6 +32,7 @@ public partial class SettingsService(ISettingRepository settings, ILogger<Settin
             NumCtx: Int(stored, SettingKeys.ChatNumCtx),
             MaxTokens: Int(stored, SettingKeys.ChatMaxTokens),
             HistoryMessages: Int(stored, SettingKeys.ChatHistoryMessages),
+            KeepAlive: Text(stored, SettingKeys.ChatKeepAlive),
             SystemPrompt: Text(stored, SettingKeys.ChatSystemPrompt),
             FormatReminder: Text(stored, SettingKeys.ChatFormatReminder));
     }

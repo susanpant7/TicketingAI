@@ -1,20 +1,48 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import ManageAppData from '@/features/settings/ManageAppData'
 import SettingForm from '@/features/settings/SettingForm'
-import { EMBEDDING_MODEL_KEY, getSettings, restoreDefaults, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
+import { EMBEDDING_MODEL_KEY, getSettings, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
-import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import PageHeader from '@/shared/components/PageHeader'
+import Tabs from '@/shared/components/Tabs'
 
-// Settings are grouped by the first part of their key: "chat.model" is in the "Chat" group.
-const groupName = (key: string) => {
-  const prefix = key.split('.')[0]
-  return prefix.charAt(0).toUpperCase() + prefix.slice(1)
+const tabs = [
+  { id: 'ai', label: 'AI assistant' },
+  { id: 'data', label: 'Manage App Data' },
+]
+
+// Settings are grouped by the first part of their key: "chat.model" is in the "chat" group.
+const groupName = (key: string) => key.split('.')[0]
+
+const groupTitles: Record<string, string> = {
+  chat: 'Chat model and replies',
+  embedding: 'Embeddings',
+  retrieval: 'Searching the knowledge',
 }
 
+const groupTitle = (group: string) => groupTitles[group] ?? group.charAt(0).toUpperCase() + group.slice(1)
+
 export default function SettingsPage() {
+  const [tab, setTab] = useState('ai')
+
+  return (
+    <main className="mx-auto max-w-6xl px-6 py-10">
+      <PageHeader
+        title="Settings"
+        description="How the assistant searches the knowledge and writes its answers, and the app's default data."
+      />
+      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <Tabs tabs={tabs} active={tab} onChange={setTab} />
+      </div>
+      <div className="mt-6">{tab === 'ai' ? <AiSettingsList /> : <ManageAppData />}</div>
+    </main>
+  )
+}
+
+function AiSettingsList() {
   const [settings, setSettings] = useState<Setting[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -22,8 +50,6 @@ export default function SettingsPage() {
   const [editing, setEditing] = useState<Setting | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [version, setVersion] = useState(0)
-  const [confirmingRestore, setConfirmingRestore] = useState(false)
-  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     let ignore = false
@@ -51,78 +77,45 @@ export default function SettingsPage() {
         variant: 'warning',
         message: (
           <>
-            The embedding model was changed and {knowledgeDeleted} knowledge sections were deleted. Open the{' '}
+            The embedding model was changed and {knowledgeDeleted} knowledge sections were deleted. Load them again on the
+            Manage App Data tab, or upload them on the{' '}
             <Link to="/knowledge" className="font-semibold underline">
               Knowledge page
-            </Link>{' '}
-            and upload the knowledge files again.
+            </Link>
+            .
           </>
         ),
       })
     } else {
-      setNotice({ variant: 'success', message: `Saved "${setting.label}".` })
-    }
-  }
-
-  async function handleRestore() {
-    setError('')
-    setRestoring(true)
-    try {
-      const { knowledgeDeleted } = await restoreDefaults()
-      setVersion((v) => v + 1)
-      setNotice(
-        knowledgeDeleted > 0
-          ? {
-              variant: 'warning',
-              message: (
-                <>
-                  The defaults were restored. The embedding model changed, so {knowledgeDeleted} knowledge sections were
-                  deleted. Open the{' '}
-                  <Link to="/knowledge" className="font-semibold underline">
-                    Knowledge page
-                  </Link>{' '}
-                  and upload the knowledge files again.
-                </>
-              ),
-            }
-          : { variant: 'success', message: 'The default settings were restored.' },
-      )
-    } catch (err) {
-      setError(errorMessage(err, 'Restoring the defaults failed. Please try again.'))
-    } finally {
-      setRestoring(false)
-      setConfirmingRestore(false)
+      setNotice({ variant: 'success', message: `Saved "${setting.label}". It applies from the next message.` })
     }
   }
 
   const groups = [...new Set(settings.map((s) => groupName(s.key)))].sort()
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <PageHeader
-        title="Settings"
-        description="How the assistant searches the knowledge and writes its answers. Changes apply to the next message."
-        action={
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setConfirmingRestore(true)}>
-              Restore defaults
-            </Button>
-            <Button onClick={() => openForm(null)}>Add setting</Button>
-          </div>
-        }
-      />
+    <>
+      <div className="mb-6 flex justify-end">
+        <Button variant="secondary" onClick={() => openForm(null)}>
+          Add setting
+        </Button>
+      </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="space-y-3">
         {notice && <Alert variant={notice.variant} message={notice.message} />}
         {error && <Alert message={error} />}
       </div>
 
       {loading ? (
         <p className="mt-8 text-center text-sm text-slate-500">Loading settings...</p>
+      ) : settings.length === 0 && !error ? (
+        <p className="mt-8 text-center text-sm text-slate-500">
+          No AI settings are saved yet. Load them on the Manage App Data tab; until then the assistant uses the built-in defaults.
+        </p>
       ) : (
         groups.map((group) => (
-          <section key={group} className="mt-8">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{group}</h2>
+          <section key={group} className="mt-8 first:mt-6">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{groupTitle(group)}</h2>
             <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               {settings
                 .filter((s) => groupName(s.key) === group)
@@ -132,7 +125,11 @@ export default function SettingsPage() {
                       <p className="font-medium text-slate-900">{setting.label}</p>
                       <p className="mt-1 text-sm text-slate-500">{setting.description}</p>
                     </div>
-                    <p className="max-h-36 overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 px-3 py-2 font-mono text-sm text-slate-700">
+                    <p
+                      className={`break-words rounded-lg bg-slate-50 px-3 py-2 font-mono text-sm text-slate-700 ${
+                        setting.value.length > 80 || setting.value.includes('\n') ? 'line-clamp-4 whitespace-pre-line' : ''
+                      }`}
+                    >
                       {setting.value === '' ? '(empty)' : setting.value}
                     </p>
                     <Button variant="ghost" size="sm" onClick={() => openForm(setting)}>
@@ -145,17 +142,6 @@ export default function SettingsPage() {
         ))
       )}
 
-      {confirmingRestore && (
-        <ConfirmDialog
-          title="Restore default settings"
-          message="This deletes every setting, including the ones you added or edited, and puts the default settings back. If the embedding model is different from the default, all the knowledge data is deleted too."
-          confirmLabel="Restore defaults"
-          busy={restoring}
-          onConfirm={handleRestore}
-          onCancel={() => setConfirmingRestore(false)}
-        />
-      )}
-
       {formOpen && (
         <SettingForm
           key={editing?.key ?? 'new'}
@@ -164,6 +150,6 @@ export default function SettingsPage() {
           onCancel={() => setFormOpen(false)}
         />
       )}
-    </main>
+    </>
   )
 }

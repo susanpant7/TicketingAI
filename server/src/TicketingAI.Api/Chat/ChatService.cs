@@ -22,7 +22,8 @@ public class ChatService(
 
     private static readonly Regex TicketLine = new(@"^\s*(?<key>Action|Title|Description|Problem):[ \t]*(?<value>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
 
-    public async Task<ChatResponse> AskAsync(ChatRequest request, int? employeeId, CancellationToken cancellationToken)
+    public async Task<ChatResponse> AskAsync(
+        ChatRequest request, int? employeeId, CancellationToken cancellationToken, Func<string, Task>? onDraft = null)
     {
         // Read the settings first, so a change in the Settings table applies to this message.
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
@@ -43,9 +44,19 @@ public class ChatService(
             history, sections, message,
             FillDepartments(settings.SystemPrompt, departments), FillDepartments(settings.FormatReminder, departments));
         var chatOptions = new ChatModelOptions(
-            settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens);
+            settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens, settings.KeepAlive);
 
-        var reply = await model.ChatAsync(prompt, chatOptions, cancellationToken);
+        // While the reply is written, the employee sees it without the Department, Problem and ticket lines.
+        var shown = "";
+        var reply = await model.ChatAsync(prompt, chatOptions, cancellationToken, onDraft is null ? null : async soFar =>
+        {
+            var draft = VisibleDraft(soFar);
+            if (draft.Length > 0 && draft != shown)
+            {
+                shown = draft;
+                await onDraft(draft);
+            }
+        });
 
         var response = BuildResponse(reply.Trim(), departments);
         return await CreateTicketIfAgreedAsync(response, employeeId, departments);
@@ -82,6 +93,27 @@ public class ChatService(
 
         var created = $"Ticket #{ticket.Id} was created and assigned to {ticket.AssignedTo} ({ticket.Department}).";
         return response with { Answer = answer.Length == 0 ? created : $"{answer}\n\n{created}" };
+    }
+
+    private static readonly string[] HeaderKeys = ["Department:", "Problem:", "Action:", "Title:", "Description:"];
+
+    /// <summary>
+    /// The part of an unfinished reply the employee may see: the reply without its leading header lines. Until a line is known
+    /// not to be a header (it is complete, or no longer starts like one), nothing more is shown.
+    /// </summary>
+    private static string VisibleDraft(string soFar)
+    {
+        var rest = soFar.TrimStart();
+        while (true)
+        {
+            var lineEnd = rest.IndexOf('\n');
+            var line = lineEnd < 0 ? rest : rest[..lineEnd];
+            var mightBeHeader = HeaderKeys.Any(key =>
+                line.StartsWith(key, StringComparison.OrdinalIgnoreCase) || key.StartsWith(line, StringComparison.OrdinalIgnoreCase));
+            if (!mightBeHeader) return rest.Trim();
+            if (lineEnd < 0) return "";
+            rest = rest[(lineEnd + 1)..].TrimStart();
+        }
     }
 
     private record TicketDraft(string Title, string Description);

@@ -14,5 +14,6 @@ public record AiSettings(
     int NumCtx,
     int MaxTokens,
     int HistoryMessages,
+    string KeepAlive,
     string SystemPrompt,
     string FormatReminder);

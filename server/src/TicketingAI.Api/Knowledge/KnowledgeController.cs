@@ -30,6 +30,37 @@ public class KnowledgeController(IKnowledgeService knowledgeService) : Controlle
         }
     }
 
+    /// <summary>Saves a document written on the page as a title and sections (new, or an edit of an existing one).</summary>
+    [HttpPut("documents")]
+    public async Task<ActionResult<UploadFileResult>> SaveDocument(SaveKnowledgeDocumentRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await knowledgeService.SaveDocumentAsync(request, cancellationToken);
+        }
+        catch (UploadDepartmentNotFoundException ex)
+        {
+            return Problem(ex.Message, statusCode: StatusCodes.Status404NotFound);
+        }
+        catch (ArgumentException ex)
+        {
+            return Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (KnowledgeConflictException ex)
+        {
+            return Problem(ex.Message, statusCode: StatusCodes.Status409Conflict);
+        }
+    }
+
+    [HttpDelete("documents/{sourceFile}")]
+    public async Task<DeleteKnowledgeResult> DeleteDocument(string sourceFile) =>
+        new(await knowledgeService.DeleteDocumentAsync(sourceFile));
+
+    /// <summary>Uploads the default knowledge files into their departments, which must exist.</summary>
+    [HttpPost("load-defaults")]
+    public async Task<List<UploadFileResult>> LoadDefaults(CancellationToken cancellationToken) =>
+        await knowledgeService.LoadDefaultsAsync(cancellationToken);
+
     [HttpDelete("department/{departmentId:int}")]
     public async Task<ActionResult<DeleteKnowledgeResult>> DeleteDepartment(int departmentId)
     {

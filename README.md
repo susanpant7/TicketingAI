@@ -87,6 +87,18 @@ Data lives in two volumes: `server-data` (the SQLite database) and `ollama-data`
 | `Ollama:BaseUrl` | `http://localhost:11434` | Where Ollama is |
 | `ConnectionStrings:Default` | `Data Source=data/ticketing.db` | The SQLite file |
 
+## Host the client on Vercel
+
+The client is a static site, so it can be hosted apart from the API. In Vercel, import the repository and set:
+
+| Vercel setting | Value |
+| --- | --- |
+| Root Directory | `client` |
+| Framework Preset | Vite (build command `npm run build`, output `dist`) |
+| Environment variable `VITE_API_URL` | The public **https** address of the API, without a trailing slash, for example `https://api.example.com` |
+
+`VITE_API_URL` is read when the client is built, so after changing it, redeploy. On the API side, set `Cors__AllowedOrigins` to the Vercel address (for example `https://ticketingai.susanpant.com.np`, several separated by commas), otherwise the browser blocks the calls. The API must be reachable over https, because a page on https cannot call an http address. `client/vercel.json` makes page addresses such as `/guide` or `/tickets` open the app when typed in directly or reloaded; without it Vercel answers 404.
+
 ## First-time setup in the app
 
 A new database is empty. Log in as the admin and do these in order:

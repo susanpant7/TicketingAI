@@ -12,6 +12,11 @@ public interface IKnowledgeRepository
     /// <summary>Deletes the chunks of one source file and inserts the new ones in a single transaction.</summary>
     Task ReplaceFileAsync(string sourceFile, IReadOnlyList<KnowledgeChunk> chunks);
 
+    /// <summary>Deletes every chunk of one source file. Returns the number deleted.</summary>
+    Task<int> DeleteFileAsync(string sourceFile);
+
+    Task<bool> FileExistsAsync(string sourceFile);
+
     /// <summary>Deletes every chunk of a department. Returns the number deleted.</summary>
     Task<int> DeleteByDepartmentAsync(string department);
 

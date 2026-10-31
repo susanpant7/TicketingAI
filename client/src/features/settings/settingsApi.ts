@@ -23,5 +23,8 @@ export const createSetting = (input: Setting) =>
 export const restoreDefaults = () =>
   apiFetch<{ knowledgeDeleted: number }>('/settings/restore-defaults', { method: 'POST' })
 
+/** Deletes all data (tickets, users, knowledge, departments and settings), as on a fresh start. */
+export const cleanUpData = () => apiFetch<void>('/settings/clean-up', { method: 'POST' })
+
 export const updateSetting = (key: string, input: Omit<Setting, 'key'>) =>
   apiFetch<SavedSetting>(`/settings/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(input) })
