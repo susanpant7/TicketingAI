@@ -13,8 +13,7 @@ export interface SavedSetting {
 
 export const getSettings = () => apiFetch<Setting[]>('/settings')
 
-export const createSetting = (input: Setting) =>
-  apiFetch<Setting>('/settings', { method: 'POST', body: JSON.stringify(input) })
+export const createSetting = (input: Setting) => apiFetch<Setting>('/settings', { method: 'POST', body: JSON.stringify(input) })
 
 /** Puts back every default. When that changes the embedding model, the stored knowledge is embedded again first (`reembedded` sections). */
 export const restoreDefaults = () => apiFetch<{ reembedded: number }>('/settings/restore-defaults', { method: 'POST' })
@@ -120,7 +119,17 @@ export const switchChatModel = (choice: ModelChoice) =>
  * nothing is changed. `reembedded` is how many sections were converted.
  */
 export const switchEmbeddingModel = (choice: ModelChoice) =>
-  apiFetch<{ reembedded: number }>('/settings/use-embedding-model', { method: 'POST', body: JSON.stringify(choice) })
+  apiFetch<{ reembedded: number }>('/settings/use-embedding-model', {
+    method: 'POST',
+    // Only the model's own fields: the choice from the page also holds a React element (its notes), which cannot be sent as JSON.
+    body: JSON.stringify({
+      baseUrl: choice.baseUrl,
+      model: choice.model,
+      apiKeyName: choice.apiKeyName,
+      queryPrefix: choice.queryPrefix,
+      documentPrefix: choice.documentPrefix,
+    }),
+  })
 
 /**
  * Tests one model of a known service with a tiny request and saves nothing. It resolves with how long the model took to answer, and

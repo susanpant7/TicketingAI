@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { loadDefaultDepartments } from '@/features/departments/departmentsApi'
 import { loadDefaultKnowledge } from '@/features/knowledge/knowledgeApi'
 import { cleanUpData, restoreDefaults } from '@/features/settings/settingsApi'
@@ -25,6 +25,8 @@ interface Module {
   replaces?: boolean
   /** Asks for the password the loaded accounts sign in with, starting with this one. */
   password?: { label: string; initial: string }
+  /** Left out of "Load all default data" (loaded on its own, later). */
+  separate?: boolean
   run: (password: string) => Promise<string>
 }
 
@@ -38,7 +40,7 @@ const modules: Module[] = [
     id: 'settings',
     title: 'AI assistant settings',
     description:
-      'The system prompt, chat model, embeddings and search settings. Replaces every setting, including ones you added; if the embedding model changes, the stored knowledge is converted to the default one first (it can take a minute) and nothing is changed if that fails.',
+      'The system prompt and the search settings. Replaces every setting, including ones you added. No chat or embedding model is selected: they are chosen on the Settings page. If an embedding model was selected, the stored knowledge is deleted.',
     button: 'Load default AI assistant data',
     replaces: true,
     run: async () => {
@@ -65,8 +67,9 @@ const modules: Module[] = [
     id: 'knowledge',
     title: 'Knowledge files',
     description:
-      'The bundled HR, IT and Finance documents the assistant answers from. A document with the same name is replaced. Needs the departments first, and Ollama running.',
+      'The bundled HR, IT and Finance documents the assistant answers from. A document with the same name is replaced. Needs the departments first, and an embedding model selected on the Settings page.',
     button: 'Load default knowledge files',
+    separate: true,
     run: async () => {
       const results = await loadDefaultKnowledge()
       // Usually every file fails for the same reason (Ollama not running), so each reason is shown once.
@@ -83,7 +86,8 @@ const modules: Module[] = [
 type StepState = 'waiting' | 'running' | 'done' | 'failed'
 type Step = { id: string; title: string; state: StepState }
 
-const allSteps = [{ id: 'cleanup', title: 'Clean up all data' }, ...modules.map((m) => ({ id: m.id, title: m.title }))]
+const loadAllModules = modules.filter((m) => !m.separate)
+const allSteps = [{ id: 'cleanup', title: 'Clean up all data' }, ...loadAllModules.map((m) => ({ id: m.id, title: m.title }))]
 
 const stepMarks: Record<StepState, { mark: string; className: string }> = {
   waiting: { mark: '○', className: 'text-slate-300' },
@@ -93,7 +97,7 @@ const stepMarks: Record<StepState, { mark: string; className: string }> = {
 }
 
 /** Loading and clearing the default data for every part of the app, in one place. */
-export default function ManageAppData() {
+export default function ManageAppData({ onChanged }: { onChanged: () => void }) {
   const [passwords, setPasswords] = useState<Record<string, string>>(() =>
     Object.fromEntries(modules.filter((m) => m.password).map((m) => [m.id, m.password!.initial])),
   )
@@ -102,6 +106,12 @@ export default function ManageAppData() {
   const [notice, setNotice] = useState('')
   const [steps, setSteps] = useState<Step[]>([])
   const [confirming, setConfirming] = useState<'all' | 'cleanup' | Module | null>(null)
+
+  // Cleaning up or loading may have changed the knowledge.
+  useEffect(() => {
+    if (!busy) onChanged()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy])
 
   const passwordFor = (module: Module) => passwords[module.id] ?? ''
   const missingPassword = (module: Module) => module.password !== undefined && passwordFor(module).length === 0
@@ -148,7 +158,7 @@ export default function ManageAppData() {
     }
     setSteps([...progress])
 
-    const actions = [() => cleanUpData(), ...modules.map((module) => () => module.run(passwordFor(module)))]
+    const actions = [() => cleanUpData(), ...loadAllModules.map((module) => () => module.run(passwordFor(module)))]
     for (const [index, action] of actions.entries()) {
       mark(index, 'running')
       try {
@@ -161,7 +171,9 @@ export default function ManageAppData() {
         return
       }
     }
-    setNotice('All default data is loaded.')
+    setNotice(
+      'The default data is loaded, without the knowledge files. No chat or embedding model is selected: choose them on the Settings page (AI assistant tab). After an embedding model is selected, load the knowledge files on the Knowledge page or below.',
+    )
     setBusy(false)
   }
 
@@ -172,7 +184,8 @@ export default function ManageAppData() {
           <div className="min-w-0 max-w-2xl">
             <h2 className="font-semibold text-slate-900">Load all default data</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Cleans up all data first, then loads the default AI assistant settings, departments, users and knowledge files.
+              Cleans up all data first, then loads the default AI assistant settings, departments and users. The knowledge files
+              and the chat and embedding models are not loaded: they come later, after a model is selected.
             </p>
           </div>
           <Button disabled={busy || modules.some(missingPassword)} onClick={() => setConfirming('all')}>
@@ -235,7 +248,9 @@ export default function ManageAppData() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 max-w-2xl">
             <h2 className="font-semibold text-red-700">Clean up data</h2>
-            <p className="mt-1 text-sm text-slate-500">Deletes everything, as on a fresh start. You stay signed in as the admin.</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Deletes everything, as on a fresh start. You stay signed in as the admin.
+            </p>
           </div>
           <Button variant="danger" disabled={busy} onClick={() => setConfirming('cleanup')}>
             Clean up data
@@ -246,7 +261,7 @@ export default function ManageAppData() {
       {confirming === 'all' && (
         <ConfirmDialog
           title="Load all default data"
-          message="This first deletes everything (tickets, users, knowledge, departments and settings), then loads the defaults. Your own changes cannot be recovered."
+          message="This first deletes everything (tickets, users, knowledge, departments and settings), then loads the defaults (without the knowledge files and without a chat or embedding model). Your own changes cannot be recovered."
           confirmLabel="Load all default data"
           busy={busy}
           onConfirm={loadAll}

@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import AiModelForm from '@/features/settings/AiModelForm'
 import ModelListDialog from '@/features/settings/ModelListDialog'
+import { loadDefaultDepartments } from '@/features/departments/departmentsApi'
+import { loadDefaultKnowledge } from '@/features/knowledge/knowledgeApi'
 import ModelTourDialog, { type TourProvider } from '@/features/settings/ModelTourDialog'
 import {
   deleteSavedModel,
@@ -55,7 +57,7 @@ interface Choice extends ModelChoice {
 }
 
 /**
- * Choosing the chat model or the embedding model: the models the admin saved, and the known services. "Use" sets the address, the
+ * Choosing the chat model or the embedding model: the models the admin saved, and the known services. "View models" then Select sets the address, the
  * model and the key name together. For an embedding model it also converts the stored knowledge to the new model, which takes a while.
  * Only the NAME of a key's variable is shown and saved, never the key.
  */
@@ -109,7 +111,7 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     }
   }, [kind, savedVersion])
 
-  if (!info || current.baseUrl === '') return null
+  if (!info) return null
 
   const providers: (AiProvider & Partial<Pick<EmbeddingProvider, 'queryPrefix' | 'documentPrefix'>>)[] = isEmbedding
     ? info.embeddingProviders
@@ -182,6 +184,21 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
 
   // Chat: sets the settings. Embedding: converts the stored knowledge to the new model first (it can take a minute), which only saves
   // the settings when it worked.
+  // Loads the default knowledge files after the first embedding model is selected. The files belong to the default departments, which
+  // are added first when they are missing (the ones that exist are left as they are). A failure is a message, not an error.
+  async function loadKnowledge() {
+    try {
+      await loadDefaultDepartments()
+      const results = await loadDefaultKnowledge()
+      const failed = results.filter((r) => r.error)
+      return failed.length > 0
+        ? `${failed.length} of ${results.length} knowledge files were not loaded. ${failed[0].error}`
+        : `The ${results.length} default knowledge files were loaded.`
+    } catch (err) {
+      return `The knowledge files were not loaded: ${errorMessage(err, 'please try again.')} Load the knowledge files on the Knowledge page.`
+    }
+  }
+
   async function apply(choice: Choice) {
     setError('')
     setNotice('')
@@ -189,11 +206,17 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     setWorking(choice.key)
     try {
       const { reembedded } = isEmbedding ? await switchEmbeddingModel(choice) : await switchChatModel(choice)
-      setNotice(
-        isEmbedding
-          ? `Now using ${choice.model}. ${reembedded} knowledge ${reembedded === 1 ? 'section was' : 'sections were'} converted to it.`
-          : `Now using ${choice.model}. It answered a test question, so it works with this key.`,
-      )
+      if (isEmbedding && reembedded === 0) {
+        // There was no knowledge, so the default knowledge files are loaded with the new model.
+        setNotice(`Now using ${choice.model}. Loading the knowledge files...`)
+        setNotice(`Now using ${choice.model}. ${await loadKnowledge()}`)
+      } else {
+        setNotice(
+          isEmbedding
+            ? `Now using ${choice.model}. The knowledge was cleaned and reinserted: ${reembedded} ${reembedded === 1 ? 'section was' : 'sections were'} embedded again.`
+            : `Now using ${choice.model}. It answered a test question, so it works with this key.`,
+        )
+      }
       onChanged()
     } catch (err) {
       setError(errorMessage(err, 'Could not switch the model. Nothing was changed.'))
@@ -230,9 +253,6 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
 
   const rowActions = (choice: Choice) => (
     <>
-      <Button variant="secondary" size="sm" disabled={working !== '' || isCurrent(choice)} onClick={() => choose(choice)}>
-        {working === choice.key ? (isEmbedding ? 'Converting...' : 'Testing...') : 'Use'}
-      </Button>
       <Button variant="ghost" size="sm" disabled={working !== ''} onClick={() => viewModels(choice)}>
         View models
       </Button>
@@ -270,8 +290,9 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
         {isEmbedding ? (
           <>
             An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine; one with a path is
-            an online service. <strong>Use converts all the stored knowledge to the new model</strong> (about a minute), and is
-            only saved when that worked.
+            an online service.{' '}
+            <strong>Selecting a model cleans the stored knowledge and inserts it again with the new model</strong> (about a
+            minute), and is only saved when that worked.
           </>
         ) : (
           <>
@@ -285,7 +306,7 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
           ''
         ) : (
           <>
-            The model list can include models this key cannot use, so <strong>Use</strong> tests the model first.
+            The model list can include models this key cannot use, so <strong>Select</strong> tests the model first.
           </>
         )}
       </p>
@@ -324,58 +345,65 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
         </div>
       )}
 
-      {!isEmbedding && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button size="sm" disabled={working !== '' || tourProviders.length === 0} onClick={() => setTour('current')}>
-            Next model
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={working !== '' || tourProviders.length === 0}
-            onClick={() => setTour('beginning')}
-          >
-            Start from the beginning
-          </Button>
-          <span className="self-center text-sm text-slate-500">
-            Tries the models of the services we have a key for, one after another, with the response time of each.
-          </span>
-        </div>
-      )}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" disabled={working !== '' || tourProviders.length === 0} onClick={() => setTour('current')}>
+          Next model
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={working !== '' || tourProviders.length === 0}
+          onClick={() => setTour('beginning')}
+        >
+          Start from the beginning
+        </Button>
+        <span className="self-center text-sm text-slate-500">
+          Tries the {isEmbedding ? 'embedding' : 'chat'} models of the services we have a key for, one after another, with the
+          response time of each.
+        </span>
+      </div>
 
-      <ul className="mt-4 rounded-xl bg-white px-4 ring-1 ring-indigo-200">
-        <Row
-          choice={inUseChoice}
-          inUse
-          actions={
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={working !== ''}
-                onClick={() =>
-                  setForm({
-                    saved: null,
-                    inUse: true,
-                    title: `Edit the ${isEmbedding ? 'embedding' : 'chat'} model in use`,
-                    initial: {
-                      name: '',
-                      ...current,
-                      apiKeyName: current.apiKeyName || (isOnline(current.baseUrl) ? (serviceInUse?.apiKeyName ?? '') : ''),
-                      notes: '',
-                    },
-                  })
-                }
-              >
-                Edit
-              </Button>
-              <Button variant="ghost" size="sm" disabled={working !== ''} onClick={() => viewModels(inUseChoice)}>
-                View models
-              </Button>
-            </>
-          }
-        />
-      </ul>
+      {current.model === '' ? (
+        <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+          No {isEmbedding ? 'embedding' : 'chat'} model is selected yet. Choose one below.
+          {isEmbedding &&
+            ' The knowledge files are not loaded yet: after a model is selected, they are loaded from the Knowledge page.'}
+        </div>
+      ) : (
+        <ul className="mt-4 rounded-xl bg-white px-4 ring-1 ring-indigo-200">
+          <Row
+            choice={inUseChoice}
+            inUse
+            actions={
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={working !== ''}
+                  onClick={() =>
+                    setForm({
+                      saved: null,
+                      inUse: true,
+                      title: `Edit the ${isEmbedding ? 'embedding' : 'chat'} model in use`,
+                      initial: {
+                        name: '',
+                        ...current,
+                        apiKeyName: current.apiKeyName || (isOnline(current.baseUrl) ? (serviceInUse?.apiKeyName ?? '') : ''),
+                        notes: '',
+                      },
+                    })
+                  }
+                >
+                  Edit
+                </Button>
+                <Button variant="ghost" size="sm" disabled={working !== ''} onClick={() => viewModels(inUseChoice)}>
+                  View models
+                </Button>
+              </>
+            }
+          />
+        </ul>
+      )}
 
       <div className="mt-6 flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-slate-700">Saved {isEmbedding ? 'embedding' : 'chat'} models</p>
@@ -404,6 +432,7 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
 
       {tour && (
         <ModelTourDialog
+          kind={kind}
           providers={tourProviders}
           current={current}
           start={tour}
@@ -475,9 +504,9 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
 
       {confirming && (
         <ConfirmDialog
-          title="Convert the knowledge to this model?"
-          message={`Every stored knowledge section will be embedded again with ${confirming.model}, because vectors from different models cannot be compared. This can take a minute. If it fails (for example a wrong key), nothing is changed.`}
-          confirmLabel="Convert and use"
+          title="Clean and reinsert the knowledge?"
+          message={`The stored knowledge will be cleaned and reinserted with ${confirming.model}: every section is embedded again, because vectors from different models cannot be compared. This can take a minute. If it fails (for example a wrong key), nothing is changed.`}
+          confirmLabel="Clean, reinsert and use"
           onConfirm={() => apply(confirming)}
           onCancel={() => setConfirming(null)}
         />

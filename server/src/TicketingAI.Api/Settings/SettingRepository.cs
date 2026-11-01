@@ -21,7 +21,8 @@ public class SettingRepository(AppDbContext db) : ISettingRepository
 
     public Task UpdateAsync(Setting setting) => db.SaveChangesAsync();
 
-    public async Task ReplaceAllAsync(IReadOnlyList<Setting> settings, IReadOnlyDictionary<int, byte[]>? vectors)
+    public async Task ReplaceAllAsync(
+        IReadOnlyList<Setting> settings, IReadOnlyDictionary<int, byte[]>? vectors, bool deleteKnowledge = false)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
 
@@ -30,6 +31,8 @@ public class SettingRepository(AppDbContext db) : ISettingRepository
         db.Settings.AddRange(settings);
         await db.SaveChangesAsync();
         await ReplaceVectorsAsync(vectors);
+        if (deleteKnowledge)
+            await db.KnowledgeChunks.ExecuteDeleteAsync();
 
         await transaction.CommitAsync();
     }

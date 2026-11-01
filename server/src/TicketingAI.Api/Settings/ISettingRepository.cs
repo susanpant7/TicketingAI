@@ -14,9 +14,10 @@ public interface ISettingRepository
 
     /// <summary>
     /// Deletes every setting and inserts the given ones in a single transaction. When vectors are given (the knowledge embedded again for
-    /// new embedding settings), the stored vectors are replaced in the same transaction.
+    /// new embedding settings), the stored vectors are replaced in the same transaction. With deleteKnowledge, the stored
+    /// knowledge is deleted in the same transaction (when there is no embedding model to embed it with).
     /// </summary>
-    Task ReplaceAllAsync(IReadOnlyList<Setting> settings, IReadOnlyDictionary<int, byte[]>? vectors);
+    Task ReplaceAllAsync(IReadOnlyList<Setting> settings, IReadOnlyDictionary<int, byte[]>? vectors, bool deleteKnowledge = false);
 
     /// <summary>
     /// Sets the value of several settings in a single transaction (a missing one is added from its default). When vectors are given, the

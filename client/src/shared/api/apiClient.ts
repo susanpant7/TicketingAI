@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-// Empty by default: the API is then on the same address as the page (the Vite dev server and nginx forward /api).
+// Empty by default: the API is then on the same address as the page (the Vite dev server forwards /api).
 // When the client is hosted separately, for example on Vercel, VITE_API_URL is the address of the API, without a trailing slash.
 export const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
 

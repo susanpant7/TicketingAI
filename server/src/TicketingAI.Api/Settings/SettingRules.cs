@@ -22,18 +22,18 @@ public static class SettingRules
 {
     private static readonly Dictionary<string, SettingRule> Known = new()
     {
-        [SettingKeys.EmbeddingBaseUrl] = new(SettingKind.Text),
+        [SettingKeys.EmbeddingBaseUrl] = new(SettingKind.OptionalText),
         [SettingKeys.EmbeddingApiKeyName] = new(SettingKind.OptionalText),
-        [SettingKeys.EmbeddingModel] = new(SettingKind.Text),
+        [SettingKeys.EmbeddingModel] = new(SettingKind.OptionalText),
         [SettingKeys.EmbeddingQueryPrefix] = new(SettingKind.OptionalText),
         [SettingKeys.EmbeddingDocumentPrefix] = new(SettingKind.OptionalText),
         [SettingKeys.RetrievalTopK] = new(SettingKind.Int, Min: 1),
         [SettingKeys.RetrievalMinScore] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalMaxScoreGap] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalFollowUpMaxWords] = new(SettingKind.Int, Min: 0),
-        [SettingKeys.ChatBaseUrl] = new(SettingKind.Text),
+        [SettingKeys.ChatBaseUrl] = new(SettingKind.OptionalText),
         [SettingKeys.ChatApiKeyName] = new(SettingKind.OptionalText),
-        [SettingKeys.ChatModel] = new(SettingKind.Text),
+        [SettingKeys.ChatModel] = new(SettingKind.OptionalText),
         [SettingKeys.ChatReasoningEffort] = new(SettingKind.OptionalText),
         [SettingKeys.ChatTemperature] = new(SettingKind.Decimal, Min: 0, Max: 2),
         [SettingKeys.ChatTopP] = new(SettingKind.Decimal, Min: 0, Max: 1),

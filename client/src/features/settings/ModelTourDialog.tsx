@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatTime } from '@/features/settings/formatTime'
-import { getAvailableModels, testModel, type ModelChoice } from '@/features/settings/settingsApi'
+import { getAvailableModels, testModel, type ModelChoice, type ModelKind } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Button from '@/shared/components/Button'
 import Modal from '@/shared/components/Modal'
@@ -9,6 +9,8 @@ import Modal from '@/shared/components/Modal'
 export type TourProvider = ModelChoice & { key: string; name: string }
 
 interface ModelTourDialogProps {
+  /** The chat models or the embedding models. */
+  kind: ModelKind
   providers: TourProvider[]
   /** The model in use. "Next" starts after it; "from the beginning" starts at the first model of the first service. */
   current: { baseUrl: string; model: string }
@@ -29,11 +31,12 @@ interface LogLine {
 const sameUrl = (a: string, b: string) => a.replace(/\/+$/, '') === b.replace(/\/+$/, '')
 
 /**
- * Goes through the chat models one after another: for each service we have a key for, each of its models. Every model is tested with
+ * Goes through the chat models (or the embedding models) one after another: for each service we have a key for, each of its models. Every model is tested with
  * a tiny request, and the dialog stops at the first one that answers, showing how long it took. Select uses it, Next goes on to the
  * next one. A model that fails (an error, no answer) is skipped by itself, and the reason is kept in the list below.
  */
-export default function ModelTourDialog({ providers, current, start, onSelect, onClose }: ModelTourDialogProps) {
+export default function ModelTourDialog({ kind, providers, current, start, onSelect, onClose }: ModelTourDialogProps) {
+  const label = kind === 'embedding' ? 'embedding' : 'chat'
   const [status, setStatus] = useState<Status>({ kind: 'working', text: 'Starting...' })
   const [log, setLog] = useState<LogLine[]>([])
 
@@ -52,7 +55,7 @@ export default function ModelTourDialog({ providers, current, start, onSelect, o
   async function listOf(provider: TourProvider) {
     if (lists.current[provider.key]) return lists.current[provider.key]
     try {
-      const { models } = await getAvailableModels('chat', provider.baseUrl, provider.apiKeyName)
+      const { models } = await getAvailableModels(kind, provider.baseUrl, provider.apiKeyName)
 
       // The model the service is listed with first, then the others, newest names first: the old ones are the ones a service retires.
       const ordered = [...models].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
@@ -98,7 +101,7 @@ export default function ModelTourDialog({ providers, current, start, onSelect, o
 
       setStatus({ kind: 'working', text: `Testing ${provider.name} · ${model}...` })
       try {
-        const { milliseconds } = await testModel('chat', {
+        const { milliseconds } = await testModel(kind, {
           baseUrl: provider.baseUrl,
           model,
           apiKeyName: provider.apiKeyName,
@@ -172,10 +175,11 @@ export default function ModelTourDialog({ providers, current, start, onSelect, o
   const working = status.kind === 'working'
 
   return (
-    <Modal title="Find a chat model" onClose={onClose} maxWidth="max-w-2xl">
+    <Modal title={`Find ${kind === 'embedding' ? 'an embedding' : 'a chat'} model`} onClose={onClose} maxWidth="max-w-2xl">
       <p className="text-sm text-slate-600">
-        This goes through the chat models of the services we have a key for, one after another, and stops at the first one that
-        answers a small test question, showing how long it took. <strong>Select</strong> uses it, <strong>Next</strong> tries the
+        This goes through the {label} models of the services we have a key for, one after another, and stops at the first one that
+        answers a small test question, showing how long it took. <strong>Select</strong> uses it
+        {kind === 'embedding' ? ' (after asking, because it converts the stored knowledge)' : ''}, <strong>Next</strong> tries the
         next one. A model that gives an error or no answer is skipped by itself.
       </p>
 

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
+import { getChunks } from '@/features/knowledge/knowledgeApi'
 import AiModelPicker from '@/features/settings/AiModelPicker'
 import ManageAppData from '@/features/settings/ManageAppData'
 import SettingForm from '@/features/settings/SettingForm'
-import { getSettings, restoreDefaults, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
+import { getSettings, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
-import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import PageHeader from '@/shared/components/PageHeader'
 import Tabs from '@/shared/components/Tabs'
 
@@ -75,9 +75,28 @@ const groupTitle = (group: string) => groupTitles[group] ?? group.charAt(0).toUp
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('ai')
+  // null until known; the knowledge is only counted to warn that there is none.
+  const [knowledgeCount, setKnowledgeCount] = useState<number | null>(null)
+  const [knowledgeVersion, setKnowledgeVersion] = useState(0)
+  const knowledgeChanged = () => setKnowledgeVersion((v) => v + 1)
+
+  useEffect(() => {
+    let ignore = false
+    getChunks()
+      .then((chunks) => !ignore && setKnowledgeCount(chunks.length))
+      .catch(() => !ignore && setKnowledgeCount(null))
+    return () => {
+      ignore = true
+    }
+  }, [knowledgeVersion])
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
+      {knowledgeCount === 0 && (
+        <div role="alert" className="mb-6 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-white shadow-sm">
+          The app does not have any knowledge files. Select an embedding model to load the knowledge data.
+        </div>
+      )}
       <PageHeader
         title="Settings"
         description="How the assistant searches the knowledge and writes its answers, and the app's default data."
@@ -85,12 +104,14 @@ export default function SettingsPage() {
       <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <Tabs tabs={tabs} active={tab} onChange={setTab} />
       </div>
-      <div className="mt-6">{tab === 'ai' ? <AiSettingsList /> : <ManageAppData />}</div>
+      <div className="mt-6">
+        {tab === 'ai' ? <AiSettingsList onKnowledgeChanged={knowledgeChanged} /> : <ManageAppData onChanged={knowledgeChanged} />}
+      </div>
     </main>
   )
 }
 
-function AiSettingsList() {
+function AiSettingsList({ onKnowledgeChanged }: { onKnowledgeChanged: () => void }) {
   const [settings, setSettings] = useState<Setting[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -101,9 +122,6 @@ function AiSettingsList() {
   const [editing, setEditing] = useState<Setting | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [version, setVersion] = useState(0)
-  const [confirmingRestore, setConfirmingRestore] = useState(false)
-  const [restoring, setRestoring] = useState(false)
-
   useEffect(() => {
     let ignore = false
     getSettings()
@@ -118,7 +136,13 @@ function AiSettingsList() {
     }
   }, [version])
 
-  function openForm(setting: Setting | null) {
+  // The model may have changed the knowledge.
+  useEffect(() => {
+    onKnowledgeChanged()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version])
+
+  function openForm(setting: Setting) {
     setEditing(setting)
     setFormOpen(true)
   }
@@ -133,27 +157,6 @@ function AiSettingsList() {
     })
   }
 
-  async function handleRestore() {
-    setError('')
-    setRestoring(true)
-    try {
-      const { reembedded } = await restoreDefaults()
-      setVersion((v) => v + 1)
-      setNotice({
-        variant: 'success',
-        message:
-          reembedded > 0
-            ? `The default settings were restored. The embedding model changed, so ${reembedded} knowledge sections were converted to it.`
-            : 'The default settings were restored. They apply from the next message.',
-      })
-    } catch (err) {
-      setError(errorMessage(err, 'Restoring the default settings failed. Please try again.'))
-    } finally {
-      setRestoring(false)
-      setConfirmingRestore(false)
-    }
-  }
-
   const rowsOf = (group: string) =>
     settings.filter((s) => groupName(s.key) === group && !hiddenKeys.includes(s.key)).sort(bySettingOrder)
 
@@ -161,15 +164,6 @@ function AiSettingsList() {
 
   return (
     <>
-      <div className="mb-6 flex justify-end gap-3">
-        <Button variant="secondary" onClick={() => setConfirmingRestore(true)}>
-          Restore defaults
-        </Button>
-        <Button variant="secondary" onClick={() => openForm(null)}>
-          Add setting
-        </Button>
-      </div>
-
       <div className="space-y-3">
         {notice && <Alert variant={notice.variant} message={notice.message} />}
         {error && <Alert message={error} />}
@@ -212,17 +206,6 @@ function AiSettingsList() {
             )}
           </section>
         ))
-      )}
-
-      {confirmingRestore && (
-        <ConfirmDialog
-          title="Restore default settings"
-          message="This deletes every AI assistant setting, including the ones you added or changed, and puts the default settings back. If the embedding model is different from the default, all the stored knowledge is converted to the default one first (it can take a minute), and nothing is changed if that fails."
-          confirmLabel="Restore defaults"
-          busy={restoring}
-          onConfirm={handleRestore}
-          onCancel={() => setConfirmingRestore(false)}
-        />
       )}
 
       {formOpen && (

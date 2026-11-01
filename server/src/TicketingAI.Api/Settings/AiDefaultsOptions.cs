@@ -9,37 +9,30 @@ namespace TicketingAI.Api.Settings;
 /// not change a database that already has the settings: use the Settings page for that.
 /// When an address is one of the known services (see <see cref="AiProviders"/>), the rest of that service is filled in as well: its
 /// key name, its example model (unless a model is given) and, for an embedding model, its prefixes.
-/// When no address is given, the first known online service whose key is set in the environment is used (Gemini when GEMINI_API_KEY is
-/// set), for the chat and, if that service has embeddings, for the embeddings too. With no key set, the built-in defaults (Ollama) stay.
-/// So a new server needs only its key: no AiDefaults variable.
+/// When no address is given, no chat or embedding model is selected: an admin chooses them on the Settings page, or they are given here.
 /// </summary>
 public class AiDefaultsOptions
 {
     public const string SectionName = "AiDefaults";
 
-    /// <summary>Where the embedding model runs. In Docker Compose it is http://ollama:11434.</summary>
+    /// <summary>Where the embedding model runs (http://host.docker.internal:11434 for an Ollama on the computer that runs Docker).</summary>
     public string EmbeddingBaseUrl { get; init; } = "";
 
     /// <summary>The embedding model. Empty means the example model of the known service at the address, or the built-in default.</summary>
     public string EmbeddingModel { get; init; } = "";
 
     /// <summary>
-    /// Where the chat model is called: where Ollama runs (http://ollama:11434 in Docker Compose), or an online service's address
+    /// Where the chat model is called: where Ollama runs (http://host.docker.internal:11434 from a Docker container), or an online service's address
     /// up to /chat/completions.
     /// </summary>
     public string ChatBaseUrl { get; init; } = "";
 
     public string ChatModel { get; init; } = "";
 
-    public IReadOnlyDictionary<string, string> ToOverrides(ApiKeyResolver keys)
+    public IReadOnlyDictionary<string, string> ToOverrides()
     {
-        // An address that is not given comes from the first online service we have a key for (its address must be complete).
-        var chatUrl = ChatBaseUrl.Length > 0
-            ? ChatBaseUrl
-            : AiProviders.All.FirstOrDefault(p => p.NeedsApiKey && !p.BaseUrl.Contains('<') && keys.IsSet(p.ApiKeyName))?.BaseUrl ?? "";
-        var embeddingUrl = EmbeddingBaseUrl.Length > 0
-            ? EmbeddingBaseUrl
-            : AiProviders.Embedding.FirstOrDefault(p => p.NeedsApiKey && !p.BaseUrl.Contains('<') && keys.IsSet(p.ApiKeyName))?.BaseUrl ?? "";
+        var chatUrl = ChatBaseUrl;
+        var embeddingUrl = EmbeddingBaseUrl;
 
         var overrides = new Dictionary<string, string>();
         void Add(string key, string value)

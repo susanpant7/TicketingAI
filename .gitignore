@@ -12,5 +12,5 @@ obj/
 *.db-wal
 appsettings.*.local.json
 
-# local secrets for docker compose
+# local secrets
 .env

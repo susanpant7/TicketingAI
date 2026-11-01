@@ -104,12 +104,13 @@ public partial class SettingsService(
             .ToList();
 
         // If the embedding settings change, the stored knowledge is embedded again with the default ones first. When that fails
-        // (the model or the key is not there), nothing is changed.
+        // (the model or the key is not there), nothing is changed. The default has no embedding model, so then the knowledge is deleted.
         var stored = (await settings.GetAllAsync(cancellationToken)).ToDictionary(s => s.Key, s => s.Value);
         var changed = EmbeddingKeys.Any(key => stored.TryGetValue(key, out var current) && current != DefaultOf(key));
 
         Dictionary<int, byte[]>? vectors = null;
-        if (changed)
+        var noEmbeddingModel = DefaultOf(SettingKeys.EmbeddingModel).Length == 0;
+        if (changed && !noEmbeddingModel)
         {
             var options = new EmbeddingModelOptions(
                 DefaultOf(SettingKeys.EmbeddingModel), DefaultOf(SettingKeys.EmbeddingBaseUrl),
@@ -117,7 +118,7 @@ public partial class SettingsService(
             vectors = await embeddingSwitcher.EmbedAllAsync(options, DefaultOf(SettingKeys.EmbeddingDocumentPrefix), cancellationToken);
         }
 
-        await settings.ReplaceAllAsync(defaults, vectors);
+        await settings.ReplaceAllAsync(defaults, vectors, deleteKnowledge: changed && noEmbeddingModel);
         return vectors?.Count ?? 0;
     }
 
@@ -208,7 +209,7 @@ public partial class SettingsService(
     private static SettingDto ToDto(Setting s) => new(s.Key, s.Label, s.Description, s.Value);
 
     // A missing or invalid value falls back to the default, so a bad value in the table cannot break the chat.
-    private IReadOnlyList<SettingDefinition> Defaults => SettingDefaults.WithOverrides(aiDefaults.Value.ToOverrides(apiKeys));
+    private IReadOnlyList<SettingDefinition> Defaults => SettingDefaults.WithOverrides(aiDefaults.Value.ToOverrides());
 
     private string DefaultOf(string key) => Defaults.First(d => d.Key == key).Value;
 

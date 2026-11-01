@@ -33,7 +33,7 @@ public static class AiProviders
     public static IReadOnlyList<AiProvider> All { get; } =
     [
         new("Ollama (on our own machine)", "http://localhost:11434", "qwen2.5:7b", false,
-            "Free, runs on our own machine. Pull the model first: ollama pull <model>. With Docker Compose the address is http://ollama:11434.",
+            "Free, runs on our own machine. Pull the model first: ollama pull <model>. From a Docker container, use http://host.docker.internal:11434.",
             "https://ollama.com/download", ""),
         new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash", true,
             "Free tier with a daily limit. gemini-3.8-flash is the newest Flash model; gemini-3.5-flash-lite is a lighter, faster one. The older gemini-2.5-flash is no longer available to new accounts.",
@@ -55,12 +55,12 @@ public static class AiProviders
             "https://dash.cloudflare.com/profile/api-tokens", "CLOUDFLARE_API_KEY")
     ];
 
-    // The services with an embeddings endpoint. Most chat-only services (Groq, Cerebras) have none. The prefixes are what the model was
+    // The services with an embeddings endpoint. Groq and Cerebras have none (their model lists show only chat, speech and safety models). The prefixes are what the model was
     // trained with: nomic-embed-text needs them, the others none.
     public static IReadOnlyList<EmbeddingProvider> Embedding { get; } =
     [
         new("Ollama (on our own machine)", "http://localhost:11434", "nomic-embed-text", "search_query:", "search_document:", false,
-            "Free, runs on our own machine. Pull the model first: ollama pull nomic-embed-text. With Docker Compose the address is http://ollama:11434.",
+            "Free, runs on our own machine. Pull the model first: ollama pull nomic-embed-text. From a Docker container, use http://host.docker.internal:11434.",
             "https://ollama.com/download", ""),
         new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-embedding-001", "", "", true,
             "Free tier with rate limits. The same key as Gemini chat works.",
@@ -68,6 +68,12 @@ public static class AiProviders
         new("Mistral", "https://api.mistral.ai/v1", "mistral-embed", "", "", true,
             "Free \"Experiment\" plan with rate limits. The same key as Mistral chat works.",
             "https://console.mistral.ai/api-keys", "MISTRAL_API_KEY"),
+        new("Jina AI", "https://api.jina.ai/v1", "jina-embeddings-v5-text-small", "", "", true,
+            "New keys come with free tokens for every model (100 requests a minute). Also listed: jina-embeddings-v3 and jina-embeddings-v4. The key is created on its page without an account.",
+            "https://jina.ai/embeddings/", "JINA_API_KEY"),
+        new("Cohere", "https://api.cohere.ai/compatibility/v1", "embed-v5.0-pro", "", "", true,
+            "A free trial key with limits (check Cohere's page). This is Cohere's OpenAI-compatible address.",
+            "https://dashboard.cohere.com/api-keys", "COHERE_API_KEY"),
         new("OpenAI", "https://api.openai.com/v1", "text-embedding-3-small", "", "", true,
             "Paid, but very cheap: converting all the knowledge costs a fraction of a cent.",
             "https://platform.openai.com/api-keys", "OPENAI_API_KEY"),

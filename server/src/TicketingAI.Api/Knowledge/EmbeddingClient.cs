@@ -6,6 +6,11 @@ namespace TicketingAI.Api.Knowledge;
 public class EmbeddingClient(OllamaEmbeddingClient ollama, OnlineEmbeddingClient online) : IEmbeddingClient
 {
     public Task<IReadOnlyList<float[]>> EmbedAsync(
-        IReadOnlyList<string> texts, EmbeddingModelOptions options, CancellationToken cancellationToken = default) =>
-        (AiProviders.IsOllamaApi(options.BaseUrl) ? (IEmbeddingClient)ollama : online).EmbedAsync(texts, options, cancellationToken);
+        IReadOnlyList<string> texts, EmbeddingModelOptions options, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(options.BaseUrl) || string.IsNullOrWhiteSpace(options.Model))
+            throw new EmbeddingException("No embedding model is selected yet. An admin chooses one on the Settings page (AI assistant tab), and then loads the knowledge files.");
+
+        return (AiProviders.IsOllamaApi(options.BaseUrl) ? (IEmbeddingClient)ollama : online).EmbedAsync(texts, options, cancellationToken);
+    }
 }

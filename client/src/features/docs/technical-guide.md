@@ -297,7 +297,7 @@ ANSWER (on every chat message)
 | Embedding model | `nomic-embed-text`. Turns a text into a list of 768 numbers (a **vector**). Texts with similar meaning get similar vectors |
 | Chat model | `qwen2.5:7b`. Reads the prompt and writes the answer |
 | Vector store | The `KnowledgeChunks` table in SQLite, with the **sqlite-vec** extension for the similarity query. There is no separate vector database |
-| Ollama | Runs both models. In Docker it is its own container |
+| Ollama | Runs the models on our own computer, when we use local models. It is optional: the models can be online services, and Docker does not include it |
 
 Both model names, and every number that tunes the behaviour, are rows in the `Settings` table (see [section 12](#12-settings-that-tune-the-ai)). The app reads them on every request.
 
@@ -580,7 +580,7 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 
 | Key | Default | Effect |
 | --- | --- | --- |
-| `embedding.base_url` | `http://localhost:11434` | Where the embedding model runs. No path (`http://localhost:11434`) is Ollama's own API (`/api/embed`); a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI format (`/embeddings`). In Docker a new database gets `http://ollama:11434` |
+| `embedding.base_url` | `http://localhost:11434` | Where the embedding model runs. No path (`http://localhost:11434`) is Ollama's own API (`/api/embed`); a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI format (`/embeddings`). From a Docker container, an Ollama on the computer is `http://host.docker.internal:11434` |
 | `embedding.api_key_name` | (empty) | The name of the environment variable that holds the key of an online embedding service (for example `GEMINI_API_KEY`). The key itself is never stored |
 | `embedding.model` | `nomic-embed-text` | The model that makes the vectors. **Changing it converts all the stored knowledge**: every section is embedded again with the new model, and the change is saved only when that worked. The embedding settings are changed with Use on the Settings page, not by editing them |
 | `embedding.query_prefix` | `search_query:` | In front of the user's message when it is embedded |
@@ -590,7 +590,7 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 | `retrieval.max_score_gap` | 0.05 | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off |
 | `retrieval.follow_up_max_words` | 5 | Messages this short are searched together with the previous user message. `0` turns it off |
 | `chat.api_key_name` | (empty) | The name of the environment variable that holds the key of an online chat service (for example `GROQ_API_KEY`). Empty for Ollama. The key itself is never stored |
-| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://ollama:11434` in Docker) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable `ChatApi__ApiKey`, never a setting |
+| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://host.docker.internal:11434` from a Docker container) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable `ChatApi__ApiKey`, never a setting |
 | `chat.model` | `qwen2.5:7b` | Model that writes the answers |
 | `chat.temperature` | 0.2 | Randomness. 0 gives the most repeatable answers |
 | `chat.top_p` | 0.9 | Sent to Ollama |
@@ -601,7 +601,7 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 | `chat.system_prompt` | (long text) | The six kinds of message and the reply format. Placeholders: `{{departments}}`, `{{department_names}}` |
 | `chat.format_reminder` | (short text) | Repeated at the end of the final user message. Same placeholders |
 
-A model named in a setting must exist in Ollama. In Docker: `docker compose exec ollama ollama pull <model>`. Nothing writes the settings at startup: a setting with no row uses its default, and **Restore defaults** saves all of them as rows (and resets any value we changed). So an old prompt stays until we edit it or restore the defaults.
+A model named in a setting must exist at its address: for Ollama it must be pulled (`ollama pull <model>` on that computer), and an online service has its own model names. Nothing writes the settings at startup: a setting with no row uses its default, and **Load default AI assistant data** (Settings, Manage App Data tab) saves all of them as rows (and resets any value we changed). So an old prompt stays until we edit it or restore the defaults.
 
 **Making replies faster** (the time is the model reading the prompt, plus writing the answer; a hosted model may also think first): we lower `retrieval.top_k` and raise `retrieval.max_score_gap` carefully, so fewer sections are sent, lower `chat.history_messages` (1 is enough for a ticket) and `chat.max_tokens`, ask in the prompt for short answers, set `chat.reasoning_effort` for a thinking model on an API, or use a smaller or faster model. The server writes a timing line for every message (search time, time to the first text, total), which shows which step to work on.
 

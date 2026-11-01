@@ -20,7 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // A client hosted on another address (for example Vercel) needs its address here: Cors:AllowedOrigins, separated by commas.
-// With no value, CORS stays off, which is right when the page and the API share an address (Vite dev server, nginx).
+// With no value, CORS stays off, which is right when the page and the API share an address (Vite dev server).
 var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 if (allowedOrigins.Length > 0)
@@ -96,7 +96,7 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("sqlite-vec {Version} loaded", vecVersion);
 
     // Nothing else is written at startup. The settings table can stay empty: until an admin clicks "Restore defaults" on the Settings page,
-    // the app uses the built-in defaults (and the first online service we have a key for, see AiDefaultsOptions). Restore defaults saves
+    // the app uses the built-in defaults (Ollama, unless AiDefaultsOptions gives other addresses). Restore defaults saves
     // them as rows.
 }
 
