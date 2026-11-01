@@ -95,8 +95,9 @@ using (var scope = app.Services.CreateScope())
     var vecVersion = db.Database.SqlQueryRaw<string>("SELECT vec_version() AS Value").Single();
     app.Logger.LogInformation("sqlite-vec {Version} loaded", vecVersion);
 
-    // A new database starts with the Ollama address and the chat base URL and model from the configuration (AiDefaults), if they are set.
-    await SettingsSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IOptions<AiDefaultsOptions>>().Value.ToOverrides());
+    // Nothing else is written at startup. The settings table can stay empty: until an admin clicks "Restore defaults" on the Settings page,
+    // the app uses the built-in defaults (and the first online service we have a key for, see AiDefaultsOptions). Restore defaults saves
+    // them as rows.
 }
 
 if (allowedOrigins.Length > 0)

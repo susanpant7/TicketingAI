@@ -10,7 +10,7 @@ namespace TicketingAI.Api.Settings;
 
 public partial class SettingsService(
     ISettingRepository settings, ILogger<SettingsService> logger, IOptions<AiDefaultsOptions> aiDefaults, EmbeddingSwitcher embeddingSwitcher,
-    IChatModelClient chatModel, IEmbeddingClient embeddingClient) : ISettingsService
+    IChatModelClient chatModel, IEmbeddingClient embeddingClient, ApiKeyResolver apiKeys) : ISettingsService
 {
     private const int MaxKeyLength = 100;
     private const int MaxLabelLength = 100;
@@ -208,7 +208,7 @@ public partial class SettingsService(
     private static SettingDto ToDto(Setting s) => new(s.Key, s.Label, s.Description, s.Value);
 
     // A missing or invalid value falls back to the default, so a bad value in the table cannot break the chat.
-    private IReadOnlyList<SettingDefinition> Defaults => SettingDefaults.WithOverrides(aiDefaults.Value.ToOverrides());
+    private IReadOnlyList<SettingDefinition> Defaults => SettingDefaults.WithOverrides(aiDefaults.Value.ToOverrides(apiKeys));
 
     private string DefaultOf(string key) => Defaults.First(d => d.Key == key).Value;
 

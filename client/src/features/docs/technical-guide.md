@@ -601,7 +601,7 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 | `chat.system_prompt` | (long text) | The six kinds of message and the reply format. Placeholders: `{{departments}}`, `{{department_names}}` |
 | `chat.format_reminder` | (short text) | Repeated at the end of the final user message. Same placeholders |
 
-A model named in a setting must exist in Ollama. In Docker: `docker compose exec ollama ollama pull <model>`. The seeder never overwrites a row that exists, so an old prompt stays until we edit it or click **Restore defaults** (which resets all settings).
+A model named in a setting must exist in Ollama. In Docker: `docker compose exec ollama ollama pull <model>`. Nothing writes the settings at startup: a setting with no row uses its default, and **Restore defaults** saves all of them as rows (and resets any value we changed). So an old prompt stays until we edit it or restore the defaults.
 
 **Making replies faster** (the time is the model reading the prompt, plus writing the answer; a hosted model may also think first): we lower `retrieval.top_k` and raise `retrieval.max_score_gap` carefully, so fewer sections are sent, lower `chat.history_messages` (1 is enough for a ticket) and `chat.max_tokens`, ask in the prompt for short answers, set `chat.reasoning_effort` for a thinking model on an API, or use a smaller or faster model. The server writes a timing line for every message (search time, time to the first text, total), which shows which step to work on.
 

@@ -89,6 +89,55 @@ Data lives in two volumes: `server-data` (the SQLite database) and `ollama-data`
 | `ChatApi:ApiKey` | empty, from `.env` | The key of an online chat service (when the Chat API base URL has a path) |
 | `ConnectionStrings:Default` | `Data Source=data/ticketing.db` | The SQLite file |
 
+## Deploy the backend on a server (with free online models)
+
+For the setup "client on Vercel, backend on a server, free chat and embedding APIs", the server needs only the .NET API and its SQLite
+file. There is no Ollama and no GPU, so a small machine is enough (about 1 GB of memory).
+
+1. **Get the code and the secrets on the server.** `git clone` the repository, then `cp .env.example .env` and fill in:
+   - `Admin__Username`, `Admin__Password` and `Jwt__Key` (a long random string).
+   - The key of the service, for example `GEMINI_API_KEY`.
+   - Nothing else for the models: a new database starts with the first online service whose key is set, so with `GEMINI_API_KEY` it uses
+     Gemini for the chat **and** for the embeddings (its model, key name and prefixes come with it). The Settings page can change it later.
+   - `Cors__AllowedOrigins`, the address of the client, for example `https://ticketingai.susanpant.com.np`.
+2. **Start it** (Docker needed): `docker compose -f docker-compose.prod.yml up -d --build`. The API listens on `127.0.0.1:5176` of the server only.
+3. **Put https in front of it.** A page on https cannot call an http address. With the domain on Cloudflare, a **Cloudflare Tunnel** is
+   the easiest: it needs no open port and gives a free https address. In the tunnel, add a public hostname such as
+   `api.susanpant.com.np` that points to `http://localhost:5176`. A reverse proxy (Caddy, nginx) on the server works as well.
+4. **Point the client at it.** In Vercel, set `VITE_API_URL` to that https address and redeploy (see the next section).
+5. **Set it up in the app:** log in as the admin, then load the departments and users and upload the knowledge files. The embeddings are
+   made by the online service, so no Ollama is needed.
+
+Things to know about the server:
+- **The database must survive restarts.** The SQLite file is in the `server-data` volume. Hosts with a disk that is wiped on every deploy
+  (the free plan of Render, and similar) would lose the users, tickets and knowledge. A small virtual machine (any provider, x64) keeps it.
+  Back the volume up from time to time.
+- **Use an x64 machine.** The vector search library (sqlite-vec) has not been checked on ARM.
+- **Free plans have limits.** The chat and the embeddings share the limits of the key, and uploading the knowledge makes several
+  embedding requests. If the service answers "too many requests", wait a moment and try again.
+- **Only the client's address may call the API** (`Cors__AllowedOrigins`). Everything else is the same as locally.
+
+### On Render (a Docker web service)
+
+Render builds the same `server/Dockerfile` from the GitHub repository. In the Render dashboard: **New**, **Web Service**, and connect the repository.
+
+| Render setting | Value |
+| --- | --- |
+| Language | Docker |
+| Root Directory | `server` |
+| Dockerfile Path | `./Dockerfile` |
+| Health Check Path | `/api/health` |
+| Environment variable `PORT` | `8080` (the port the API listens on in the image, so Render knows where to send the traffic) |
+| Environment variables | the same as the `.env` of step 1: `Admin__Username`, `Admin__Password`, `Jwt__Key`, `GEMINI_API_KEY`, `Cors__AllowedOrigins` (Render can import a whole `.env` file with **Add from .env**) |
+| Disk (paid plans only) | mount path `/app/data`, 1 GB: this keeps the SQLite database |
+
+Render gives the service an https address such as `https://ticketing-ai-api.onrender.com`, so no tunnel or proxy is needed. Use that address as `VITE_API_URL` in Vercel (no slash at the end), and put the Vercel address in `Cors__AllowedOrigins`. Every push to the branch deploys again.
+
+Before you choose a plan:
+- **The free plan keeps no data.** Its disk is wiped on every deploy and whenever the service wakes up after sleeping (about 15 minutes without a request), so the users, tickets and knowledge are lost. It also takes about a minute to wake up. It is fine for a demo (**Settings**, **Manage App Data** loads the defaults again), not for real use.
+- **To keep the data, use a paid instance with a disk** mounted at `/app/data`, as in the table. If the service then stops with "unable to open database file", the disk is not writable for the container's non-root user: check the disk's mount path first, because the image runs as a non-root user.
+- **Memory:** the free 512 MB is enough for the API alone, since the models are online.
+
 ## Host the client on Vercel
 
 The client is a static site, so it can be hosted apart from the API. In Vercel, import the repository and set:
@@ -105,7 +154,7 @@ The client is a static site, so it can be hosted apart from the API. In Vercel, 
 
 The chat answers can come from a model on our own server (Ollama, the default) or from an external service that speaks the OpenAI chat format. The app supports both, and an admin switches between them on the **Settings** page, with no code change. Embeddings always stay on Ollama, so the uploaded knowledge stays valid when the chat provider changes.
 
-**0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. A new database starts with the built-in defaults, and in Docker the Ollama address is set to the Ollama container by itself. To start a new database with other values, set `AiDefaults__OllamaUrl`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. An existing database keeps its settings, so for that one we change the Settings page (step 2).
+**0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. Nothing writes the settings when the server starts: a setting with no row uses its default, and **Restore defaults** (Settings, AI assistant tab) saves them all. The defaults pick the first online service whose key is set in `.env` (Gemini with `GEMINI_API_KEY`) for the chat and the embeddings, and otherwise Ollama. In Docker the Ollama address is the Ollama container. To start with other values, set `AiDefaults__EmbeddingBaseUrl`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. Restore defaults resets every setting, so on an existing database we change the Settings page instead (step 2).
 
 **1. Put the key in `.env`.** Every service has its own key variable, which `.env.example` lists (`GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `CEREBRAS_API_KEY`, `CLOUDFLARE_API_KEY`, `OPENAI_API_KEY`). We add the line `GROQ_API_KEY=<the key>` (for Groq, and so on) to the `.env` file, the same file for Docker and for running without Docker. The Settings page shows the **API key name** of each model and whether that variable is set, and saves only the name, never the key. A key is a secret, so it never goes in `appsettings.json` (that file is committed to git) and is never stored in the database. After a change, we restart the API, or run `docker compose up -d` for Docker.
 
@@ -127,7 +176,7 @@ A new database is empty. Log in as the admin and do these in order:
 1. **Departments:** click "Load default departments" (IT, HR, Finance), or add your own.
 2. **Users:** click "Load default users", enter one password for all of them, and they are divided over the departments. You can also add users one by one. Every user belongs to a department.
 3. **Knowledge:** choose a department and upload its knowledge files. The files must start with `title:` and `department:` lines, then `## Section title` sections, and the department in the file must match the selected one. Sample files are in `server/src/TicketingAI.Api/Knowledge/Documents`. "Add" keeps the existing knowledge, "Flush and Add" deletes it first.
-4. **Settings:** optional. The defaults work. "Restore defaults" puts them back.
+4. **Settings:** click **Restore defaults** on the AI assistant tab once. Nothing is saved at startup, so until then the app uses the built-in defaults; this saves them as settings and picks the chat and embedding model from the keys in `.env` (Gemini with `GEMINI_API_KEY`, otherwise Ollama). It resets every setting, so we do it once, on a new database.
 
 Then log in as an employee (for example `aarav` with the password you chose), open the chat button at the bottom right, and ask a question. If the answer does not help, say so, and the assistant offers to create a ticket. Tickets are listed on the Tickets page, where the assignee can change the status.
 

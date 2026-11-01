@@ -6,20 +6,15 @@ public static class SettingKeys
     public const string EmbeddingApiKeyName = "embedding.api_key_name";
     public const string EmbeddingModel = "embedding.model";
 
-    /// <summary>The old name of <see cref="EmbeddingBaseUrl"/>. A database that still has it is upgraded at startup.</summary>
-    public const string LegacyOllamaBaseUrl = "ollama.base_url";
     public const string EmbeddingQueryPrefix = "embedding.query_prefix";
     public const string EmbeddingDocumentPrefix = "embedding.document_prefix";
     public const string RetrievalTopK = "retrieval.top_k";
     public const string RetrievalMinScore = "retrieval.min_score";
     public const string RetrievalMaxScoreGap = "retrieval.max_score_gap";
     public const string RetrievalFollowUpMaxWords = "retrieval.follow_up_max_words";
-    public const string LegacyChatProvider = "chat.provider";   // removed: the Chat API base URL decides, see AiProviders
     public const string ChatBaseUrl = "chat.base_url";
     public const string ChatApiKeyName = "chat.api_key_name";
 
-    /// <summary>The old name of <see cref="ChatBaseUrl"/>. A database that still has it is upgraded at startup.</summary>
-    public const string LegacyChatApiUrl = "chat.api_url";
     public const string ChatModel = "chat.model";
     public const string ChatReasoningEffort = "chat.reasoning_effort";
     public const string ChatTemperature = "chat.temperature";
@@ -35,8 +30,8 @@ public static class SettingKeys
 public record SettingDefinition(string Key, string Label, string Description, string Value);
 
 /// <summary>
-/// The starting value of every setting. <see cref="SettingsSeeder"/> adds the ones that are missing from the table,
-/// and never changes a row that already exists, so edits made in the database are kept.
+/// The starting value of every setting. Nothing writes them at startup: the app uses these values for any setting that has no row, and
+/// "Restore defaults" on the Settings page saves them all as rows.
 /// </summary>
 public static class SettingDefaults
 {

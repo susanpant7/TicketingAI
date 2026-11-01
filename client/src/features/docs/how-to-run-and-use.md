@@ -98,7 +98,7 @@ A new database is empty. We log in as the admin and do these four things, in thi
    ![The Knowledge page](/guide-images/admin-knowledge.png)
 
    *The Knowledge page. We choose the department and the files, pick Add or Flush and Add, and click Add. Below, the stored sections are listed in tabs by department.*
-4. **Settings.** Optional. The defaults work. Section 6 explains the model settings.
+4. **Settings.** On the AI assistant tab, we click **Restore defaults** once. Nothing is saved at startup, so until then the app uses the built-in defaults; this saves them as settings and picks the chat and embedding model from the keys in `.env` (Gemini with `GEMINI_API_KEY`, otherwise Ollama). Section 6 explains the model settings.
 
 ## 4. Use the app as an employee
 
