@@ -1,11 +1,5 @@
 import { useState, type SubmitEvent } from 'react'
-import {
-  createSetting,
-  EMBEDDING_MODEL_KEY,
-  updateSetting,
-  type SavedSetting,
-  type Setting,
-} from '@/features/settings/settingsApi'
+import { createSetting, updateSetting, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
@@ -25,12 +19,9 @@ export default function SettingForm({ setting, onSaved, onCancel }: SettingFormP
   const [label, setLabel] = useState(setting?.label ?? '')
   const [description, setDescription] = useState(setting?.description ?? '')
   const [value, setValue] = useState(setting?.value ?? '')
-  const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const isEmbeddingModel = setting?.key === EMBEDDING_MODEL_KEY
-  const embeddingModelChanged = isEmbeddingModel && value.trim() !== setting.value
   const multiline = isEdit && (setting.value.length > 80 || setting.value.includes('\n'))
 
   async function save() {
@@ -39,10 +30,9 @@ export default function SettingForm({ setting, onSaved, onCancel }: SettingFormP
     try {
       const saved = setting
         ? await updateSetting(setting.key, { label, description, value })
-        : { setting: await createSetting({ key, label, description, value }), knowledgeDeleted: 0 }
+        : { setting: await createSetting({ key, label, description, value }) }
       onSaved(saved)
     } catch (err) {
-      setConfirming(false)
       setError(errorMessage(err, 'Saving the setting failed. Please try again.'))
     } finally {
       setSubmitting(false)
@@ -51,12 +41,6 @@ export default function SettingForm({ setting, onSaved, onCancel }: SettingFormP
 
   function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
-
-    // Changing the embedding model deletes the knowledge data, so ask first.
-    if (embeddingModelChanged && !confirming) {
-      setConfirming(true)
-      return
-    }
 
     void save()
   }
@@ -95,45 +79,15 @@ export default function SettingForm({ setting, onSaved, onCancel }: SettingFormP
           </p>
         )}
 
-        {isEmbeddingModel && (
-          <Alert
-            variant="warning"
-            message="Warning: changing the embedding model deletes all the knowledge data. Vectors made by different models cannot be compared, so you will need to upload the knowledge files again afterwards. Until then, the assistant has no knowledge to search."
-          />
-        )}
-
-        {confirming && (
-          <div className="rounded-lg bg-red-50 p-4 ring-1 ring-inset ring-red-200">
-            <p className="text-sm font-semibold text-red-800">Delete all knowledge data and change the model?</p>
-            <p className="mt-1 text-sm text-red-700">
-              Every knowledge section will be deleted when you save. Open the Knowledge page and upload the knowledge
-              files again afterwards.
-            </p>
-          </div>
-        )}
-
         {error && <Alert message={error} />}
 
         <div className="flex justify-end gap-3 pt-1">
-          {confirming ? (
-            <>
-              <Button variant="secondary" onClick={() => setConfirming(false)}>
-                Back
-              </Button>
-              <Button type="submit" variant="danger" disabled={submitting}>
-                {submitting ? 'Saving...' : 'Change model and delete knowledge'}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? 'Saving...' : 'Save'}
-              </Button>
-            </>
-          )}
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? 'Saving...' : 'Save'}
+          </Button>
         </div>
       </form>
     </Modal>

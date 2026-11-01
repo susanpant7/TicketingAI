@@ -1,8 +1,11 @@
+using TicketingAI.Api.Knowledge;
+
 namespace TicketingAI.Api.Settings;
 
 /// <summary>The settings the embedding and chat calls use, read from the Settings table.</summary>
 public record AiSettings(
-    string OllamaBaseUrl,
+    string EmbeddingBaseUrl,
+    string EmbeddingApiKeyName,
     string EmbeddingModel,
     string EmbeddingQueryPrefix,
     string EmbeddingDocumentPrefix,
@@ -11,6 +14,7 @@ public record AiSettings(
     double MaxScoreGap,
     int FollowUpMaxWords,
     string ChatBaseUrl,
+    string ChatApiKeyName,
     string ChatModel,
     string ChatReasoningEffort,
     double Temperature,
@@ -20,4 +24,8 @@ public record AiSettings(
     int HistoryMessages,
     string KeepAlive,
     string SystemPrompt,
-    string FormatReminder);
+    string FormatReminder)
+{
+    /// <summary>How the embedding model is called, from the settings above.</summary>
+    public EmbeddingModelOptions Embedding => new(EmbeddingModel, EmbeddingBaseUrl, EmbeddingApiKeyName, KeepAlive);
+}

@@ -6,4 +6,4 @@ namespace TicketingAI.Api.Chat;
 /// <see cref="AiProviders.IsOllamaApi"/>). KeepAlive and NumCtx only apply to Ollama.
 /// </summary>
 public record ChatModelOptions(string Model, double Temperature, double TopP, int NumCtx, int MaxTokens, string KeepAlive,
-    string BaseUrl, string ReasoningEffort);
+    string BaseUrl, string ApiKeyName, string ReasoningEffort);

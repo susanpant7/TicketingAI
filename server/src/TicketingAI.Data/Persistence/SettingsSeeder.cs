@@ -12,6 +12,7 @@ public static class SettingsSeeder
     public static async Task SeedAsync(AppDbContext db, IReadOnlyDictionary<string, string>? overrides = null)
     {
         await RenameChatApiUrlAsync(db, overrides);
+        await RenameOllamaBaseUrlAsync(db);
 
         // "chat.provider" is gone: the Chat API base URL decides how the chat model is called.
         await db.Settings.Where(s => s.Key == SettingKeys.LegacyChatProvider).ExecuteDeleteAsync();
@@ -41,6 +42,29 @@ public static class SettingsSeeder
         if (!await db.Settings.AnyAsync(s => s.Key == SettingKeys.ChatBaseUrl))
         {
             var definition = SettingDefaults.WithOverrides(overrides).First(d => d.Key == SettingKeys.ChatBaseUrl);
+            db.Settings.Add(new Setting
+            {
+                Key = definition.Key,
+                Label = definition.Label,
+                Description = definition.Description,
+                Value = string.IsNullOrWhiteSpace(old.Value) ? definition.Value : old.Value
+            });
+        }
+
+        db.Settings.Remove(old);
+        await db.SaveChangesAsync();
+    }
+
+    // "ollama.base_url" became "embedding.base_url": the same address, now with a key name and a model list around it.
+    private static async Task RenameOllamaBaseUrlAsync(AppDbContext db)
+    {
+        var old = await db.Settings.FirstOrDefaultAsync(s => s.Key == SettingKeys.LegacyOllamaBaseUrl);
+        if (old is null)
+            return;
+
+        if (!await db.Settings.AnyAsync(s => s.Key == SettingKeys.EmbeddingBaseUrl))
+        {
+            var definition = SettingDefaults.All.First(d => d.Key == SettingKeys.EmbeddingBaseUrl);
             db.Settings.Add(new Setting
             {
                 Key = definition.Key,

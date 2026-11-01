@@ -38,7 +38,7 @@ const modules: Module[] = [
     id: 'settings',
     title: 'AI assistant settings',
     description:
-      'The system prompt, chat model, embeddings and search settings. Replaces every setting, including ones you added; if the embedding model changes, the knowledge is deleted and has to be loaded again.',
+      'The system prompt, chat model, embeddings and search settings. Replaces every setting, including ones you added; if the embedding model changes, the stored knowledge is converted to the default one first (it can take a minute) and nothing is changed if that fails.',
     button: 'Load default AI assistant data',
     replaces: true,
     run: async () => {

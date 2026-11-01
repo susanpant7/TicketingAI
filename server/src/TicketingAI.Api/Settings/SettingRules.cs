@@ -22,7 +22,8 @@ public static class SettingRules
 {
     private static readonly Dictionary<string, SettingRule> Known = new()
     {
-        [SettingKeys.OllamaBaseUrl] = new(SettingKind.Text),
+        [SettingKeys.EmbeddingBaseUrl] = new(SettingKind.Text),
+        [SettingKeys.EmbeddingApiKeyName] = new(SettingKind.OptionalText),
         [SettingKeys.EmbeddingModel] = new(SettingKind.Text),
         [SettingKeys.EmbeddingQueryPrefix] = new(SettingKind.OptionalText),
         [SettingKeys.EmbeddingDocumentPrefix] = new(SettingKind.OptionalText),
@@ -31,6 +32,7 @@ public static class SettingRules
         [SettingKeys.RetrievalMaxScoreGap] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalFollowUpMaxWords] = new(SettingKind.Int, Min: 0),
         [SettingKeys.ChatBaseUrl] = new(SettingKind.Text),
+        [SettingKeys.ChatApiKeyName] = new(SettingKind.OptionalText),
         [SettingKeys.ChatModel] = new(SettingKind.Text),
         [SettingKeys.ChatReasoningEffort] = new(SettingKind.OptionalText),
         [SettingKeys.ChatTemperature] = new(SettingKind.Decimal, Min: 0, Max: 2),
@@ -51,9 +53,13 @@ public static class SettingRules
         var rule = For(key);
 
         // The addresses are web addresses.
-        if (key is SettingKeys.ChatBaseUrl or SettingKeys.OllamaBaseUrl && value.Length > 0
+        if (key is SettingKeys.ChatBaseUrl or SettingKeys.EmbeddingBaseUrl && value.Length > 0
             && !(Uri.TryCreate(value, UriKind.Absolute, out var url) && url.Scheme is "http" or "https"))
             return "The value must be a web address that starts with http:// or https://.";
+
+        // A key name is the name of an environment variable that ends in API_KEY, never something else (like the admin password).
+        if (key is SettingKeys.ChatApiKeyName or SettingKeys.EmbeddingApiKeyName && value.Length > 0 && !ApiKeyResolver.IsValidName(value))
+            return "The key name must be the name of an environment variable that ends in API_KEY, for example GROQ_API_KEY.";
 
         switch (rule.Kind)
         {

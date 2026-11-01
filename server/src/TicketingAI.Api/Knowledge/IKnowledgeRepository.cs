@@ -20,6 +20,9 @@ public interface IKnowledgeRepository
     /// <summary>Deletes every chunk of a department. Returns the number deleted.</summary>
     Task<int> DeleteByDepartmentAsync(string department);
 
+    /// <summary>The text of every stored section, to embed again with another model.</summary>
+    Task<List<KnowledgeChunkText>> GetTextsAsync();
+
     /// <summary>Returns the sections whose embeddings are closest to the query vector, closest first.</summary>
     Task<List<KnowledgeSearchRow>> SearchAsync(float[] queryVector, int topK);
 }

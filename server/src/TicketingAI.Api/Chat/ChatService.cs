@@ -52,7 +52,7 @@ public class ChatService(
             FillDepartments(settings.SystemPrompt, departments), FillDepartments(settings.FormatReminder, departments));
         var chatOptions = new ChatModelOptions(
             settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens, settings.KeepAlive,
-            settings.ChatBaseUrl, settings.ChatReasoningEffort);
+            settings.ChatBaseUrl, settings.ChatApiKeyName, settings.ChatReasoningEffort);
 
         // While the reply is written, the employee sees it without the Department, Problem and ticket lines.
         var shown = "";

@@ -19,7 +19,9 @@ public class SettingRepository(AppDbContext db) : ISettingRepository
         await db.SaveChangesAsync();
     }
 
-    public async Task<int> ReplaceAllAsync(IReadOnlyList<Setting> settings, bool deleteKnowledge)
+    public Task UpdateAsync(Setting setting) => db.SaveChangesAsync();
+
+    public async Task ReplaceAllAsync(IReadOnlyList<Setting> settings, IReadOnlyDictionary<int, byte[]>? vectors)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
 
@@ -27,20 +29,40 @@ public class SettingRepository(AppDbContext db) : ISettingRepository
         db.ChangeTracker.Clear();
         db.Settings.AddRange(settings);
         await db.SaveChangesAsync();
-        var deleted = deleteKnowledge ? await db.KnowledgeChunks.ExecuteDeleteAsync() : 0;
+        await ReplaceVectorsAsync(vectors);
 
         await transaction.CommitAsync();
-        return deleted;
     }
 
-    public async Task<int> UpdateAsync(Setting setting, bool deleteKnowledge)
+    public async Task ChangeValuesAsync(IReadOnlyDictionary<string, string> values, IReadOnlyDictionary<int, byte[]>? vectors)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
 
+        foreach (var (key, value) in values)
+        {
+            var setting = await db.Settings.FirstOrDefaultAsync(s => s.Key == key);
+            if (setting is null)
+            {
+                var definition = SettingDefaults.All.First(d => d.Key == key);
+                db.Settings.Add(new Setting { Key = key, Label = definition.Label, Description = definition.Description, Value = value });
+            }
+            else
+            {
+                setting.Value = value;
+            }
+        }
         await db.SaveChangesAsync();
-        var deleted = deleteKnowledge ? await db.KnowledgeChunks.ExecuteDeleteAsync() : 0;
+        await ReplaceVectorsAsync(vectors);
 
         await transaction.CommitAsync();
-        return deleted;
+    }
+
+    private async Task ReplaceVectorsAsync(IReadOnlyDictionary<int, byte[]>? vectors)
+    {
+        if (vectors is null)
+            return;
+
+        foreach (var (id, bytes) in vectors)
+            await db.KnowledgeChunks.Where(c => c.Id == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.Embedding, bytes));
     }
 }

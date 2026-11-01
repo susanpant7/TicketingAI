@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import AiProviderList from '@/features/settings/AiProviderList'
+import AiModelPicker from '@/features/settings/AiModelPicker'
 import ManageAppData from '@/features/settings/ManageAppData'
 import SettingForm from '@/features/settings/SettingForm'
-import {
-  EMBEDDING_MODEL_KEY,
-  getSettings,
-  restoreDefaults,
-  type SavedSetting,
-  type Setting,
-} from '@/features/settings/settingsApi'
+import { getSettings, restoreDefaults, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
@@ -27,7 +20,6 @@ const groupName = (key: string) => key.split('.')[0]
 
 const groupTitles: Record<string, string> = {
   chat: 'Chat model and replies',
-  ollama: 'Ollama for embeddings',
   embedding: 'Embeddings',
   retrieval: 'Searching the knowledge',
 }
@@ -35,8 +27,9 @@ const groupTitles: Record<string, string> = {
 // The order of the settings inside a group. The chat API base URL and the chat model come first and in this order, because
 // they must be changed together. A setting that is not listed (one an admin added) goes last, by key.
 const settingOrder = [
-  'ollama.base_url',
+  'embedding.base_url',
   'embedding.model',
+  'embedding.api_key_name',
   'embedding.query_prefix',
   'embedding.document_prefix',
   'retrieval.top_k',
@@ -45,6 +38,7 @@ const settingOrder = [
   'retrieval.follow_up_max_words',
   'chat.base_url',
   'chat.model',
+  'chat.api_key_name',
   'chat.reasoning_effort',
   'chat.temperature',
   'chat.top_p',
@@ -60,6 +54,20 @@ const position = (key: string) => {
   const index = settingOrder.indexOf(key)
   return index === -1 ? settingOrder.length : index
 }
+
+// The chat model and the embedding model in use are edited in the list above their settings (Edit on the row at the top, or on a model),
+// so the address, the model, the key name and the prefixes are not shown again as separate rows. The embedding settings are changed only
+// there, because a new embedding model converts the stored knowledge.
+const hiddenKeys = [
+  'chat.base_url',
+  'chat.model',
+  'chat.api_key_name',
+  'embedding.base_url',
+  'embedding.model',
+  'embedding.api_key_name',
+  'embedding.query_prefix',
+  'embedding.document_prefix',
+]
 
 const bySettingOrder = (a: Setting, b: Setting) => position(a.key) - position(b.key) || a.key.localeCompare(b.key)
 
@@ -86,7 +94,10 @@ function AiSettingsList() {
   const [settings, setSettings] = useState<Setting[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState<{ variant: 'success' | 'warning'; message: React.ReactNode } | null>(null)
+  const [notice, setNotice] = useState<{
+    variant: 'success' | 'warning'
+    message: React.ReactNode
+  } | null>(null)
   const [editing, setEditing] = useState<Setting | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [version, setVersion] = useState(0)
@@ -97,7 +108,10 @@ function AiSettingsList() {
     let ignore = false
     getSettings()
       .then((loaded) => !ignore && setSettings(loaded))
-      .catch((err) => !ignore && setError(errorMessage(err, 'Could not load the settings. Make sure the API is running, then try again.')))
+      .catch(
+        (err) =>
+          !ignore && setError(errorMessage(err, 'Could not load the settings. Make sure the API is running, then try again.')),
+      )
       .finally(() => !ignore && setLoading(false))
     return () => {
       ignore = true
@@ -109,53 +123,29 @@ function AiSettingsList() {
     setFormOpen(true)
   }
 
-  function handleSaved({ setting, knowledgeDeleted }: SavedSetting) {
+  function handleSaved({ setting }: SavedSetting) {
     setFormOpen(false)
     setError('')
     setVersion((v) => v + 1)
-
-    if (setting.key === EMBEDDING_MODEL_KEY && knowledgeDeleted > 0) {
-      setNotice({
-        variant: 'warning',
-        message: (
-          <>
-            The embedding model was changed and {knowledgeDeleted} knowledge sections were deleted. Load them again on the
-            Manage App Data tab, or upload them on the{' '}
-            <Link to="/knowledge" className="font-semibold underline">
-              Knowledge page
-            </Link>
-            .
-          </>
-        ),
-      })
-    } else {
-      setNotice({ variant: 'success', message: `Saved "${setting.label}". It applies from the next message.` })
-    }
+    setNotice({
+      variant: 'success',
+      message: `Saved "${setting.label}". It applies from the next message.`,
+    })
   }
 
   async function handleRestore() {
     setError('')
     setRestoring(true)
     try {
-      const { knowledgeDeleted } = await restoreDefaults()
+      const { reembedded } = await restoreDefaults()
       setVersion((v) => v + 1)
-      setNotice(
-        knowledgeDeleted > 0
-          ? {
-              variant: 'warning',
-              message: (
-                <>
-                  The default settings were restored. The embedding model changed, so {knowledgeDeleted} knowledge sections
-                  were deleted. Upload them again on the{' '}
-                  <Link to="/knowledge" className="font-semibold underline">
-                    Knowledge page
-                  </Link>
-                  .
-                </>
-              ),
-            }
-          : { variant: 'success', message: 'The default settings were restored. They apply from the next message.' },
-      )
+      setNotice({
+        variant: 'success',
+        message:
+          reembedded > 0
+            ? `The default settings were restored. The embedding model changed, so ${reembedded} knowledge sections were converted to it.`
+            : 'The default settings were restored. They apply from the next message.',
+      })
     } catch (err) {
       setError(errorMessage(err, 'Restoring the default settings failed. Please try again.'))
     } finally {
@@ -163,6 +153,9 @@ function AiSettingsList() {
       setConfirmingRestore(false)
     }
   }
+
+  const rowsOf = (group: string) =>
+    settings.filter((s) => groupName(s.key) === group && !hiddenKeys.includes(s.key)).sort(bySettingOrder)
 
   const groups = [...new Set(settings.map((s) => groupName(s.key)))].sort()
 
@@ -192,12 +185,12 @@ function AiSettingsList() {
         groups.map((group) => (
           <section key={group} className="mt-8 first:mt-6">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{groupTitle(group)}</h2>
-            {group === 'chat' && <AiProviderList settings={settings} onChanged={() => setVersion((v) => v + 1)} />}
-            <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              {settings
-                .filter((s) => groupName(s.key) === group)
-                .sort(bySettingOrder)
-                .map((setting) => (
+            {(group === 'chat' || group === 'embedding') && (
+              <AiModelPicker kind={group} settings={settings} onChanged={() => setVersion((v) => v + 1)} />
+            )}
+            {rowsOf(group).length > 0 && (
+              <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                {rowsOf(group).map((setting) => (
                   <div key={setting.key} className="grid gap-3 px-6 py-5 sm:grid-cols-[1fr_18rem_auto] sm:items-start">
                     <div className="min-w-0">
                       <p className="font-medium text-slate-900">{setting.label}</p>
@@ -215,7 +208,8 @@ function AiSettingsList() {
                     </Button>
                   </div>
                 ))}
-            </div>
+              </div>
+            )}
           </section>
         ))
       )}
@@ -223,7 +217,7 @@ function AiSettingsList() {
       {confirmingRestore && (
         <ConfirmDialog
           title="Restore default settings"
-          message="This deletes every AI assistant setting, including the ones you added or changed, and puts the default settings back. If the embedding model is different from the default, all the knowledge is deleted too."
+          message="This deletes every AI assistant setting, including the ones you added or changed, and puts the default settings back. If the embedding model is different from the default, all the stored knowledge is converted to the default one first (it can take a minute), and nothing is changed if that fails."
           confirmLabel="Restore defaults"
           busy={restoring}
           onConfirm={handleRestore}
@@ -232,12 +226,7 @@ function AiSettingsList() {
       )}
 
       {formOpen && (
-        <SettingForm
-          key={editing?.key ?? 'new'}
-          setting={editing}
-          onSaved={handleSaved}
-          onCancel={() => setFormOpen(false)}
-        />
+        <SettingForm key={editing?.key ?? 'new'} setting={editing} onSaved={handleSaved} onCancel={() => setFormOpen(false)} />
       )}
     </>
   )

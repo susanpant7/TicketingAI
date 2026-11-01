@@ -8,6 +8,9 @@ public enum SettingError
     Invalid
 }
 
-public record RestoreDefaultsResult(int KnowledgeDeleted);
+/// <summary>Reembedded is how many stored knowledge sections were embedded again (0 unless the embedding model changed).</summary>
+public record RestoreDefaultsResult(int Reembedded);
+
+public record UseModelResult(int Reembedded, SettingError Error = SettingError.None, string? Message = null);
 
 public record SettingResult(SettingSaved? Saved, SettingError Error = SettingError.None, string? Message = null);

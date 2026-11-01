@@ -4,7 +4,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Options;
+
+using TicketingAI.Api.Settings;
 
 namespace TicketingAI.Api.Chat;
 
@@ -12,7 +13,7 @@ namespace TicketingAI.Api.Chat;
 /// Calls an external chat service that speaks the OpenAI chat format (POST {address}/chat/completions with a Bearer key):
 /// Google Gemini, Cloudflare Workers AI, OpenAI, Groq and others. The reply is streamed as server-sent events.
 /// </summary>
-public class ApiChatClient(HttpClient http, IOptions<ChatApiOptions> options) : IChatModelClient
+public class ApiChatClient(HttpClient http, ApiKeyResolver keys) : IChatModelClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -20,9 +21,11 @@ public class ApiChatClient(HttpClient http, IOptions<ChatApiOptions> options) : 
         IReadOnlyList<ChatMessage> messages, ChatModelOptions chat, CancellationToken cancellationToken,
         Func<string, Task>? onText = null)
     {
-        var key = options.Value.ApiKey;
-        if (string.IsNullOrWhiteSpace(key))
-            throw new ChatModelException("The chat model is an online service (the Chat API base URL has a path), but no API key is set. Set the environment variable ChatApi__ApiKey on the server (in the .env file).");
+        var key = keys.Get(chat.ApiKeyName, chat.BaseUrl)
+            ?? throw new ChatModelException(
+                "The chat model is an online service, but no key is set: the environment variable " +
+                $"{keys.EffectiveName(chat.ApiKeyName, chat.BaseUrl)} is missing in the .env file, or the " +
+                "'Chat API key name' is not valid. Set it and restart the server.");
 
         var body = new Dictionary<string, object>
         {
@@ -86,14 +89,14 @@ public class ApiChatClient(HttpClient http, IOptions<ChatApiOptions> options) : 
             if (cutOff)
                 throw new ChatModelException(
                     $"The reply was cut off because it reached the 'Max answer length' setting ({chat.MaxTokens} tokens). A model that thinks before it " +
-                    "answers counts its thinking in that limit. Raise 'Max answer length' (for example to 2000), or set 'Reasoning effort' to a lower value.");
+                    "answers counts its thinking in that limit. Raise 'Max answer length' (for example to 4000), or set 'Reasoning effort' to a lower value.");
 
             return reply.Length > 0 ? reply.ToString() : throw new ChatModelException("The chat API returned an empty reply.");
         }
     }
 
     // A message that says what to fix. The key is never part of it.
-    private static async Task<string> DescribeFailureAsync(HttpResponseMessage response, ChatModelOptions chat, CancellationToken cancellationToken)
+    private async Task<string> DescribeFailureAsync(HttpResponseMessage response, ChatModelOptions chat, CancellationToken cancellationToken)
     {
         var detail = await response.Content.ReadAsStringAsync(cancellationToken);
         if (detail.Length > 300) detail = detail[..300];
@@ -101,9 +104,9 @@ public class ApiChatClient(HttpClient http, IOptions<ChatApiOptions> options) : 
         return response.StatusCode switch
         {
             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
-                $"The chat API rejected the key ({(int)response.StatusCode}). Check the environment variable ChatApi__ApiKey. {detail}",
+                $"The chat API rejected the key ({(int)response.StatusCode}). Check the key named {keys.EffectiveName(chat.ApiKeyName, chat.BaseUrl)}: it must be a key of this service. {detail}",
             HttpStatusCode.NotFound =>
-                $"The chat API did not find '{chat.Model}' or the address {chat.BaseUrl} (404). For a model run by Ollama, the address has no path (for example http://localhost:11434). The 'Chat API base URL' and the 'Chat model' must belong together. A service also retires old model names from time to time, so check its current list of models. {detail}",
+                $"The chat API did not find '{chat.Model}' or the address {chat.BaseUrl} (404). The 'Chat API base URL' and the 'Chat model' must belong together. A service retires old model names from time to time (and may keep listing a model that new accounts can no longer use), so pick a current one from the service's own page. {detail}",
             HttpStatusCode.TooManyRequests =>
                 $"The chat API limit was reached (429). Wait a moment and try again, or check the plan's limits. {detail}",
             _ => $"The chat API returned {(int)response.StatusCode} for model '{chat.Model}': {detail}"

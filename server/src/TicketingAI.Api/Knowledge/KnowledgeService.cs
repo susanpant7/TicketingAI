@@ -47,8 +47,10 @@ public partial class KnowledgeService(
                     .Select(s => new KnowledgeSection(parsed.Title, department.Name, s.Heading, s.Content, file.FileName))
                     .ToList();
 
-                var texts = sections.Select(s => WithPrefix(settings.EmbeddingDocumentPrefix, ToEmbeddingText(s))).ToList();
-                var vectors = await embeddingClient.EmbedAsync(texts, settings.EmbeddingModel, settings.OllamaBaseUrl, settings.KeepAlive, cancellationToken);
+                var texts = sections
+                    .Select(s => EmbeddingText.Document(settings.EmbeddingDocumentPrefix, s.DocumentTitle, s.Heading, s.Content))
+                    .ToList();
+                var vectors = await embeddingClient.EmbedAsync(texts, settings.Embedding, cancellationToken);
 
                 accepted.Add((file.FileName, ToChunks(sections, vectors)));
                 results.Add(new UploadFileResult(file.FileName, sections.Count, null));
@@ -151,7 +153,7 @@ public partial class KnowledgeService(
         // Read the settings first. The query prefix must match the model and the prefix used when the sections were stored.
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
         var vectors = await embeddingClient.EmbedAsync(
-            [WithPrefix(settings.EmbeddingQueryPrefix, query)], settings.EmbeddingModel, settings.OllamaBaseUrl, settings.KeepAlive, cancellationToken);
+            [EmbeddingText.Query(settings.EmbeddingQueryPrefix, query)], settings.Embedding, cancellationToken);
 
         var rows = await repository.SearchAsync(vectors[0], topK);
         return rows
@@ -175,11 +177,4 @@ public partial class KnowledgeService(
             IngestedAt = ingestedAt
         }).ToList();
     }
-
-    // The title and heading give the section context.
-    private static string ToEmbeddingText(KnowledgeSection section) =>
-        $"{section.DocumentTitle} - {section.Heading}\n{section.Content}";
-
-    // Some embedding models need a prefix on queries and on documents. An empty prefix means none.
-    private static string WithPrefix(string prefix, string text) => prefix.Length == 0 ? text : $"{prefix} {text}";
 }

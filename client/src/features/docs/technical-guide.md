@@ -268,7 +268,7 @@ LIMIT 5;                   -- the 5 best matches
 
 Two rules keep the numbers meaningful:
 
-- The question and the sections must be converted by the **same embedding model**. Numbers from two different models cannot be compared, so changing the embedding model means loading all the knowledge again.
+- The question and the sections must be converted by the **same embedding model**. Numbers from two different models cannot be compared, so changing the embedding model converts all the stored knowledge: every section is embedded again from its text, and the new vectors replace the old ones together with the new settings.
 - The numbers only represent meaning. The readable text is stored in the same row, and that text is what the chat model receives.
 
 The next sections follow the whole workflow of the app in detail, with the real requests and responses.
@@ -356,7 +356,7 @@ Full-time employees receive 18 days of paid annual leave per year...
    The title and heading give the section context, so a short section still carries its topic.
 3. **Embed** in batches of 16:
    ```http
-   POST {ollama.base_url}/api/embed
+   POST {embedding.base_url}/api/embed
    { "model": "nomic-embed-text", "input": ["search_document: Leave Policy - Annual leave ...", "search_document: Leave Policy - Sick leave ..."] }
    ```
    ```json
@@ -397,7 +397,7 @@ Short follow-ups only make sense with the question before them ("and casual leav
 ### 4.2 Embed the query
 
 ```http
-POST {ollama.base_url}/api/embed
+POST {embedding.base_url}/api/embed
 { "model": "nomic-embed-text", "input": ["search_query: i am not able to reset my password"] }
 ```
 
@@ -436,7 +436,7 @@ GET /api/knowledge/search?q=how many leave days do I get&k=3        (admin only)
 `ChatPromptBuilder` creates the list of messages sent to the model:
 
 1. One `system` message: the `chat.system_prompt` setting, with the department placeholders filled in.
-2. The history, trimmed to the last `chat.history_messages` messages (12 by default).
+2. The history, trimmed to the last `chat.history_messages` messages (3 by default).
 3. **One final `user` message** that contains the sections, the employee's message and the format reminder:
 
 ```
@@ -555,7 +555,7 @@ Description: The employee cannot reset their password with the self-service page
 I'm creating the ticket now.
 ```
 
-The ticket offer in step 2 names the problem and the department, so the title and the description of the ticket can be taken from that one message when the employee says "yes". That is why `chat.history_messages` can be set as low as 1 for a smaller prompt and a faster reply. With the default of 12 the model sees more of the conversation as well.
+The ticket offer in step 2 names the problem and the department, so the title and the description of the ticket can be taken from that one message when the employee says "yes". That is why `chat.history_messages` can be set as low as 1 for a smaller prompt and a faster reply. With the default of 3 the model sees a little more of the conversation as well.
 
 ### 7.2 What the server does
 
@@ -580,22 +580,24 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 
 | Key | Default | Effect |
 | --- | --- | --- |
-| `ollama.base_url` | `http://localhost:11434` | Where Ollama runs for the embeddings (always Ollama). In Docker a new database gets `http://ollama:11434` |
-| `embedding.model` | `nomic-embed-text` | Model that makes vectors. **Changing it deletes all knowledge**, because vectors from different models cannot be compared |
+| `embedding.base_url` | `http://localhost:11434` | Where the embedding model runs. No path (`http://localhost:11434`) is Ollama's own API (`/api/embed`); a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI format (`/embeddings`). In Docker a new database gets `http://ollama:11434` |
+| `embedding.api_key_name` | (empty) | The name of the environment variable that holds the key of an online embedding service (for example `GEMINI_API_KEY`). The key itself is never stored |
+| `embedding.model` | `nomic-embed-text` | The model that makes the vectors. **Changing it converts all the stored knowledge**: every section is embedded again with the new model, and the change is saved only when that worked. The embedding settings are changed with Use on the Settings page, not by editing them |
 | `embedding.query_prefix` | `search_query:` | In front of the user's message when it is embedded |
-| `embedding.document_prefix` | `search_document:` | In front of each section when it is embedded. Changing it needs the files uploaded again |
+| `embedding.document_prefix` | `search_document:` | In front of each section when it is embedded. It belongs to the model and changes with it |
 | `retrieval.top_k` | 4 | How many sections to fetch |
 | `retrieval.min_score` | 0.5 | Sections below this are dropped |
 | `retrieval.max_score_gap` | 0.05 | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off |
 | `retrieval.follow_up_max_words` | 5 | Messages this short are searched together with the previous user message. `0` turns it off |
+| `chat.api_key_name` | (empty) | The name of the environment variable that holds the key of an online chat service (for example `GROQ_API_KEY`). Empty for Ollama. The key itself is never stored |
 | `chat.base_url` | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://ollama:11434` in Docker) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable `ChatApi__ApiKey`, never a setting |
 | `chat.model` | `qwen2.5:7b` | Model that writes the answers |
 | `chat.temperature` | 0.2 | Randomness. 0 gives the most repeatable answers |
 | `chat.top_p` | 0.9 | Sent to Ollama |
 | `chat.num_ctx` | 4096 | Context window in tokens. The system prompt, history, sections and answer must fit |
 | `chat.reasoning_effort` | (empty) | Only for an online service: asks a thinking model to think less (for example `none`, `minimal`, `low`), which makes the first word arrive sooner. Empty sends nothing |
-| `chat.max_tokens` | 300 | Maximum answer length (`num_predict`). Careful with a hosted model that thinks: its thinking counts in the limit, and when it is used up the chat reports that the reply was cut off (raise the limit, or lower `chat.reasoning_effort`) |
-| `chat.history_messages` | 12 | How many recent messages the model gets. More messages mean a longer prompt and a slower reply. 1 is enough for a ticket, because the assistant's offer states the problem. A short follow-up is searched together with the previous question, taken from the whole conversation the page sends, whatever this is set to |
+| `chat.max_tokens` | 2000 | Maximum answer length (`num_predict` for Ollama, `max_tokens` for an online service). Replies are short because the prompt asks for that, so this is only a safety limit. Keep it generous: a model that thinks counts its thinking in it, and when it is used up the chat reports that the reply was cut off (raise it, or lower `chat.reasoning_effort`) |
+| `chat.history_messages` | 3 | How many recent messages the model gets. More messages mean a longer prompt and a slower reply. 1 is enough for a ticket, because the assistant's offer states the problem. A short follow-up is searched together with the previous question, taken from the whole conversation the page sends, whatever this is set to |
 | `chat.system_prompt` | (long text) | The six kinds of message and the reply format. Placeholders: `{{departments}}`, `{{department_names}}` |
 | `chat.format_reminder` | (short text) | Repeated at the end of the final user message. Same placeholders |
 
@@ -620,7 +622,7 @@ We work through it in this order. Each step rules out one part of the pipeline.
 - **Temperature 0** gives the most repeatable answers. It does not make a 7B model deterministic across prompt changes.
 - **Measured weaknesses.** The department line was right for all 14 test questions, but the **wording of "not covered" answers is unreliable**: it sometimes asserts "we do not offer X", adds advice or another contact, or stretches a nearby section. It can still write a poem when asked in a tricky way. These come from the model size and are the first things to re-test after a prompt change.
 - **No server-side memory.** The conversation lives in the page and is sent with each message, so it is lost on logout or reload.
-- **Changing the embedding model invalidates the store.** The knowledge is deleted and has to be uploaded again, with prefixes that match the new model.
+- **Changing the embedding model converts the store.** Every section is embedded again from its stored text, with the prefix of the new model, and the old vectors are replaced together with the settings in one transaction. A failure changes nothing. It takes about a minute for 270 sections on a CPU.
 - **Small sections matter.** A section that mixes two topics gets one vector that sits between them and matches neither well.
 
 ## 15. Where to look in the code

@@ -44,6 +44,9 @@ public class KnowledgeRepository(AppDbContext db) : IKnowledgeRepository
     public Task<int> DeleteByDepartmentAsync(string department) =>
         db.KnowledgeChunks.Where(c => c.Category == department).ExecuteDeleteAsync();
 
+    public Task<List<KnowledgeChunkText>> GetTextsAsync() =>
+        db.KnowledgeChunks.OrderBy(c => c.Id).Select(c => new KnowledgeChunkText(c.Id, c.DocumentTitle, c.Heading, c.Content)).ToListAsync();
+
     // Raw SQL because EF Core's LINQ does not know sqlite-vec's functions. The extension is loaded by the connection interceptor.
     public Task<List<KnowledgeSearchRow>> SearchAsync(float[] queryVector, int topK) =>
         db.Database.SqlQuery<KnowledgeSearchRow>($"""

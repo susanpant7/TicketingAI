@@ -107,16 +107,16 @@ The chat answers can come from a model on our own server (Ollama, the default) o
 
 **0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. A new database starts with the built-in defaults, and in Docker the Ollama address is set to the Ollama container by itself. To start a new database with other values, set `AiDefaults__OllamaUrl`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. An existing database keeps its settings, so for that one we change the Settings page (step 2).
 
-**1. Put the key in `.env`.** We add the line `ChatApi__ApiKey=<the key>` to the `.env` file, the same file for Docker and for running without Docker. The key is a secret, so it never goes in `appsettings.json` (that file is committed to git) and is never stored in the database. After a change, we restart the API, or run `docker compose up -d` for Docker.
+**1. Put the key in `.env`.** Every service has its own key variable, which `.env.example` lists (`GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `CEREBRAS_API_KEY`, `CLOUDFLARE_API_KEY`, `OPENAI_API_KEY`). We add the line `GROQ_API_KEY=<the key>` (for Groq, and so on) to the `.env` file, the same file for Docker and for running without Docker. The Settings page shows the **API key name** of each model and whether that variable is set, and saves only the name, never the key. A key is a secret, so it never goes in `appsettings.json` (that file is committed to git) and is never stored in the database. After a change, we restart the API, or run `docker compose up -d` for Docker.
 
-**2. Choose the model** on the Settings page, AI assistant tab: click **Use** on the service in the "Services we can use" list (or on a model we saved), which sets the two settings below together. There is no separate provider setting: an address with no path (`http://localhost:11434`) is Ollama, and an address with a path is an online service.
+**2. Choose the model** on the Settings page, AI assistant tab: click **Use** on the service in the "Services we can use" list (or on a model we saved), which sets the address, the model and the key name together. **Edit** on any model (a saved one, a service, or the card "In use now") changes them; editing a service saves a copy as our own model. Which models a key can use differs from key to key, so click **View models** on the service's row: a dialog lists the chat models the service reports, each with a **Test** button (one tiny request, nothing saved; a failure is shown in a second dialog above the list) and a **Select** button. A service can list models a key cannot use (Gemini does), which is why a model is tested before it is selected. There is no separate provider setting: an address with no path (`http://localhost:11434`) is Ollama, and an address with a path is an online service.
 
 | Setting | Gemini | Cloudflare Workers AI |
 | --- | --- | --- |
 | Chat API base URL | `https://generativelanguage.googleapis.com/v1beta/openai` | `https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1` |
-| Chat model | the model name from Google AI Studio, for example `gemini-flash-latest` | for example `@cf/meta/llama-3.1-8b-instruct` |
+| Chat model | the model name from Google AI Studio, for example `gemini-3.8-flash` | for example `@cf/meta/llama-3.1-8b-instruct-fp8` |
 
-The key comes from Google AI Studio (Gemini), or from a Cloudflare API token with Workers AI access (Cloudflare). Check each service's current model names and free limits. To go back to the local model, click **Use** on "Ollama (on our own machine)", or set **Chat API base URL** to `http://localhost:11434` (`http://ollama:11434` in Docker) and **Chat model** to `qwen2.5:7b`.
+The key comes from Google AI Studio (Gemini), or from a Cloudflare API token with Workers AI access (Cloudflare). Check each service's current model names and free limits. To go back to the local model, click **Use** on "Ollama (on our own machine)", or **Edit** the model in use and set the address to `http://localhost:11434` (`http://ollama:11434` in Docker) and the model to `qwen2.5:7b`.
 
 **Things to know.** The prompt was tuned on `qwen2.5:7b`, so re-test the ticket flow with another model. The questions and the knowledge sections are sent to the external service, so don't use real company data on a free tier without reading its terms. When only the API is used, the chat model does not have to be downloaded: remove it from the `pull-models` line in `docker-compose.yml` (keep `nomic-embed-text`).
 
@@ -156,7 +156,7 @@ Example: switch the chat model from `qwen2.5:7b` to `qwen2.5:3b`. Two things mus
 
 **Without Docker:** run `ollama pull qwen2.5:3b`, then do step 2.
 
-**Changing the embedding model** (`nomic-embed-text`) is different: it **deletes all the knowledge** (old and new vectors cannot be compared) and the two prefixes (`search_document:` and `search_query:`) must match the new model. Do the same pull, change **Embedding model** and the prefixes on the Settings page, then upload the knowledge files again.
+**Changing the embedding model** (`nomic-embed-text`) works the same way, in the Embedding group of the Settings page (**Use** on a saved model or a service, with **View models** to see what a key can use). The difference: vectors from different models cannot be compared, so **Use converts all the stored knowledge to the new model**: every section is embedded again from its text. It can take a minute, and the change is saved only when it worked, so a wrong key or a missing model changes nothing. The model's two prefixes (`search_document:` and `search_query:` for `nomic-embed-text`, none for most online ones) are set together with it.
 
 ## Clean restart with Docker
 
@@ -190,4 +190,4 @@ After a fresh database, do the [first-time setup](#first-time-setup-in-the-app) 
 | "Cannot reach the server" | The API is not running, or in Docker it is still starting or crashed. Check `docker compose logs server` |
 | Replies take 15 to 30 seconds | Normal on a CPU without a GPU. A 7B model reads the knowledge sections before it writes the first word |
 | Docker reply is very slow or the model is killed | Docker Desktop has too little memory. Raise it to at least 10 GB |
-| Chat has no knowledge to answer from | Nothing has been uploaded yet, or the embedding model was changed (that deletes the knowledge). Upload the files again |
+| Chat has no knowledge to answer from | Nothing has been uploaded yet. Upload the files |

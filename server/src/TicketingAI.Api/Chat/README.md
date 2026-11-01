@@ -562,7 +562,7 @@ All of these are rows in the `Settings` table (columns `Key`, `Label`, `Descript
 | `chat.top_p` | `0.9` | Step 4: sampling limit |
 | `chat.num_ctx` | `8192` | Step 4: how many tokens the model can read at once |
 | `chat.max_tokens` | `300` | Step 4: the longest reply |
-| `chat.history_messages` | `12` | Step 4: how much of the conversation is sent |
+| `chat.history_messages` | `3` | Step 4: how much of the conversation is sent |
 | `chat.system_prompt` | System prompt in the settings page (default text in the Appendix) | Step 4: the rules. May contain `{{departments}}` and `{{department_names}}` |
 | `chat.format_reminder` | see Step 4 | Step 4: added to the end of the new message. May contain `{{department_names}}` |
 

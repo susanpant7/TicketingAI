@@ -2,8 +2,12 @@ namespace TicketingAI.Data.Persistence;
 
 public static class SettingKeys
 {
-    public const string OllamaBaseUrl = "ollama.base_url";
+    public const string EmbeddingBaseUrl = "embedding.base_url";
+    public const string EmbeddingApiKeyName = "embedding.api_key_name";
     public const string EmbeddingModel = "embedding.model";
+
+    /// <summary>The old name of <see cref="EmbeddingBaseUrl"/>. A database that still has it is upgraded at startup.</summary>
+    public const string LegacyOllamaBaseUrl = "ollama.base_url";
     public const string EmbeddingQueryPrefix = "embedding.query_prefix";
     public const string EmbeddingDocumentPrefix = "embedding.document_prefix";
     public const string RetrievalTopK = "retrieval.top_k";
@@ -12,6 +16,7 @@ public static class SettingKeys
     public const string RetrievalFollowUpMaxWords = "retrieval.follow_up_max_words";
     public const string LegacyChatProvider = "chat.provider";   // removed: the Chat API base URL decides, see AiProviders
     public const string ChatBaseUrl = "chat.base_url";
+    public const string ChatApiKeyName = "chat.api_key_name";
 
     /// <summary>The old name of <see cref="ChatBaseUrl"/>. A database that still has it is upgraded at startup.</summary>
     public const string LegacyChatApiUrl = "chat.api_url";
@@ -90,11 +95,14 @@ public static class SettingDefaults
 
     public static IReadOnlyList<SettingDefinition> All { get; } =
     [
-        new(SettingKeys.OllamaBaseUrl, "Ollama address for embeddings",
-            "Where Ollama runs for the embeddings, which turn text into numbers. Embeddings always use Ollama, whichever chat model is chosen. On our own machine it is http://localhost:11434. With Docker Compose the server reaches the Ollama container at http://ollama:11434, which a new Docker database gets by itself. Changing it only changes where the app looks: nothing is deleted.",
+        new(SettingKeys.EmbeddingBaseUrl, "Embedding API base URL",
+            "Where the embedding model runs, which turns text into numbers. An address with no path, such as http://localhost:11434 (http://ollama:11434 with Docker Compose), is Ollama's own API. An address with a path, such as https://generativelanguage.googleapis.com/v1beta/openai (Gemini), is an online service in the OpenAI format; its key is the environment variable named in the Embedding API key name. Change it with Use in the list above, not here: Use also converts the stored knowledge to the new model.",
             "http://localhost:11434"),
+        new(SettingKeys.EmbeddingApiKeyName, "Embedding API key name",
+            "The name of the environment variable (in the .env file) that holds the key of an online embedding service, for example GEMINI_API_KEY. Empty for Ollama. The key itself is never stored here. Change it with Use in the list above.",
+            ""),
         new(SettingKeys.EmbeddingModel, "Embedding model",
-            "Model that converts text into vectors. Changing it requires re-embedding all knowledge chunks (upload the knowledge files again), because old and new vectors cannot be compared. Change the two prefixes below to match the new model. The model must also exist in Ollama: when the app runs in Docker, pull it first with `docker compose exec ollama ollama pull <model>` (otherwise embedding fails with a model-not-found error), and add it to the pull-models service in docker-compose.yml to have it downloaded automatically on a new machine.",
+            "The model that converts text into vectors, for the knowledge and for every question. Vectors from different models cannot be compared, so changing it converts the whole stored knowledge to the new model (every section is embedded again). Change it with Use in the list above, which does that and only saves the change when it worked. The two prefixes below belong to the model.",
             "nomic-embed-text"),
         new(SettingKeys.EmbeddingQueryPrefix, "Embedding query prefix",
             "Text put before the user's question when it is converted to a vector, joined with one space. It depends on the embedding model: nomic-embed-text expects search_query:.",
@@ -115,8 +123,11 @@ public static class SettingDefaults
             "Messages with this many words or fewer are searched together with the previous question, so short follow-ups such as 'and casual leave?' still find the right topic. Set 0 to turn this off.",
             "5"),
         new(SettingKeys.ChatBaseUrl, "Chat API base URL",
-            "The address the chat model is called at. This one setting decides how: an address with no path, such as http://localhost:11434 (http://ollama:11434 with Docker Compose), is Ollama's own API for a model on our own machine, which needs no key. An address with a path, such as https://generativelanguage.googleapis.com/v1beta/openai (Gemini), is called in the OpenAI chat format, and its key is the environment variable ChatApi__ApiKey (never stored here). On this page, Use on a saved model or a service fills in this address and the Chat model together. The address and the Chat model must belong together.",
+            "The address the chat model is called at. This one setting decides how: an address with no path, such as http://localhost:11434 (http://ollama:11434 with Docker Compose), is Ollama's own API for a model on our own machine, which needs no key. An address with a path, such as https://generativelanguage.googleapis.com/v1beta/openai (Gemini), is called in the OpenAI chat format, and its key is the environment variable ChatApi__ApiKey (never stored here). On the Settings page this address, the Chat model and the key name are not edited as separate rows: Use or Edit on a model in the list above sets them together, after a test. They must belong together.",
             "http://localhost:11434"),
+        new(SettingKeys.ChatApiKeyName, "Chat API key name",
+            "The name of the environment variable (in the .env file) that holds the key of an online chat service, for example GROQ_API_KEY. Empty for Ollama, which needs no key (an empty name on an online service falls back to ChatApi__ApiKey). The key itself is never stored here. Use on a saved model or a service sets it together with the address and the model.",
+            ""),
         new(SettingKeys.ChatModel, "Chat model",
             "Model that writes the final answer from the retrieved context. Can be changed without re-embedding anything. The rules and the reply format were tested with qwen2.5:7b, so re-test after changing it. It must be a name the Chat API base URL knows: for a local Ollama it must be pulled first (ollama pull <name>, in Docker docker compose exec ollama ollama pull <name>), and an online service has its own model names, which it renames from time to time (a retired name gives a 404 error).",
             "qwen2.5:7b"),
@@ -133,11 +144,11 @@ public static class SettingDefaults
             "Total tokens the model can read at once (system prompt, history, retrieved chunks, and answer). If the prompt exceeds it, the oldest part is silently cut off. Larger values use more memory and are slower. Only used for a local Ollama address.",
             "8192"),
         new(SettingKeys.ChatMaxTokens, "Max answer length (tokens)",
-            "Upper limit on the length of a single answer, in tokens. The replies are short (30 to 100 tokens), so a small limit keeps them fast. Careful with a model that thinks before it answers (such as the newer Gemini models): its thinking counts in this limit, and when the limit is used up the chat says the reply was cut off. Then raise this, or lower the Reasoning effort.",
-            "300"),
+            "Upper limit on the length of a single answer, in tokens, for every model. The replies are short (30 to 100 tokens) because the prompt asks for that, so this is only a safety limit and can be generous. Keep it high: a model that thinks before it answers (such as the newer Gemini models) counts its thinking in this limit, and when the limit is used up the chat says the reply was cut off. Then raise this, or lower the Reasoning effort.",
+            "2000"),
         new(SettingKeys.ChatHistoryMessages, "Messages of history",
             "How many of the latest earlier messages of the conversation are sent to the chat model, so it remembers what was said. More messages mean a longer prompt and a slower reply; 1 sends only the last one (enough for a ticket, because the assistant's offer states the problem), and 0 sends none. A short follow-up is searched together with the previous question whatever this is set to.",
-            "12"),
+            "3"),
         new(SettingKeys.ChatKeepAlive, "Keep the model loaded",
             "How long Ollama keeps the chat and embedding models in memory after a message, for example 30m or 1h. Loading a 7B model again takes several seconds, so a longer time keeps replies fast. Use 0 to unload it right away. Only used for a local Ollama address.",
             "30m"),

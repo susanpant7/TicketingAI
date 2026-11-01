@@ -62,12 +62,17 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ISettingRepository, SettingRepository>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
-builder.Services.AddScoped<ISavedChatModelRepository, SavedChatModelRepository>();
-builder.Services.AddScoped<SavedChatModelService>();
+builder.Services.AddScoped<ISavedAiModelRepository, SavedAiModelRepository>();
+builder.Services.AddScoped<SavedAiModelService>();
+builder.Services.AddScoped<EmbeddingSwitcher>();
+builder.Services.AddHttpClient<AiModelLister>(client => client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<DataCleanup>();
-// Ollama's address comes from a setting (ollama.base_url), so the clients have no base address.
-builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
-builder.Services.AddOptions<ChatApiOptions>().BindConfiguration(ChatApiOptions.SectionName);
+// The address of the embedding model comes from a setting (embedding.base_url), so the clients have no base address. Ollama's own
+// API and an online service (OpenAI format) each have a client, and EmbeddingClient picks one from the address.
+builder.Services.AddHttpClient<OllamaEmbeddingClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddHttpClient<OnlineEmbeddingClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddScoped<IEmbeddingClient, EmbeddingClient>();
+builder.Services.AddScoped<ApiKeyResolver>();
 builder.Services.AddOptions<AiDefaultsOptions>().BindConfiguration(AiDefaultsOptions.SectionName);
 // A 7B model on a CPU can take a while to read the sections and write the answer.
 builder.Services.AddHttpClient<OllamaChatClient>(client => client.Timeout = TimeSpan.FromMinutes(10));

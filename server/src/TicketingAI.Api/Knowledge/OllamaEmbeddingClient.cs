@@ -7,11 +7,11 @@ public class OllamaEmbeddingClient(HttpClient http) : IEmbeddingClient
     private const int BatchSize = 16;
 
     public async Task<IReadOnlyList<float[]>> EmbedAsync(
-        IReadOnlyList<string> texts, string model, string ollamaUrl, string keepAlive, CancellationToken cancellationToken = default)
+        IReadOnlyList<string> texts, EmbeddingModelOptions options, CancellationToken cancellationToken = default)
     {
         var vectors = new List<float[]>(texts.Count);
         foreach (var batch in texts.Chunk(BatchSize))
-            vectors.AddRange(await EmbedBatchAsync(batch, model, ollamaUrl, keepAlive, cancellationToken));
+            vectors.AddRange(await EmbedBatchAsync(batch, options.Model, options.BaseUrl, options.KeepAlive, cancellationToken));
 
         return vectors;
     }

@@ -98,15 +98,30 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.ToTable("KnowledgeChunks");
                 });
 
-            modelBuilder.Entity("TicketingAI.Data.Entities.SavedChatModel", b =>
+            modelBuilder.Entity("TicketingAI.Data.Entities.SavedAiModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ApiKeyName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("BaseUrl")
                         .IsRequired()
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentPrefix")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Model")
@@ -124,12 +139,17 @@ namespace TicketingAI.Data.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("QueryPrefix")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("Kind", "Name")
                         .IsUnique();
 
-                    b.ToTable("SavedChatModels");
+                    b.ToTable("SavedAiModels");
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.Setting", b =>

@@ -26,15 +26,15 @@ services:
   server:
     build: ./server
     restart: unless-stopped
-    # The secrets: Admin__Username, Admin__Password, Jwt__Key and ChatApi__ApiKey, and any other setting, such as
-    # AiDefaults__ChatBaseUrl. The .env file is not committed. See .env.example.
+    # The secrets: Admin__Username, Admin__Password, Jwt__Key and the key of each online AI service (GEMINI_API_KEY, GROQ_API_KEY, ...),
+    # and any other setting, such as AiDefaults__ChatBaseUrl. The .env file is not committed. See .env.example.
     env_file: .env
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      # The starting values of the two Ollama addresses (embeddings, and the chat's Chat API base URL) for a new database: the
+      # The starting values of the two addresses (the embedding model, and the chat's Chat API base URL) for a new database: the
       # Ollama container, by its service name, unless .env sets AiDefaults__ChatBaseUrl (for example for Gemini). After that they
       # are changed on the Settings page.
-      AiDefaults__OllamaUrl: http://ollama:11434
+      AiDefaults__EmbeddingBaseUrl: http://ollama:11434
       AiDefaults__ChatBaseUrl: ${AiDefaults__ChatBaseUrl:-http://ollama:11434}
     depends_on:
       pull-models:

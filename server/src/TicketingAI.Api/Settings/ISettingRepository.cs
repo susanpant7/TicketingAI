@@ -9,15 +9,18 @@ public interface ISettingRepository
     Task<bool> ExistsAsync(string key);
     Task AddAsync(Setting setting);
 
-    /// <summary>
-    /// Deletes every setting and inserts the given ones in a single transaction. When deleteKnowledge is true, all knowledge
-    /// sections are deleted in the same transaction. Returns how many were deleted.
-    /// </summary>
-    Task<int> ReplaceAllAsync(IReadOnlyList<Setting> settings, bool deleteKnowledge);
+    /// <summary>Saves the changes made to a setting loaded with <see cref="GetAsync"/>.</summary>
+    Task UpdateAsync(Setting setting);
 
     /// <summary>
-    /// Saves the changes made to a setting loaded with <see cref="GetAsync"/>. When deleteKnowledge is true, all knowledge
-    /// sections are deleted in the same transaction. Returns how many were deleted.
+    /// Deletes every setting and inserts the given ones in a single transaction. When vectors are given (the knowledge embedded again for
+    /// new embedding settings), the stored vectors are replaced in the same transaction.
     /// </summary>
-    Task<int> UpdateAsync(Setting setting, bool deleteKnowledge);
+    Task ReplaceAllAsync(IReadOnlyList<Setting> settings, IReadOnlyDictionary<int, byte[]>? vectors);
+
+    /// <summary>
+    /// Sets the value of several settings in a single transaction (a missing one is added from its default). When vectors are given, the
+    /// stored vectors are replaced in the same transaction.
+    /// </summary>
+    Task ChangeValuesAsync(IReadOnlyDictionary<string, string> values, IReadOnlyDictionary<int, byte[]>? vectors);
 }
