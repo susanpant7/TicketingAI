@@ -88,6 +88,7 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
   const [deleting, setDeleting] = useState<SavedAiModel | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [confirming, setConfirming] = useState<Choice | null>(null)
+  const [confirmingSearch, setConfirmingSearch] = useState(false)
   const [tour, setTour] = useState<'current' | 'beginning' | null>(null)
   const [viewing, setViewing] = useState<{ choice: Choice; loading: boolean; models: string[]; error: string } | null>(null)
 
@@ -353,9 +354,9 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
           variant="secondary"
           size="sm"
           disabled={working !== '' || tourProviders.length === 0}
-          onClick={() => setTour('beginning')}
+          onClick={() => setConfirmingSearch(true)}
         >
-          Start from the beginning
+          Search model from the beginning
         </Button>
         <span className="self-center text-sm text-slate-500">
           Tries the {isEmbedding ? 'embedding' : 'chat'} models of the services we have a key for, one after another, with the
@@ -499,6 +500,19 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
           busy={deleteBusy}
           onConfirm={handleDelete}
           onCancel={() => setDeleting(null)}
+        />
+      )}
+
+      {confirmingSearch && (
+        <ConfirmDialog
+          title="Search model from the beginning?"
+          message={`Every ${isEmbedding ? 'embedding' : 'chat'} model of the services we have a key for is tested one after another, from the first one. It stops at the first model that answers, and nothing is changed until we select it.`}
+          confirmLabel="Start searching"
+          onConfirm={() => {
+            setConfirmingSearch(false)
+            setTour('beginning')
+          }}
+          onCancel={() => setConfirmingSearch(false)}
         />
       )}
 

@@ -49,20 +49,35 @@ npm run dev
 
 ## 2. Set up the app for the first time
 
-A new database is empty. We log in as the admin and do these four things, in this order.
+A new database is empty. We log in as the admin and open **Settings**, then the **Manage App Data** tab.
 
-1. **Departments.** Open **Departments** and click **Load default departments** (IT, HR and Finance), or add our own with **Add department**. Each department has a description of what it handles and a contact. The assistant uses both, to tell an employee who to contact.
+![The Manage App Data tab of the Settings page](/guide-images/admin-manage-app-data.png)
 
-   ![The Departments page](/guide-images/admin-departments.png)
+*The Manage App Data tab. One button loads all the default data, and each part also has its own button.*
 
-   *The Departments page after clicking Load default departments. Each department shows what it handles and its contact.*
-2. **Users.** Open **Users** and click **Load default users**. We enter one password for all of them, and the 15 default users are divided equally over the departments. We can also add users one by one with **Add user**. Every user belongs to a department, so this is only possible after step 1.
-3. **Knowledge.** Open **Knowledge**, choose a department, and upload its knowledge files (see section 4 for the file format). This is what the assistant answers from, and nothing works well without it.
+1. **Load all the default data.** We click **Load all default data**. It cleans up, then loads the AI assistant settings, the departments (IT, HR and Finance) and the default users, who all get the password we enter. It does not load the knowledge files, and it does not select a chat or an embedding model.
+2. **Choose how the AI models run.**
+   - **To use the AI models locally,** we run them on our own computer with Ollama (see section 1).
+   - **To use the AI models with APIs,** we get an API key from the service. The free AI models are listed on the **AI assistant** tab: we get a key from the service and put it in the `.env` file (the variable name is shown on the tab, for example `GEMINI_API_KEY`), then restart the API.
+3. **Select an embedding model and load the knowledge data.** On the **AI assistant** tab, in the Embeddings part, we click **View models** and **Select** a model. The stored knowledge is cleaned and inserted again with it, and when there is none, the default knowledge files are loaded. A red message at the top of the Settings page says "The app does not have any knowledge files" until that is done.
+4. **Select an AI chat model.** In the chat part of the same tab, we click **View models** and **Select** a model.
+5. **If the chat model does not work,** we click **Next model** or **Search model from the beginning**. This tests the models one after another and finds the next working one. Then we click **Select** to use it.
 
-   ![The Knowledge page](/guide-images/admin-knowledge.png)
+Now everything is set up to use RAG with the AI model. Section 5 has more about the model settings.
 
-   *The Knowledge page. We choose the department and the files, pick Add or Flush and Add, and click Add. Below, the stored sections are listed in tabs by department.*
-4. **Settings.** On the Manage App Data tab, we click **Load default AI assistant data** once (or **Load all default data**, which also does the departments and users). Nothing is saved at startup, so until then the app uses the built-in defaults; this saves them as settings, without a chat or embedding model. We choose both on the same tab (section 5); choosing an embedding model cleans the stored knowledge and inserts it again, so the knowledge files are loaded after that. **Load all default data** (Settings, Manage App Data) also leaves out the knowledge files and the models. Section 5 explains the model settings.
+The same data can also be added by hand, page by page:
+
+- **Departments.** On **Departments** we click **Load default departments**, or add our own with **Add department**. Each department has a description of what it handles and a contact. The assistant uses both, to tell an employee who to contact.
+
+  ![The Departments page](/guide-images/admin-departments.png)
+
+  *The Departments page after clicking Load default departments. Each department shows what it handles and its contact.*
+- **Users.** On **Users** we click **Load default users**. We enter one password for all of them, and the 15 default users are divided equally over the departments. We can also add users one by one with **Add user**. Every user belongs to a department, so this is only possible after the departments are loaded.
+- **Knowledge.** On **Knowledge** we choose a department and upload its knowledge files (see section 4 for the file format). This is what the assistant answers from, and nothing works well without it.
+
+  ![The Knowledge page](/guide-images/admin-knowledge.png)
+
+  *The Knowledge page. We choose the department and the files, pick Add or Flush and Add, and click Add. Below, the stored sections are listed in tabs by department.*
 
 ## 3. Use the app as an employee
 

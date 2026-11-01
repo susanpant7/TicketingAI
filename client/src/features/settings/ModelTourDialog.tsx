@@ -3,6 +3,7 @@ import { formatTime } from '@/features/settings/formatTime'
 import { getAvailableModels, testModel, type ModelChoice, type ModelKind } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Button from '@/shared/components/Button'
+import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import Modal from '@/shared/components/Modal'
 
 /** A service (or saved model) the tour goes through: its address and key name are used for every model of it. */
@@ -39,6 +40,7 @@ export default function ModelTourDialog({ kind, providers, current, start, onSel
   const label = kind === 'embedding' ? 'embedding' : 'chat'
   const [status, setStatus] = useState<Status>({ kind: 'working', text: 'Starting...' })
   const [log, setLog] = useState<LogLine[]>([])
+  const [confirmingSearch, setConfirmingSearch] = useState(false)
 
   // Each run has its own token, so closing the dialog (or starting over) stops the run that is going on.
   const token = useRef({ cancelled: false })
@@ -212,8 +214,8 @@ export default function ModelTourDialog({ kind, providers, current, start, onSel
         <Button variant="secondary" size="sm" disabled={working} onClick={() => begin('current')}>
           Next after the model in use
         </Button>
-        <Button variant="secondary" size="sm" disabled={working} onClick={() => begin('beginning')}>
-          Start from the beginning
+        <Button variant="secondary" size="sm" disabled={working} onClick={() => setConfirmingSearch(true)}>
+          Search model from the beginning
         </Button>
       </div>
 
@@ -232,6 +234,19 @@ export default function ModelTourDialog({ kind, providers, current, start, onSel
           Close
         </Button>
       </div>
+
+      {confirmingSearch && (
+        <ConfirmDialog
+          title="Search model from the beginning?"
+          message={`The ${label} models are tested again from the first one, until one answers. Nothing is changed until we select it.`}
+          confirmLabel="Start searching"
+          onConfirm={() => {
+            setConfirmingSearch(false)
+            void begin('beginning')
+          }}
+          onCancel={() => setConfirmingSearch(false)}
+        />
+      )}
     </Modal>
   )
 }
