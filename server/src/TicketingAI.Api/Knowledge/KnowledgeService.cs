@@ -48,7 +48,7 @@ public partial class KnowledgeService(
                     .ToList();
 
                 var texts = sections.Select(s => WithPrefix(settings.EmbeddingDocumentPrefix, ToEmbeddingText(s))).ToList();
-                var vectors = await embeddingClient.EmbedAsync(texts, settings.EmbeddingModel, cancellationToken);
+                var vectors = await embeddingClient.EmbedAsync(texts, settings.EmbeddingModel, settings.OllamaBaseUrl, settings.KeepAlive, cancellationToken);
 
                 accepted.Add((file.FileName, ToChunks(sections, vectors)));
                 results.Add(new UploadFileResult(file.FileName, sections.Count, null));
@@ -151,7 +151,7 @@ public partial class KnowledgeService(
         // Read the settings first. The query prefix must match the model and the prefix used when the sections were stored.
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
         var vectors = await embeddingClient.EmbedAsync(
-            [WithPrefix(settings.EmbeddingQueryPrefix, query)], settings.EmbeddingModel, cancellationToken);
+            [WithPrefix(settings.EmbeddingQueryPrefix, query)], settings.EmbeddingModel, settings.OllamaBaseUrl, settings.KeepAlive, cancellationToken);
 
         var rows = await repository.SearchAsync(vectors[0], topK);
         return rows

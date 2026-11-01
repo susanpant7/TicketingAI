@@ -22,7 +22,7 @@ Everything runs in containers, including Ollama. Nothing else needs to be instal
    cp .env.example .env
    ```
 
-   Edit `.env`: set `ADMIN_PASSWORD`, and set `JWT_KEY` to a random string of at least 32 characters (`openssl rand -base64 48`).
+   Edit `.env`: set `Admin__Password`, and set `Jwt__Key` to a random string of at least 32 characters (`openssl rand -base64 48`). `.env` is the one place for secrets, for Docker and for running without Docker, and it is not committed.
 
 2. Start everything:
 
@@ -32,7 +32,7 @@ Everything runs in containers, including Ollama. Nothing else needs to be instal
 
    The first start downloads the two models (about 5 GB), and the app is not reachable until that finishes. Watch it with `docker compose logs -f pull-models`. Later starts take seconds.
 
-3. Open http://localhost:5173 and log in with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`. Then follow [First-time setup in the app](#first-time-setup-in-the-app).
+3. Open http://localhost:5173 and log in with `Admin__Username` / `Admin__Password` from `.env`. Then follow [First-time setup in the app](#first-time-setup-in-the-app).
 
 Only the client port (5173) is published. nginx proxies `/api` to the server, so the health check is http://localhost:5173/api/health.
 
@@ -60,7 +60,9 @@ Data lives in two volumes: `server-data` (the SQLite database) and `ollama-data`
    ollama pull nomic-embed-text
    ```
 
-2. Start the API (http://localhost:5176). The database is created and migrated automatically at startup, at `server/src/TicketingAI.Api/data/ticketing.db`.
+2. Create the secrets file, the same one Docker uses: `cp .env.example .env`, then edit it (admin password, `Jwt__Key`, and the chat API key if we use one). `dotnet run` reads `.env` by itself when the environment is `Development`, which is what `dotnet run` uses. Without it the server refuses to start.
+
+3. Start the API (http://localhost:5176). The database is created and migrated automatically at startup, at `server/src/TicketingAI.Api/data/ticketing.db`.
 
    ```bash
    dotnet run --project server/src/TicketingAI.Api
@@ -68,7 +70,7 @@ Data lives in two volumes: `server-data` (the SQLite database) and `ollama-data`
 
    Use `dotnet watch run --project server/src/TicketingAI.Api --urls http://localhost:5176` to restart on code changes. A change to a controller route, an entity or a migration needs a full restart (Ctrl+R in the watch terminal).
 
-3. Start the client (http://localhost:5173). The dev server proxies `/api` to the API.
+4. Start the client (http://localhost:5173). The dev server proxies `/api` to the API.
 
    ```bash
    cd client
@@ -76,15 +78,15 @@ Data lives in two volumes: `server-data` (the SQLite database) and `ollama-data`
    npm run dev
    ```
 
-4. Open http://localhost:5173 and log in as `admin` / `admin` (the development login from `appsettings.Development.json`). Then follow [First-time setup in the app](#first-time-setup-in-the-app).
+5. Open http://localhost:5173 and log in with `Admin__Username` / `Admin__Password` from `.env`. Then follow [First-time setup in the app](#first-time-setup-in-the-app).
 
-**Configuration** (`server/src/TicketingAI.Api/appsettings*.json`, or environment variables with `__` for a nested key, for example `Ollama__BaseUrl`):
+**Configuration** (the AI assistant's settings are on the Settings page; `server/src/TicketingAI.Api/appsettings*.json` has the other settings that are not secret, and the `.env` file or environment variables the secrets, with `__` for a nested key, for example `Admin__Password`). Order of priority, last wins: `appsettings.json`, `appsettings.Development.json`, environment variables (the `.env` file is loaded into them):
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `Admin:Username` / `Admin:Password` | `admin` / `admin` (development only) | The admin login. Required in production |
-| `Jwt:Key` | a development key | Token signing key, at least 32 characters. Set your own in production |
-| `Ollama:BaseUrl` | `http://localhost:11434` | Where Ollama is |
+| `Admin:Username` / `Admin:Password` | none, from `.env` | The admin login. Required: the server refuses to start without it |
+| `Jwt:Key` | none, from `.env` | Token signing key, at least 32 characters. Required |
+| `ChatApi:ApiKey` | empty, from `.env` | The key of an external chat API, when the chat provider is `api` |
 | `ConnectionStrings:Default` | `Data Source=data/ticketing.db` | The SQLite file |
 
 ## Host the client on Vercel
@@ -98,6 +100,26 @@ The client is a static site, so it can be hosted apart from the API. In Vercel, 
 | Environment variable `VITE_API_URL` | The public **https** address of the API, without a trailing slash, for example `https://api.example.com` |
 
 `VITE_API_URL` is read when the client is built, so after changing it, redeploy. On the API side, set `Cors__AllowedOrigins` to the Vercel address (for example `https://ticketingai.susanpant.com.np`, several separated by commas), otherwise the browser blocks the calls. The API must be reachable over https, because a page on https cannot call an http address. `client/vercel.json` makes page addresses such as `/guide` or `/tickets` open the app when typed in directly or reloaded; without it Vercel answers 404.
+
+## Use an external API for the chat (Gemini, Cloudflare)
+
+The chat answers can come from a model on our own server (Ollama, the default) or from an external service that speaks the OpenAI chat format. The app supports both, and an admin switches between them on the **Settings** page, with no code change. Embeddings always stay on Ollama, so the uploaded knowledge stays valid when the chat provider changes.
+
+**0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat provider, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. A new database starts with the built-in defaults, and in Docker the Ollama address is set to the Ollama container by itself. To start a new database with other values, set `AiDefaults__OllamaUrl`, `AiDefaults__ChatProvider`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. An existing database keeps its settings, so for that one we change the Settings page (step 2).
+
+**1. Put the key in `.env`.** We add the line `ChatApi__ApiKey=<the key>` to the `.env` file, the same file for Docker and for running without Docker. The key is a secret, so it never goes in `appsettings.json` (that file is committed to git) and is never stored in the database. After a change, we restart the API, or run `docker compose up -d` for Docker.
+
+**2. Set three settings** on the Settings page (**Chat API base URL** is the same field that holds `http://localhost:11434` when the chat uses a local Ollama):
+
+| Setting | Gemini | Cloudflare Workers AI |
+| --- | --- | --- |
+| Chat provider | `api` | `api` |
+| Chat API base URL | `https://generativelanguage.googleapis.com/v1beta/openai` | `https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1` |
+| Chat model | the model name from Google AI Studio, for example `gemini-3.8-flash` | for example `@cf/meta/llama-3.1-8b-instruct` |
+
+The key comes from Google AI Studio (Gemini), or from a Cloudflare API token with Workers AI access (Cloudflare). Check each service's current model names and free limits. To go back to the local model, set **Chat provider** to `ollama`, **Chat API base URL** to `http://localhost:11434` (`http://ollama:11434` in Docker) and **Chat model** to `qwen2.5:7b`.
+
+**Things to know.** The prompt was tuned on `qwen2.5:7b`, so re-test the ticket flow with another model. The questions and the knowledge sections are sent to the external service, so don't use real company data on a free tier without reading its terms. When only the API is used, the chat model does not have to be downloaded: remove it from the `pull-models` line in `docker-compose.yml` (keep `nomic-embed-text`).
 
 ## First-time setup in the app
 
@@ -164,7 +186,7 @@ After a fresh database, do the [first-time setup](#first-time-setup-in-the-app) 
 | Problem | Cause and fix |
 | --- | --- |
 | Docker: login says "something went wrong", the server keeps restarting with `table ... already exists` | An old database in the `server-data` volume does not match the migrations. `docker compose down`, `docker volume rm ticketing-ai_server-data`, `docker compose up --build` |
-| Docker: `docker compose up` stops with "Set ADMIN_PASSWORD" | The `.env` file is missing or empty. Copy `.env.example` to `.env` |
+| `docker compose up` fails, or the server stops at startup and says that `Admin:Password` or `Jwt:Key` is required | The `.env` file is missing or incomplete. Copy `.env.example` to `.env` and fill it in |
 | Chat or upload fails with "model not found" | The model on the Settings page is not in Ollama. Pull it (`ollama pull <model>`, or inside Docker `docker compose exec ollama ollama pull <model>`) |
 | "Cannot reach the server" | The API is not running, or in Docker it is still starting or crashed. Check `docker compose logs server` |
 | Replies take 15 to 30 seconds | Normal on a CPU without a GPU. A 7B model reads the knowledge sections before it writes the first word |

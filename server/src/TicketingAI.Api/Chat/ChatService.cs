@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using TicketingAI.Api.Departments;
 using TicketingAI.Api.Knowledge;
@@ -11,7 +12,8 @@ public class ChatService(
     IChatModelClient model,
     ISettingsService settingsService,
     IDepartmentRepository departmentRepository,
-    ITicketService ticketService) : IChatService
+    ITicketService ticketService,
+    ILogger<ChatService> logger) : IChatService
 {
     // The model is asked to start every reply with "Department: <a department name or none>". Small models sometimes put the line at the end instead, so both ends are accepted.
     private static readonly Regex LeadingDepartmentLine = new(@"^\s*Department:[ \t]*(?<name>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
@@ -32,24 +34,35 @@ public class ChatService(
         var departments = await departmentRepository.GetAllAsync();
 
         var message = request.Message.Trim();
-        var history = (request.History ?? [])
+        var conversation = (request.History ?? [])
             .Where(m => m.Role is "user" or "assistant" && !string.IsNullOrWhiteSpace(m.Content))
-            .TakeLast(settings.HistoryMessages)
             .ToList();
 
-        var sections = await FindSectionsAsync(message, history, settings, cancellationToken);
+        // The model only gets the last few messages (a small prompt is a fast reply), but a short follow-up is still searched together
+        // with the previous question from the whole conversation the page sent.
+        var history = conversation.TakeLast(settings.HistoryMessages).ToList();
+
+        var clock = Stopwatch.StartNew();
+        var sections = await FindSectionsAsync(message, conversation, settings, cancellationToken);
+        var searchMs = clock.ElapsedMilliseconds;
 
         // The model always answers. The prompt tells it what to do when the sections answer the question, when they do not, and for casual chat.
         var prompt = ChatPromptBuilder.Build(
             history, sections, message,
             FillDepartments(settings.SystemPrompt, departments), FillDepartments(settings.FormatReminder, departments));
         var chatOptions = new ChatModelOptions(
-            settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens, settings.KeepAlive);
+            settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens, settings.KeepAlive,
+            settings.ChatProvider, settings.ChatBaseUrl, settings.ChatReasoningEffort);
 
         // While the reply is written, the employee sees it without the Department, Problem and ticket lines.
         var shown = "";
-        var reply = await model.ChatAsync(prompt, chatOptions, cancellationToken, onDraft is null ? null : async soFar =>
+        long? firstTextMs = null;
+        clock.Restart();
+        var reply = await model.ChatAsync(prompt, chatOptions, cancellationToken, async soFar =>
         {
+            firstTextMs ??= clock.ElapsedMilliseconds;
+            if (onDraft is null) return;
+
             var draft = VisibleDraft(soFar);
             if (draft.Length > 0 && draft != shown)
             {
@@ -57,6 +70,14 @@ public class ChatService(
                 await onDraft(draft);
             }
         });
+
+        // Where the time goes: the search (embedding the question and the vector query), the wait for the first words of the
+        // model's reply (it reads the prompt first, and some models think first), and the time it takes to write the whole reply.
+        logger.LogInformation(
+            "Chat timing: search {SearchMs} ms ({Sections} sections), first text after {FirstMs} ms, reply complete after {TotalMs} ms; " +
+            "{Provider} {Model}, prompt {PromptChars} characters, reply {ReplyChars} characters",
+            searchMs, sections.Count, firstTextMs, clock.ElapsedMilliseconds,
+            chatOptions.Provider, chatOptions.Model, prompt.Sum(m => m.Content.Length), reply.Length);
 
         var response = BuildResponse(reply.Trim(), departments);
         return await CreateTicketIfAgreedAsync(response, employeeId, departments);
@@ -189,9 +210,21 @@ public class ChatService(
 
     private async Task<List<KnowledgeSearchResult>> FindSectionsAsync(
         string message, IReadOnlyList<ChatMessage> history, AiSettings settings, CancellationToken cancellationToken) =>
-        (await knowledge.SearchAsync(BuildSearchQuery(message, history, settings.FollowUpMaxWords), settings.TopK, cancellationToken))
-            .Where(s => s.Score >= settings.MinScore)
-            .ToList();
+        KeepClosest(
+            (await knowledge.SearchAsync(BuildSearchQuery(message, history, settings.FollowUpMaxWords), settings.TopK, cancellationToken))
+                .Where(s => s.Score >= settings.MinScore)
+                .ToList(),
+            settings.MaxScoreGap);
+
+    // Drops the chunks that score well below the best one: fewer chunks make a shorter prompt, and a shorter prompt is a faster reply.
+    private static List<KnowledgeSearchResult> KeepClosest(List<KnowledgeSearchResult> sections, double maxGap)
+    {
+        if (maxGap <= 0 || sections.Count == 0)
+            return sections;
+
+        var best = sections.Max(s => s.Score);
+        return sections.Where(s => best - s.Score <= maxGap).ToList();
+    }
 
     // Messages this short are usually follow-ups ("and for sick leave?") that only make sense with the previous question.
     private static string BuildSearchQuery(string message, IReadOnlyList<ChatMessage> history, int followUpMaxWords)

@@ -5,12 +5,15 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TicketingAI.Api.Auth;
 using TicketingAI.Api.Chat;
+using TicketingAI.Api.Common;
 using TicketingAI.Api.Departments;
 using TicketingAI.Api.Knowledge;
 using TicketingAI.Api.Settings;
 using TicketingAI.Api.Tickets;
 using TicketingAI.Api.Users;
 using TicketingAI.Data.Persistence;
+
+DotEnv.LoadForDevelopment();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,18 +63,15 @@ builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ISettingRepository, SettingRepository>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<DataCleanup>();
-builder.Services.AddOptions<OllamaOptions>().BindConfiguration(OllamaOptions.SectionName).ValidateDataAnnotations();
-builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>((services, client) =>
-{
-    client.BaseAddress = new Uri(services.GetRequiredService<IOptions<OllamaOptions>>().Value.BaseUrl);
-    client.Timeout = TimeSpan.FromMinutes(5);
-});
-builder.Services.AddHttpClient<IChatModelClient, OllamaChatClient>((services, client) =>
-{
-    client.BaseAddress = new Uri(services.GetRequiredService<IOptions<OllamaOptions>>().Value.BaseUrl);
-    // A 7B model on a CPU can take a while to read the sections and write the answer.
-    client.Timeout = TimeSpan.FromMinutes(10);
-});
+// Ollama's address comes from a setting (ollama.base_url), so the clients have no base address.
+builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddOptions<ChatApiOptions>().BindConfiguration(ChatApiOptions.SectionName);
+builder.Services.AddOptions<AiDefaultsOptions>().BindConfiguration(AiDefaultsOptions.SectionName);
+// A 7B model on a CPU can take a while to read the sections and write the answer.
+builder.Services.AddHttpClient<OllamaChatClient>(client => client.Timeout = TimeSpan.FromMinutes(10));
+// An external chat service (Gemini, Cloudflare, ...): its address comes from a setting, so the client has no base address.
+builder.Services.AddHttpClient<ApiChatClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddScoped<IChatModelClient, ChatModelClient>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();
 builder.Services.AddScoped<IKnowledgeService, KnowledgeService>();
@@ -88,7 +88,8 @@ using (var scope = app.Services.CreateScope())
     var vecVersion = db.Database.SqlQueryRaw<string>("SELECT vec_version() AS Value").Single();
     app.Logger.LogInformation("sqlite-vec {Version} loaded", vecVersion);
 
-    await SettingsSeeder.SeedAsync(db);
+    // A new database starts with the Ollama address and the chat provider, address and model from the configuration (AiDefaults), if they are set.
+    await SettingsSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IOptions<AiDefaultsOptions>>().Value.ToOverrides());
 }
 
 if (allowedOrigins.Length > 0)

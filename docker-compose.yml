@@ -26,14 +26,16 @@ services:
   server:
     build: ./server
     restart: unless-stopped
+    # The secrets: Admin__Username, Admin__Password, Jwt__Key and ChatApi__ApiKey, and any other setting, such as
+    # AiDefaults__ChatProvider. The .env file is not committed. See .env.example.
+    env_file: .env
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      # Production does not read appsettings.Development.json, so the secrets come from the .env file (see .env.example).
-      Admin__Username: ${ADMIN_USERNAME:-admin}
-      Admin__Password: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in the .env file}
-      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in the .env file (at least 32 characters)}
-      # The Ollama container, reached by its service name.
-      Ollama__BaseUrl: http://ollama:11434
+      # The starting values of the two Ollama addresses (embeddings, and the chat's Chat API base URL) for a new database: the
+      # Ollama container, by its service name, unless .env sets AiDefaults__ChatBaseUrl (for example for Gemini). After that they
+      # are changed on the Settings page.
+      AiDefaults__OllamaUrl: http://ollama:11434
+      AiDefaults__ChatBaseUrl: ${AiDefaults__ChatBaseUrl:-http://ollama:11434}
     depends_on:
       pull-models:
         condition: service_completed_successfully

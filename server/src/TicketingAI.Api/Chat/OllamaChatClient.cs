@@ -1,16 +1,13 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using TicketingAI.Api.Knowledge;
 
 namespace TicketingAI.Api.Chat;
 
-public class OllamaChatClient(HttpClient http, IOptions<OllamaOptions> options) : IChatModelClient
+public class OllamaChatClient(HttpClient http) : IChatModelClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
-    private readonly OllamaOptions _options = options.Value;
 
     public async Task<string> ChatAsync(
         IReadOnlyList<ChatMessage> messages, ChatModelOptions chat, CancellationToken cancellationToken,
@@ -26,7 +23,7 @@ public class OllamaChatClient(HttpClient http, IOptions<OllamaOptions> options) 
             messages = messages.Select(m => new { role = m.Role, content = m.Content })
         };
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/chat") { Content = JsonContent.Create(body) };
+        using var request = new HttpRequestMessage(HttpMethod.Post, chat.BaseUrl.TrimEnd('/') + "/api/chat") { Content = JsonContent.Create(body) };
         HttpResponseMessage response;
         try
         {
@@ -35,7 +32,7 @@ public class OllamaChatClient(HttpClient http, IOptions<OllamaOptions> options) 
         }
         catch (HttpRequestException ex)
         {
-            throw new ChatModelException($"Cannot reach Ollama at {_options.BaseUrl}. Make sure Ollama is running.", ex);
+            throw new ChatModelException($"Cannot reach Ollama at {chat.BaseUrl}. Make sure Ollama is running.", ex);
         }
 
         using (response)

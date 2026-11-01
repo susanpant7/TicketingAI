@@ -210,7 +210,7 @@ INSERT INTO KnowledgeChunks (..., Content, Embedding) VALUES (..., content, floa
 vector = embed("search_query: " + question)       -- the same embedding model
 rows   = SELECT Heading, Content, vec_distance_cosine(Embedding, vector) AS Distance
          FROM KnowledgeChunks ORDER BY Distance LIMIT 5
-rows   = rows whose (1 - Distance) is at least 0.6
+rows   = rows whose (1 - Distance) is at least 0.5
 prompt = system prompt + the rows + the question + a format reminder
 answer = chat(prompt)                              -- POST /api/chat on Ollama
 ```
@@ -356,7 +356,7 @@ Full-time employees receive 18 days of paid annual leave per year...
    The title and heading give the section context, so a short section still carries its topic.
 3. **Embed** in batches of 16:
    ```http
-   POST {Ollama:BaseUrl}/api/embed
+   POST {ollama.base_url}/api/embed
    { "model": "nomic-embed-text", "input": ["search_document: Leave Policy - Annual leave ...", "search_document: Leave Policy - Sick leave ..."] }
    ```
    ```json
@@ -397,7 +397,7 @@ Short follow-ups only make sense with the question before them ("and casual leav
 ### 4.2 Embed the query
 
 ```http
-POST {Ollama:BaseUrl}/api/embed
+POST {ollama.base_url}/api/embed
 { "model": "nomic-embed-text", "input": ["search_query: i am not able to reset my password"] }
 ```
 
@@ -417,7 +417,7 @@ This compares the query with every row. For a few thousand sections that is fast
 
 ### 4.4 Filter
 
-`score = 1 - Distance`. Sections below `retrieval.min_score` (0.6) are dropped. Whatever remains, possibly nothing, goes into the prompt.
+`score = 1 - Distance`. Sections below `retrieval.min_score` (0.5) are dropped, and so are sections scoring more than `retrieval.max_score_gap` (0.05) below the best one. Whatever remains, possibly nothing, goes into the prompt.
 
 ### 4.5 Test retrieval on its own
 
@@ -436,7 +436,7 @@ GET /api/knowledge/search?q=how many leave days do I get&k=3        (admin only)
 `ChatPromptBuilder` creates the list of messages sent to the model:
 
 1. One `system` message: the `chat.system_prompt` setting, with the department placeholders filled in.
-2. The history, trimmed to the last `chat.history_messages` messages.
+2. The history, trimmed to the last `chat.history_messages` messages (12 by default).
 3. **One final `user` message** that contains the sections, the employee's message and the format reminder:
 
 ```
@@ -461,7 +461,7 @@ Message: i am not able to reset my password
 ### 5.2 The request to the model
 
 ```http
-POST {Ollama:BaseUrl}/api/chat
+POST {ollama.base_url}/api/chat
 {
   "model": "qwen2.5:7b",
   "stream": false,
@@ -536,15 +536,15 @@ You can try resetting your password at password.ticket.com ...
 If this does not solve the issue, I can create a ticket for the IT department. Let me know.
 ```
 
-**2. "that did not work"** (kind 5). The history now holds the first two messages, and the message has 4 words, so the search query is `"i am not able to reset my password that did not work"`.
+**2. "that did not work"** (kind 5). The model gets the last message only (its own answer from step 1). The whole conversation the page sent is still used for the search: the message has 4 words, so the search query is `"i am not able to reset my password that did not work"`.
 
 ```
 Department: IT
 
-I can create a ticket and assign it to a member of the IT department. Would you like me to do that?
+Resetting your password did not work. Do you want me to create a ticket for the IT department?
 ```
 
-**3. "yes"** (kind 6). The history holds the problem, the answer, "that did not work" and the offer. The model sees that its previous message offered a ticket, and replies:
+**3. "yes"** (kind 6). The model gets only its previous message, the offer, which names the problem and the department. It sees that it offered a ticket, and replies:
 
 ```
 Department: IT
@@ -555,7 +555,7 @@ Description: The employee cannot reset their password with the self-service page
 I'm creating the ticket now.
 ```
 
-This is why `chat.history_messages` must be at least 4: the original problem is 4 messages back when the employee says "yes".
+The ticket offer in step 2 names the problem and the department, so the title and the description of the ticket can be taken from that one message when the employee says "yes". That is why `chat.history_messages` can be set as low as 1 for a smaller prompt and a faster reply. With the default of 12 the model sees more of the conversation as well.
 
 ### 7.2 What the server does
 
@@ -580,24 +580,29 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 
 | Key | Default | Effect |
 | --- | --- | --- |
+| `ollama.base_url` | `http://localhost:11434` | Where Ollama runs for the embeddings (always Ollama). In Docker a new database gets `http://ollama:11434` |
 | `embedding.model` | `nomic-embed-text` | Model that makes vectors. **Changing it deletes all knowledge**, because vectors from different models cannot be compared |
 | `embedding.query_prefix` | `search_query:` | In front of the user's message when it is embedded |
 | `embedding.document_prefix` | `search_document:` | In front of each section when it is embedded. Changing it needs the files uploaded again |
-| `retrieval.top_k` | 5 | How many sections to fetch |
-| `retrieval.min_score` | 0.6 | Sections below this are dropped |
+| `retrieval.top_k` | 4 | How many sections to fetch |
+| `retrieval.min_score` | 0.5 | Sections below this are dropped |
+| `retrieval.max_score_gap` | 0.05 | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off |
 | `retrieval.follow_up_max_words` | 5 | Messages this short are searched together with the previous user message. `0` turns it off |
+| `chat.provider` | `ollama` | Where the chat model runs: `ollama` (our own server) or `api` (an external service such as Gemini or Cloudflare, in the OpenAI chat format). Embeddings always use Ollama |
+| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, for both providers: where Ollama runs (`http://ollama:11434` in Docker), or for provider `api` the service's address up to `/chat/completions`. The key for `api` is the environment variable `ChatApi__ApiKey`, never a setting |
 | `chat.model` | `qwen2.5:7b` | Model that writes the answers |
-| `chat.temperature` | 0 | Randomness |
+| `chat.temperature` | 0.2 | Randomness. 0 gives the most repeatable answers |
 | `chat.top_p` | 0.9 | Sent to Ollama |
 | `chat.num_ctx` | 4096 | Context window in tokens. The system prompt, history, sections and answer must fit |
-| `chat.max_tokens` | 500 | Maximum answer length (`num_predict`) |
-| `chat.history_messages` | 6 | How many recent messages the server keeps. The ticket flow needs at least 4 |
+| `chat.reasoning_effort` | (empty) | Only for provider `api`: asks a thinking model to think less (for example `none`, `minimal`, `low`), which makes the first word arrive sooner. Empty sends nothing |
+| `chat.max_tokens` | 300 | Maximum answer length (`num_predict`). Careful with a hosted model that thinks: its thinking counts in the limit, and when it is used up the chat reports that the reply was cut off (raise the limit, or lower `chat.reasoning_effort`) |
+| `chat.history_messages` | 12 | How many recent messages the model gets. More messages mean a longer prompt and a slower reply. 1 is enough for a ticket, because the assistant's offer states the problem. A short follow-up is searched together with the previous question, taken from the whole conversation the page sends, whatever this is set to |
 | `chat.system_prompt` | (long text) | The six kinds of message and the reply format. Placeholders: `{{departments}}`, `{{department_names}}` |
 | `chat.format_reminder` | (short text) | Repeated at the end of the final user message. Same placeholders |
 
 A model named in a setting must exist in Ollama. In Docker: `docker compose exec ollama ollama pull <model>`. The seeder never overwrites a row that exists, so an old prompt stays until we edit it or click **Restore defaults** (which resets all settings).
 
-**Making replies faster** (the time is the model reading the prompt, about 43 tokens per second, plus writing the answer, about 6 per second): we can lower `retrieval.top_k` (to 3), lower `chat.history_messages` (to 4, not less), lower `chat.max_tokens` (to 200), ask in the prompt for short answers, or use a smaller model such as `qwen2.5:3b` (we re-test the quality first).
+**Making replies faster** (the time is the model reading the prompt, plus writing the answer; a hosted model may also think first): we lower `retrieval.top_k` and raise `retrieval.max_score_gap` carefully, so fewer sections are sent, lower `chat.history_messages` (1 is enough for a ticket) and `chat.max_tokens`, ask in the prompt for short answers, set `chat.reasoning_effort` for a thinking model on an API, or use a smaller or faster model. The server writes a timing line for every message (search time, time to the first text, total), which shows which step to work on.
 
 ## 13. Debugging a wrong answer
 

@@ -22,13 +22,18 @@ public static class SettingRules
 {
     private static readonly Dictionary<string, SettingRule> Known = new()
     {
+        [SettingKeys.OllamaBaseUrl] = new(SettingKind.Text),
         [SettingKeys.EmbeddingModel] = new(SettingKind.Text),
         [SettingKeys.EmbeddingQueryPrefix] = new(SettingKind.OptionalText),
         [SettingKeys.EmbeddingDocumentPrefix] = new(SettingKind.OptionalText),
         [SettingKeys.RetrievalTopK] = new(SettingKind.Int, Min: 1),
         [SettingKeys.RetrievalMinScore] = new(SettingKind.Decimal, Min: 0, Max: 1),
+        [SettingKeys.RetrievalMaxScoreGap] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalFollowUpMaxWords] = new(SettingKind.Int, Min: 0),
+        [SettingKeys.ChatProvider] = new(SettingKind.Text),
+        [SettingKeys.ChatBaseUrl] = new(SettingKind.Text),
         [SettingKeys.ChatModel] = new(SettingKind.Text),
+        [SettingKeys.ChatReasoningEffort] = new(SettingKind.OptionalText),
         [SettingKeys.ChatTemperature] = new(SettingKind.Decimal, Min: 0, Max: 2),
         [SettingKeys.ChatTopP] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.ChatNumCtx] = new(SettingKind.Int, Min: 256),
@@ -39,12 +44,22 @@ public static class SettingRules
         [SettingKeys.ChatFormatReminder] = new(SettingKind.Text)
     };
 
+    private static readonly string[] ChatProviders = ["ollama", "api"];
+
     public static SettingRule For(string key) => Known.GetValueOrDefault(key) ?? new SettingRule(SettingKind.Text);
 
     /// <summary>Returns a message that says what is wrong with the value, or null when it is fine.</summary>
     public static string? Validate(string key, string value)
     {
         var rule = For(key);
+
+        // The provider is one of two names, and the addresses are web addresses.
+        if (key == SettingKeys.ChatProvider && !ChatProviders.Contains(value, StringComparer.OrdinalIgnoreCase))
+            return $"The value must be one of: {string.Join(", ", ChatProviders)}.";
+        if (key is SettingKeys.ChatBaseUrl or SettingKeys.OllamaBaseUrl && value.Length > 0
+            && !(Uri.TryCreate(value, UriKind.Absolute, out var url) && url.Scheme is "http" or "https"))
+            return "The value must be a web address that starts with http:// or https://.";
+
         switch (rule.Kind)
         {
             case SettingKind.Text when string.IsNullOrWhiteSpace(value):

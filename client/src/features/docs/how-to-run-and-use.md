@@ -23,7 +23,7 @@ This is the easiest way. Everything runs in containers, including the AI models,
 cp .env.example .env
 ```
 
-In `.env` we set `ADMIN_PASSWORD`, and we set `JWT_KEY` to a random string of at least 32 characters (`openssl rand -base64 48` makes one).
+In `.env` we set `Admin__Password`, and we set `Jwt__Key` to a random string of at least 32 characters (`openssl rand -base64 48` makes one).
 
 **Step 2. Start everything.**
 
@@ -33,7 +33,7 @@ docker compose up --build
 
 The first start downloads the two AI models (about 5 GB), and the app is not reachable until that finishes. `docker compose logs -f pull-models` shows the progress. Later starts take seconds.
 
-**Step 3. Open the app.** We go to http://localhost:5173 and log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD` from `.env`. Then we follow section 3 below.
+**Step 3. Open the app.** We go to http://localhost:5173 and log in with `Admin__Username` and `Admin__Password` from `.env`. Then we follow section 3 below.
 
 Useful commands:
 
@@ -59,13 +59,21 @@ ollama pull qwen2.5:7b        # writes the answers
 ollama pull nomic-embed-text  # turns text into numbers
 ```
 
-**Step 2. Start the API** (http://localhost:5176). The database is created and updated by itself at startup.
+**Step 2. Create the secrets file.** It is the same `.env` file that Docker uses. We copy the example and edit it (the admin password, `Jwt__Key`, and the chat API key if we use one):
+
+```bash
+cp .env.example .env
+```
+
+`dotnet run` reads `.env` by itself in development. Without it the server refuses to start.
+
+**Step 3. Start the API** (http://localhost:5176). The database is created and updated by itself at startup.
 
 ```bash
 dotnet run --project server/src/TicketingAI.Api
 ```
 
-**Step 3. Start the client** (http://localhost:5173).
+**Step 4. Start the client** (http://localhost:5173).
 
 ```bash
 cd client
@@ -73,7 +81,7 @@ npm install
 npm run dev
 ```
 
-**Step 4. Open the app.** We go to http://localhost:5173 and log in as `admin` with the password `admin`. This default login only exists in development. Then we follow section 3 below.
+**Step 5. Open the app.** We go to http://localhost:5173 and log in with `Admin__Username` and `Admin__Password` from `.env`. Then we follow section 3 below.
 
 ## 3. Set up the app for the first time
 
@@ -171,16 +179,28 @@ To change the chat model, two things must change: the model has to exist in Olla
 
 **Restore defaults** on the Settings page puts the model back to `qwen2.5:7b`.
 
+**Use an external API instead (Gemini, Cloudflare).** The chat answers can also come from an online service instead of a local model. Embeddings stay on Ollama. These are all settings on the **Settings** page (AI assistant tab), and nothing about the AI assistant, except the key, is in `appsettings.json`. For a **new** database, `AiDefaults__ChatProvider`, `AiDefaults__ChatBaseUrl` and `AiDefaults__ChatModel` in `.env` can set the starting values, and they are what Restore defaults restores. For a database that already exists, we use the Settings page. Three steps:
+1. We add the service's key to the `.env` file as `ChatApi__ApiKey=<the key>`. The same file works for Docker and for running without Docker. We then restart the API, or run `docker compose up -d`. The key is never stored in the database and never goes in `appsettings.json`.
+2. In **Settings** we set **Chat provider** to `api`, **Chat API base URL** to the service's address, and **Chat model** to the service's model name.
+3. We send a test message.
+
+| | Gemini | Cloudflare Workers AI |
+| --- | --- | --- |
+| Chat API base URL | `https://generativelanguage.googleapis.com/v1beta/openai` | `https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1` |
+| Chat model (example) | `gemini-3.8-flash` | `@cf/meta/llama-3.1-8b-instruct` |
+
+To go back to the local model, we set **Chat provider** to `ollama`, **Chat API base URL** to `http://localhost:11434` (`http://ollama:11434` in Docker) and **Chat model** to `qwen2.5:7b`. The prompt was tuned on `qwen2.5:7b`, so we re-test after switching. The questions and the knowledge sections are sent to the online service, so we avoid real company data on a free tier.
+
 Changing the **embedding model** is different: it deletes all the knowledge (numbers from two different models cannot be compared). We then upload the knowledge files again, and the two prefixes in Settings must match the new model.
 
-**Making replies faster.** On the Settings page we can lower **Results to retrieve** to 3, **Messages of history** to 4 (not less), and **Max answer length** to 200.
+**Making replies faster.** On the Settings page we can lower **Results to retrieve** (4 by default), raise **Maximum score gap** carefully so fewer sections are sent (a shorter prompt is a faster reply), lower **Messages of history** (12 by default; 1 sends only the last message and still works for a ticket) and **Max answer length** (300 by default; a model that thinks before it answers counts its thinking in it, and then the chat says the reply was cut off, so raise it or lower the Reasoning effort). For a hosted model that thinks before it answers (such as the newer Gemini models), **Reasoning effort** can be set to `none`, `minimal` or `low`, depending on what the model accepts. The server log has a timing line for every message that shows where the time goes.
 
 ## 7. If something goes wrong
 
 | Problem | What to do |
 | --- | --- |
 | Docker: login says "something went wrong", and the server keeps restarting with `table ... already exists` | An old database in the `server-data` volume does not match. Run `docker compose down`, then `docker volume rm ticketing-ai_server-data`, then `docker compose up --build` |
-| Docker: `docker compose up` stops with "Set ADMIN_PASSWORD" | The `.env` file is missing or empty. We copy `.env.example` to `.env` |
+| `docker compose up` fails, or the server stops at startup and says that `Admin:Password` or `Jwt:Key` is required | The `.env` file is missing or incomplete. We copy `.env.example` to `.env` and fill it in |
 | Chat or upload says the model was not found | The model in Settings is not in Ollama. We pull it first (section 6) |
 | "Cannot reach the server" | The API is not running, or in Docker it is still starting or has crashed. `docker compose logs server` shows why |
 | Replies take 15 to 30 seconds | This is normal without a GPU. The model reads the knowledge before it writes the first word |

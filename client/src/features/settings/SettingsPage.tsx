@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import ChatModelGuide from '@/features/settings/ChatModelGuide'
 import ManageAppData from '@/features/settings/ManageAppData'
 import SettingForm from '@/features/settings/SettingForm'
-import { EMBEDDING_MODEL_KEY, getSettings, type SavedSetting, type Setting } from '@/features/settings/settingsApi'
+import {
+  EMBEDDING_MODEL_KEY,
+  getSettings,
+  restoreDefaults,
+  type SavedSetting,
+  type Setting,
+} from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import Button from '@/shared/components/Button'
+import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import PageHeader from '@/shared/components/PageHeader'
 import Tabs from '@/shared/components/Tabs'
 
@@ -19,6 +27,7 @@ const groupName = (key: string) => key.split('.')[0]
 
 const groupTitles: Record<string, string> = {
   chat: 'Chat model and replies',
+  ollama: 'Ollama for embeddings',
   embedding: 'Embeddings',
   retrieval: 'Searching the knowledge',
 }
@@ -50,6 +59,8 @@ function AiSettingsList() {
   const [editing, setEditing] = useState<Setting | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [version, setVersion] = useState(0)
+  const [confirmingRestore, setConfirmingRestore] = useState(false)
+  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     let ignore = false
@@ -91,11 +102,45 @@ function AiSettingsList() {
     }
   }
 
+  async function handleRestore() {
+    setError('')
+    setRestoring(true)
+    try {
+      const { knowledgeDeleted } = await restoreDefaults()
+      setVersion((v) => v + 1)
+      setNotice(
+        knowledgeDeleted > 0
+          ? {
+              variant: 'warning',
+              message: (
+                <>
+                  The default settings were restored. The embedding model changed, so {knowledgeDeleted} knowledge sections
+                  were deleted. Upload them again on the{' '}
+                  <Link to="/knowledge" className="font-semibold underline">
+                    Knowledge page
+                  </Link>
+                  .
+                </>
+              ),
+            }
+          : { variant: 'success', message: 'The default settings were restored. They apply from the next message.' },
+      )
+    } catch (err) {
+      setError(errorMessage(err, 'Restoring the default settings failed. Please try again.'))
+    } finally {
+      setRestoring(false)
+      setConfirmingRestore(false)
+    }
+  }
+
   const groups = [...new Set(settings.map((s) => groupName(s.key)))].sort()
 
   return (
     <>
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex justify-end gap-3">
+        <Button variant="secondary" onClick={() => setConfirmingRestore(true)}>
+          Restore defaults
+        </Button>
         <Button variant="secondary" onClick={() => openForm(null)}>
           Add setting
         </Button>
@@ -116,6 +161,7 @@ function AiSettingsList() {
         groups.map((group) => (
           <section key={group} className="mt-8 first:mt-6">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{groupTitle(group)}</h2>
+            {group === 'chat' && <ChatModelGuide settings={settings} />}
             <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               {settings
                 .filter((s) => groupName(s.key) === group)
@@ -140,6 +186,17 @@ function AiSettingsList() {
             </div>
           </section>
         ))
+      )}
+
+      {confirmingRestore && (
+        <ConfirmDialog
+          title="Restore default settings"
+          message="This deletes every AI assistant setting, including the ones you added or changed, and puts the default settings back. If the embedding model is different from the default, all the knowledge is deleted too."
+          confirmLabel="Restore defaults"
+          busy={restoring}
+          onConfirm={handleRestore}
+          onCancel={() => setConfirmingRestore(false)}
+        />
       )}
 
       {formOpen && (

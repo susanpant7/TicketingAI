@@ -1,11 +1,13 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 using TicketingAI.Data.Entities;
 using TicketingAI.Data.Persistence;
 
 namespace TicketingAI.Api.Settings;
 
-public partial class SettingsService(ISettingRepository settings, ILogger<SettingsService> logger) : ISettingsService
+public partial class SettingsService(
+    ISettingRepository settings, ILogger<SettingsService> logger, IOptions<AiDefaultsOptions> aiDefaults) : ISettingsService
 {
     private const int MaxKeyLength = 100;
     private const int MaxLabelLength = 100;
@@ -20,13 +22,18 @@ public partial class SettingsService(ISettingRepository settings, ILogger<Settin
         var stored = (await settings.GetAllAsync(cancellationToken)).ToDictionary(s => s.Key, s => s.Value);
 
         return new AiSettings(
+            OllamaBaseUrl: Text(stored, SettingKeys.OllamaBaseUrl),
             EmbeddingModel: Text(stored, SettingKeys.EmbeddingModel),
             EmbeddingQueryPrefix: Text(stored, SettingKeys.EmbeddingQueryPrefix),
             EmbeddingDocumentPrefix: Text(stored, SettingKeys.EmbeddingDocumentPrefix),
             TopK: Int(stored, SettingKeys.RetrievalTopK),
             MinScore: Number(stored, SettingKeys.RetrievalMinScore),
+            MaxScoreGap: Number(stored, SettingKeys.RetrievalMaxScoreGap),
             FollowUpMaxWords: Int(stored, SettingKeys.RetrievalFollowUpMaxWords),
+            ChatProvider: Text(stored, SettingKeys.ChatProvider),
+            ChatBaseUrl: Text(stored, SettingKeys.ChatBaseUrl),
             ChatModel: Text(stored, SettingKeys.ChatModel),
+            ChatReasoningEffort: Text(stored, SettingKeys.ChatReasoningEffort),
             Temperature: Number(stored, SettingKeys.ChatTemperature),
             TopP: Number(stored, SettingKeys.ChatTopP),
             NumCtx: Int(stored, SettingKeys.ChatNumCtx),
@@ -90,7 +97,7 @@ public partial class SettingsService(ISettingRepository settings, ILogger<Settin
         var current = await settings.GetAsync(SettingKeys.EmbeddingModel);
         var embeddingModelChanged = current is not null && current.Value != DefaultOf(SettingKeys.EmbeddingModel);
 
-        var defaults = SettingDefaults.All
+        var defaults = Defaults
             .Select(d => new Setting { Key = d.Key, Label = d.Label, Description = d.Description, Value = d.Value })
             .ToList();
         return await settings.ReplaceAllAsync(defaults, deleteKnowledge: embeddingModelChanged);
@@ -111,9 +118,11 @@ public partial class SettingsService(ISettingRepository settings, ILogger<Settin
     private static SettingDto ToDto(Setting s) => new(s.Key, s.Label, s.Description, s.Value);
 
     // A missing or invalid value falls back to the default, so a bad value in the table cannot break the chat.
-    private static string DefaultOf(string key) => SettingDefaults.All.First(d => d.Key == key).Value;
+    private IReadOnlyList<SettingDefinition> Defaults => SettingDefaults.WithOverrides(aiDefaults.Value.ToOverrides());
 
-    private static string Text(Dictionary<string, string> stored, string key) =>
+    private string DefaultOf(string key) => Defaults.First(d => d.Key == key).Value;
+
+    private string Text(Dictionary<string, string> stored, string key) =>
         stored.TryGetValue(key, out var value) && SettingRules.Validate(key, value) is null ? value : DefaultOf(key);
 
     private int Int(Dictionary<string, string> stored, string key)

@@ -1,36 +1,33 @@
 using System.Net.Http.Json;
-using Microsoft.Extensions.Options;
 
 namespace TicketingAI.Api.Knowledge;
 
-public class OllamaEmbeddingClient(HttpClient http, IOptions<OllamaOptions> options) : IEmbeddingClient
+public class OllamaEmbeddingClient(HttpClient http) : IEmbeddingClient
 {
     private const int BatchSize = 16;
 
-    private readonly OllamaOptions _options = options.Value;
-
     public async Task<IReadOnlyList<float[]>> EmbedAsync(
-        IReadOnlyList<string> texts, string model, CancellationToken cancellationToken = default)
+        IReadOnlyList<string> texts, string model, string ollamaUrl, string keepAlive, CancellationToken cancellationToken = default)
     {
         var vectors = new List<float[]>(texts.Count);
         foreach (var batch in texts.Chunk(BatchSize))
-            vectors.AddRange(await EmbedBatchAsync(batch, model, cancellationToken));
+            vectors.AddRange(await EmbedBatchAsync(batch, model, ollamaUrl, keepAlive, cancellationToken));
 
         return vectors;
     }
 
-    private async Task<float[][]> EmbedBatchAsync(string[] batch, string model, CancellationToken cancellationToken)
+    private async Task<float[][]> EmbedBatchAsync(string[] batch, string model, string ollamaUrl, string keepAlive, CancellationToken cancellationToken)
     {
         HttpResponseMessage response;
         try
         {
             response = await http.PostAsJsonAsync(
-                "/api/embed", new { model, input = batch }, cancellationToken);
+                ollamaUrl.TrimEnd('/') + "/api/embed", new { model, input = batch, keep_alive = keepAlive }, cancellationToken);
         }
         catch (HttpRequestException ex)
         {
             throw new EmbeddingException(
-                $"Cannot reach Ollama at {_options.BaseUrl}. Make sure Ollama is running.", ex);
+                $"Cannot reach Ollama at {ollamaUrl}. Make sure Ollama is running.", ex);
         }
 
         using (response)

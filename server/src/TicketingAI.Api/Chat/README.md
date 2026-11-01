@@ -554,17 +554,19 @@ All of these are rows in the `Settings` table (columns `Key`, `Label`, `Descript
 | `embedding.model` | `nomic-embed-text` | Step 2: the model that makes vectors |
 | `embedding.query_prefix` | `search_query:` | Step 2: put before the user's message |
 | `embedding.document_prefix` | `search_document:` | Used when the knowledge sections are embedded |
-| `retrieval.top_k` | `5` | Step 3: how many sections are retrieved |
-| `retrieval.min_score` | `0.6` | Step 3: sections below this score are dropped |
+| `retrieval.top_k` | `4` | Step 3: how many sections are retrieved |
+| `retrieval.min_score` | `0.5` | Step 3: sections below this score are dropped |
 | `retrieval.follow_up_max_words` | `5` | Step 2: messages this short are searched with the previous question |
 | `chat.model` | `qwen2.5:7b` | Step 4: the model that writes the reply |
-| `chat.temperature` | `0` | Step 4: randomness (0 = repeatable) |
+| `chat.temperature` | `0.2` | Step 4: randomness (0 = repeatable) |
 | `chat.top_p` | `0.9` | Step 4: sampling limit |
-| `chat.num_ctx` | `4096` | Step 4: how many tokens the model can read at once |
-| `chat.max_tokens` | `500` | Step 4: the longest reply |
-| `chat.history_messages` | `6` | Step 4: how much of the conversation is sent |
+| `chat.num_ctx` | `8192` | Step 4: how many tokens the model can read at once |
+| `chat.max_tokens` | `300` | Step 4: the longest reply |
+| `chat.history_messages` | `12` | Step 4: how much of the conversation is sent |
 | `chat.system_prompt` | System prompt in the settings page (default text in the Appendix) | Step 4: the rules. May contain `{{departments}}` and `{{department_names}}` |
 | `chat.format_reminder` | see Step 4 | Step 4: added to the end of the new message. May contain `{{department_names}}` |
+
+The defaults above are the current ones (the same as in the BookMyDoctor app where the setting exists in both). The worked examples earlier in this document were recorded with earlier defaults (for example 5 sections and a minimum score of 0.60), so their numbers differ.
 
 - A missing or invalid value falls back to the default, and a warning is logged.
 - Changing `embedding.model` deletes all knowledge sections, because vectors made by different models cannot be compared. The Settings page warns about this, and the knowledge files must be uploaded again afterwards.
