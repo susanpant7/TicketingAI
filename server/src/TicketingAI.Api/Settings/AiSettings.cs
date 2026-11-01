@@ -10,7 +10,6 @@ public record AiSettings(
     double MinScore,
     double MaxScoreGap,
     int FollowUpMaxWords,
-    string ChatProvider,
     string ChatBaseUrl,
     string ChatModel,
     string ChatReasoningEffort,

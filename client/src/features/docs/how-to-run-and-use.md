@@ -181,15 +181,15 @@ To change the chat model, two things must change: the model has to exist in Olla
 
 **Use an external API instead (Gemini, Cloudflare).** The chat answers can also come from an online service instead of a local model. Embeddings stay on Ollama. These are all settings on the **Settings** page (AI assistant tab), and nothing about the AI assistant, except the key, is in `appsettings.json`. For a **new** database, `AiDefaults__ChatProvider`, `AiDefaults__ChatBaseUrl` and `AiDefaults__ChatModel` in `.env` can set the starting values, and they are what Restore defaults restores. For a database that already exists, we use the Settings page. Three steps:
 1. We add the service's key to the `.env` file as `ChatApi__ApiKey=<the key>`. The same file works for Docker and for running without Docker. We then restart the API, or run `docker compose up -d`. The key is never stored in the database and never goes in `appsettings.json`.
-2. In **Settings** we set **Chat provider** to `api`, **Chat API base URL** to the service's address, and **Chat model** to the service's model name.
+2. In **Settings**, AI assistant tab, we click **Use** on the service (or on a model we saved). This sets the **Chat API base URL** and the **Chat model** together. We can also type them in the two settings. There is no separate provider setting: an address with no path is Ollama, and one with a path is an online service.
 3. We send a test message.
 
 | | Gemini | Cloudflare Workers AI |
 | --- | --- | --- |
 | Chat API base URL | `https://generativelanguage.googleapis.com/v1beta/openai` | `https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1` |
-| Chat model (example) | `gemini-3.8-flash` | `@cf/meta/llama-3.1-8b-instruct` |
+| Chat model (example) | `gemini-flash-latest` | `@cf/meta/llama-3.1-8b-instruct` |
 
-To go back to the local model, we set **Chat provider** to `ollama`, **Chat API base URL** to `http://localhost:11434` (`http://ollama:11434` in Docker) and **Chat model** to `qwen2.5:7b`. The prompt was tuned on `qwen2.5:7b`, so we re-test after switching. The questions and the knowledge sections are sent to the online service, so we avoid real company data on a free tier.
+To go back to the local model, we click **Use** on "Ollama (on our own machine)", or set **Chat API base URL** to `http://localhost:11434` (`http://ollama:11434` in Docker) and **Chat model** to `qwen2.5:7b`. Models we use often can be saved with **Add chat model**, to switch with one click. The prompt was tuned on `qwen2.5:7b`, so we re-test after switching. The questions and the knowledge sections are sent to the online service, so we avoid real company data on a free tier.
 
 Changing the **embedding model** is different: it deletes all the knowledge (numbers from two different models cannot be compared). We then upload the knowledge files again, and the two prefixes in Settings must match the new model.
 

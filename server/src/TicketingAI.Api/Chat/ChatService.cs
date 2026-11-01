@@ -52,7 +52,7 @@ public class ChatService(
             FillDepartments(settings.SystemPrompt, departments), FillDepartments(settings.FormatReminder, departments));
         var chatOptions = new ChatModelOptions(
             settings.ChatModel, settings.Temperature, settings.TopP, settings.NumCtx, settings.MaxTokens, settings.KeepAlive,
-            settings.ChatProvider, settings.ChatBaseUrl, settings.ChatReasoningEffort);
+            settings.ChatBaseUrl, settings.ChatReasoningEffort);
 
         // While the reply is written, the employee sees it without the Department, Problem and ticket lines.
         var shown = "";
@@ -75,9 +75,9 @@ public class ChatService(
         // model's reply (it reads the prompt first, and some models think first), and the time it takes to write the whole reply.
         logger.LogInformation(
             "Chat timing: search {SearchMs} ms ({Sections} sections), first text after {FirstMs} ms, reply complete after {TotalMs} ms; " +
-            "{Provider} {Model}, prompt {PromptChars} characters, reply {ReplyChars} characters",
+            "{BaseUrl} {Model}, prompt {PromptChars} characters, reply {ReplyChars} characters",
             searchMs, sections.Count, firstTextMs, clock.ElapsedMilliseconds,
-            chatOptions.Provider, chatOptions.Model, prompt.Sum(m => m.Content.Length), reply.Length);
+            chatOptions.BaseUrl, chatOptions.Model, prompt.Sum(m => m.Content.Length), reply.Length);
 
         var response = BuildResponse(reply.Trim(), departments);
         return await CreateTicketIfAgreedAsync(response, employeeId, departments);

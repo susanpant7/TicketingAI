@@ -588,13 +588,12 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 | `retrieval.min_score` | 0.5 | Sections below this are dropped |
 | `retrieval.max_score_gap` | 0.05 | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off |
 | `retrieval.follow_up_max_words` | 5 | Messages this short are searched together with the previous user message. `0` turns it off |
-| `chat.provider` | `ollama` | Where the chat model runs: `ollama` (our own server) or `api` (an external service such as Gemini or Cloudflare, in the OpenAI chat format). Embeddings always use Ollama |
-| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, for both providers: where Ollama runs (`http://ollama:11434` in Docker), or for provider `api` the service's address up to `/chat/completions`. The key for `api` is the environment variable `ChatApi__ApiKey`, never a setting |
+| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://ollama:11434` in Docker) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable `ChatApi__ApiKey`, never a setting |
 | `chat.model` | `qwen2.5:7b` | Model that writes the answers |
 | `chat.temperature` | 0.2 | Randomness. 0 gives the most repeatable answers |
 | `chat.top_p` | 0.9 | Sent to Ollama |
 | `chat.num_ctx` | 4096 | Context window in tokens. The system prompt, history, sections and answer must fit |
-| `chat.reasoning_effort` | (empty) | Only for provider `api`: asks a thinking model to think less (for example `none`, `minimal`, `low`), which makes the first word arrive sooner. Empty sends nothing |
+| `chat.reasoning_effort` | (empty) | Only for an online service: asks a thinking model to think less (for example `none`, `minimal`, `low`), which makes the first word arrive sooner. Empty sends nothing |
 | `chat.max_tokens` | 300 | Maximum answer length (`num_predict`). Careful with a hosted model that thinks: its thinking counts in the limit, and when it is used up the chat reports that the reply was cut off (raise the limit, or lower `chat.reasoning_effort`) |
 | `chat.history_messages` | 12 | How many recent messages the model gets. More messages mean a longer prompt and a slower reply. 1 is enough for a ticket, because the assistant's offer states the problem. A short follow-up is searched together with the previous question, taken from the whole conversation the page sends, whatever this is set to |
 | `chat.system_prompt` | (long text) | The six kinds of message and the reply format. Placeholders: `{{departments}}`, `{{department_names}}` |

@@ -30,7 +30,6 @@ public static class SettingRules
         [SettingKeys.RetrievalMinScore] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalMaxScoreGap] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalFollowUpMaxWords] = new(SettingKind.Int, Min: 0),
-        [SettingKeys.ChatProvider] = new(SettingKind.Text),
         [SettingKeys.ChatBaseUrl] = new(SettingKind.Text),
         [SettingKeys.ChatModel] = new(SettingKind.Text),
         [SettingKeys.ChatReasoningEffort] = new(SettingKind.OptionalText),
@@ -44,8 +43,6 @@ public static class SettingRules
         [SettingKeys.ChatFormatReminder] = new(SettingKind.Text)
     };
 
-    private static readonly string[] ChatProviders = ["ollama", "api"];
-
     public static SettingRule For(string key) => Known.GetValueOrDefault(key) ?? new SettingRule(SettingKind.Text);
 
     /// <summary>Returns a message that says what is wrong with the value, or null when it is fine.</summary>
@@ -53,9 +50,7 @@ public static class SettingRules
     {
         var rule = For(key);
 
-        // The provider is one of two names, and the addresses are web addresses.
-        if (key == SettingKeys.ChatProvider && !ChatProviders.Contains(value, StringComparer.OrdinalIgnoreCase))
-            return $"The value must be one of: {string.Join(", ", ChatProviders)}.";
+        // The addresses are web addresses.
         if (key is SettingKeys.ChatBaseUrl or SettingKeys.OllamaBaseUrl && value.Length > 0
             && !(Uri.TryCreate(value, UriKind.Absolute, out var url) && url.Scheme is "http" or "https"))
             return "The value must be a web address that starts with http:// or https://.";

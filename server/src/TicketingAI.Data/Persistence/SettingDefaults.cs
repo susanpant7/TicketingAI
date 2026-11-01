@@ -10,7 +10,7 @@ public static class SettingKeys
     public const string RetrievalMinScore = "retrieval.min_score";
     public const string RetrievalMaxScoreGap = "retrieval.max_score_gap";
     public const string RetrievalFollowUpMaxWords = "retrieval.follow_up_max_words";
-    public const string ChatProvider = "chat.provider";
+    public const string LegacyChatProvider = "chat.provider";   // removed: the Chat API base URL decides, see AiProviders
     public const string ChatBaseUrl = "chat.base_url";
 
     /// <summary>The old name of <see cref="ChatBaseUrl"/>. A database that still has it is upgraded at startup.</summary>
@@ -91,7 +91,7 @@ public static class SettingDefaults
     public static IReadOnlyList<SettingDefinition> All { get; } =
     [
         new(SettingKeys.OllamaBaseUrl, "Ollama address for embeddings",
-            "Where Ollama runs for the embeddings, which turn text into numbers. Embeddings always use Ollama, whichever chat provider is chosen. On our own machine it is http://localhost:11434. With Docker Compose the server reaches the Ollama container at http://ollama:11434, which a new Docker database gets by itself. Changing it only changes where the app looks: nothing is deleted.",
+            "Where Ollama runs for the embeddings, which turn text into numbers. Embeddings always use Ollama, whichever chat model is chosen. On our own machine it is http://localhost:11434. With Docker Compose the server reaches the Ollama container at http://ollama:11434, which a new Docker database gets by itself. Changing it only changes where the app looks: nothing is deleted.",
             "http://localhost:11434"),
         new(SettingKeys.EmbeddingModel, "Embedding model",
             "Model that converts text into vectors. Changing it requires re-embedding all knowledge chunks (upload the knowledge files again), because old and new vectors cannot be compared. Change the two prefixes below to match the new model. The model must also exist in Ollama: when the app runs in Docker, pull it first with `docker compose exec ollama ollama pull <model>` (otherwise embedding fails with a model-not-found error), and add it to the pull-models service in docker-compose.yml to have it downloaded automatically on a new machine.",
@@ -114,17 +114,14 @@ public static class SettingDefaults
         new(SettingKeys.RetrievalFollowUpMaxWords, "Follow-up message length (words)",
             "Messages with this many words or fewer are searched together with the previous question, so short follow-ups such as 'and casual leave?' still find the right topic. Set 0 to turn this off.",
             "5"),
-        new(SettingKeys.ChatProvider, "Chat provider",
-            "Which kind of service the chat model is. 'ollama' is a model run by Ollama, on our own machine or in Docker; it needs no key. 'api' is an external service that speaks the OpenAI chat format, such as Google Gemini or Cloudflare Workers AI; its key goes in the server environment variable ChatApi__ApiKey (the key is never stored in this table). The provider decides how the Chat API base URL is called, so change the provider, the Chat API base URL and the Chat model together. The prompt was tuned on qwen2.5:7b, so re-test after switching.",
-            "ollama"),
         new(SettingKeys.ChatBaseUrl, "Chat API base URL",
-            "The address the chat model is called at, without the final path. With the provider 'ollama' it is where Ollama runs: http://localhost:11434 on our own machine, http://ollama:11434 with Docker Compose. With the provider 'api' it is the service's address up to, but not including, /chat/completions. Gemini: https://generativelanguage.googleapis.com/v1beta/openai   Cloudflare Workers AI: https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1   It must match the Chat provider and the Chat model.",
+            "The address the chat model is called at. This one setting decides how: an address with no path, such as http://localhost:11434 (http://ollama:11434 with Docker Compose), is Ollama's own API for a model on our own machine, which needs no key. An address with a path, such as https://generativelanguage.googleapis.com/v1beta/openai (Gemini), is called in the OpenAI chat format, and its key is the environment variable ChatApi__ApiKey (never stored here). On this page, Use on a saved model or a service fills in this address and the Chat model together. The address and the Chat model must belong together.",
             "http://localhost:11434"),
         new(SettingKeys.ChatModel, "Chat model",
-            "Model that writes the final answer from the retrieved context. Can be changed without re-embedding anything. The rules and the reply format were tested with qwen2.5:7b, so re-test after changing it. With the provider 'api', use the service's own model name, for example gemini-3.8-flash, or @cf/meta/llama-3.1-8b-instruct for Cloudflare Workers AI (nothing needs to be pulled in Ollama then). The model must also exist in Ollama: when the app runs in Docker, pull it first with `docker compose exec ollama ollama pull <model>` (otherwise chat fails with a model-not-found error), and add it to the pull-models service in docker-compose.yml to have it downloaded automatically on a new machine. A bigger model also needs more memory for Docker.",
+            "Model that writes the final answer from the retrieved context. Can be changed without re-embedding anything. The rules and the reply format were tested with qwen2.5:7b, so re-test after changing it. It must be a name the Chat API base URL knows: for a local Ollama it must be pulled first (ollama pull <name>, in Docker docker compose exec ollama ollama pull <name>), and an online service has its own model names, which it renames from time to time (a retired name gives a 404 error).",
             "qwen2.5:7b"),
         new(SettingKeys.ChatReasoningEffort, "Reasoning effort",
-            "Only used when the Chat provider is 'api'. Many newer models think before they answer, which delays the first word by seconds. Setting this asks the service to think less, for example none, minimal or low (the accepted values depend on the model). Leave it empty to send nothing and use the model's own default. If the service rejects the value, the chat shows its error message: empty the setting again.",
+            "Only used for an online service (a Chat API base URL with a path). Many newer models think before they answer, which delays the first word by seconds. Setting this asks the service to think less, for example none, minimal or low (the accepted values depend on the model). Leave it empty to send nothing and use the model's own default. If the service rejects the value, the chat shows its error message: empty the setting again.",
             ""),
         new(SettingKeys.ChatTemperature, "Temperature",
             "Controls randomness. Lower gives focused, repeatable answers; higher gives more varied ones. Use 0 to 0.3 for factual answers. With qwen2.5:7b, 0 gave the most repeatable replies and the most reliable reply format; 0.2 is a little more natural.",
@@ -133,7 +130,7 @@ public static class SettingDefaults
             "Limits sampling to the most likely words whose combined probability reaches this value. Usually left at the default.",
             "0.9"),
         new(SettingKeys.ChatNumCtx, "Context window (tokens)",
-            "Total tokens the model can read at once (system prompt, history, retrieved chunks, and answer). If the prompt exceeds it, the oldest part is silently cut off. Larger values use more memory and are slower. Only used when the Chat provider is 'ollama'.",
+            "Total tokens the model can read at once (system prompt, history, retrieved chunks, and answer). If the prompt exceeds it, the oldest part is silently cut off. Larger values use more memory and are slower. Only used for a local Ollama address.",
             "8192"),
         new(SettingKeys.ChatMaxTokens, "Max answer length (tokens)",
             "Upper limit on the length of a single answer, in tokens. The replies are short (30 to 100 tokens), so a small limit keeps them fast. Careful with a model that thinks before it answers (such as the newer Gemini models): its thinking counts in this limit, and when the limit is used up the chat says the reply was cut off. Then raise this, or lower the Reasoning effort.",
@@ -142,7 +139,7 @@ public static class SettingDefaults
             "How many of the latest earlier messages of the conversation are sent to the chat model, so it remembers what was said. More messages mean a longer prompt and a slower reply; 1 sends only the last one (enough for a ticket, because the assistant's offer states the problem), and 0 sends none. A short follow-up is searched together with the previous question whatever this is set to.",
             "12"),
         new(SettingKeys.ChatKeepAlive, "Keep the model loaded",
-            "How long Ollama keeps the chat and embedding models in memory after a message, for example 30m or 1h. Loading a 7B model again takes several seconds, so a longer time keeps replies fast. Use 0 to unload it right away. Only used when the Chat provider is 'ollama'.",
+            "How long Ollama keeps the chat and embedding models in memory after a message, for example 30m or 1h. Loading a 7B model again takes several seconds, so a longer time keeps replies fast. Use 0 to unload it right away. Only used for a local Ollama address.",
             "30m"),
         new(SettingKeys.ChatSystemPrompt, "System prompt",
             "Standing instructions that define how the assistant behaves. Changes affect every answer, so edit carefully. Write {{departments}} where the list of departments (what each handles and how to contact it) should go, and {{department_names}} for just their names. Both are filled in from the Departments page for every message. Every reply must start with the Department line, or the app cannot read the department.",

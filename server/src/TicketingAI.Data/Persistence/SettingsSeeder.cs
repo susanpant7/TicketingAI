@@ -13,6 +13,9 @@ public static class SettingsSeeder
     {
         await RenameChatApiUrlAsync(db, overrides);
 
+        // "chat.provider" is gone: the Chat API base URL decides how the chat model is called.
+        await db.Settings.Where(s => s.Key == SettingKeys.LegacyChatProvider).ExecuteDeleteAsync();
+
         var existingKeys = (await db.Settings.Select(s => s.Key).ToListAsync()).ToHashSet();
 
         var missing = SettingDefaults.WithOverrides(overrides)

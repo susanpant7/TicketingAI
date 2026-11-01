@@ -98,6 +98,40 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.ToTable("KnowledgeChunks");
                 });
 
+            modelBuilder.Entity("TicketingAI.Data.Entities.SavedChatModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("SavedChatModels");
+                });
+
             modelBuilder.Entity("TicketingAI.Data.Entities.Setting", b =>
                 {
                     b.Property<string>("Key")

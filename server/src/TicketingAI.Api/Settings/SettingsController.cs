@@ -6,7 +6,8 @@ namespace TicketingAI.Api.Settings;
 [ApiController]
 [Authorize(Roles = "Admin")]
 [Route("api/[controller]")]
-public class SettingsController(ISettingsService settingsService, DataCleanup dataCleanup) : ControllerBase
+public class SettingsController(
+    ISettingsService settingsService, DataCleanup dataCleanup, SavedChatModelService chatModels, IConfiguration configuration) : ControllerBase
 {
     [HttpGet]
     public async Task<List<SettingDto>> GetAll() => await settingsService.GetAllAsync();
@@ -29,6 +30,39 @@ public class SettingsController(ISettingsService settingsService, DataCleanup da
         await dataCleanup.CleanUpAsync();
         return NoContent();
     }
+
+    /// <summary>The known services for the chat model, and whether the key for an online service is set (never the key itself).</summary>
+    [HttpGet("ai-providers")]
+    public ActionResult<AiProvidersInfo> GetAiProviders() =>
+        new AiProvidersInfo(
+            AiProviders.ApiKeyName, !string.IsNullOrWhiteSpace(configuration["ChatApi:ApiKey"]), AiProviders.All);
+
+    [HttpGet("chat-models")]
+    public async Task<List<SavedChatModelDto>> GetChatModels() => await chatModels.GetAllAsync();
+
+    [HttpPost("chat-models")]
+    public async Task<ActionResult<SavedChatModelDto>> AddChatModel(SaveChatModelRequest request)
+    {
+        var result = await chatModels.CreateAsync(request);
+        return result.Model is null ? FailChatModel(result) : result.Model;
+    }
+
+    [HttpPut("chat-models/{id:int}")]
+    public async Task<ActionResult<SavedChatModelDto>> UpdateChatModel(int id, SaveChatModelRequest request)
+    {
+        var result = await chatModels.UpdateAsync(id, request);
+        return result.Model is null ? FailChatModel(result) : result.Model;
+    }
+
+    [HttpDelete("chat-models/{id:int}")]
+    public async Task<IActionResult> DeleteChatModel(int id) => await chatModels.DeleteAsync(id) ? NoContent() : NotFound();
+
+    private ActionResult FailChatModel(SavedChatModelResult result) => result.Error switch
+    {
+        SavedChatModelError.NotFound => NotFound(),
+        SavedChatModelError.NameTaken => Problem(result.Message, statusCode: StatusCodes.Status409Conflict),
+        _ => Problem(result.Message, statusCode: StatusCodes.Status400BadRequest)
+    };
 
     [HttpPut("{key}")]
     public async Task<ActionResult<SettingSaved>> Update(string key, UpdateSettingRequest request)

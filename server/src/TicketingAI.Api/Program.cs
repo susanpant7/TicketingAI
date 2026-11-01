@@ -62,6 +62,8 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ISettingRepository, SettingRepository>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
+builder.Services.AddScoped<ISavedChatModelRepository, SavedChatModelRepository>();
+builder.Services.AddScoped<SavedChatModelService>();
 builder.Services.AddScoped<DataCleanup>();
 // Ollama's address comes from a setting (ollama.base_url), so the clients have no base address.
 builder.Services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
@@ -88,7 +90,7 @@ using (var scope = app.Services.CreateScope())
     var vecVersion = db.Database.SqlQueryRaw<string>("SELECT vec_version() AS Value").Single();
     app.Logger.LogInformation("sqlite-vec {Version} loaded", vecVersion);
 
-    // A new database starts with the Ollama address and the chat provider, address and model from the configuration (AiDefaults), if they are set.
+    // A new database starts with the Ollama address and the chat base URL and model from the configuration (AiDefaults), if they are set.
     await SettingsSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IOptions<AiDefaultsOptions>>().Value.ToOverrides());
 }
 

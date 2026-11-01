@@ -27,7 +27,7 @@ services:
     build: ./server
     restart: unless-stopped
     # The secrets: Admin__Username, Admin__Password, Jwt__Key and ChatApi__ApiKey, and any other setting, such as
-    # AiDefaults__ChatProvider. The .env file is not committed. See .env.example.
+    # AiDefaults__ChatBaseUrl. The .env file is not committed. See .env.example.
     env_file: .env
     environment:
       ASPNETCORE_ENVIRONMENT: Production

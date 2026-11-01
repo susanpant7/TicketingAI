@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import ChatModelGuide from '@/features/settings/ChatModelGuide'
+import AiProviderList from '@/features/settings/AiProviderList'
 import ManageAppData from '@/features/settings/ManageAppData'
 import SettingForm from '@/features/settings/SettingForm'
 import {
@@ -31,6 +31,37 @@ const groupTitles: Record<string, string> = {
   embedding: 'Embeddings',
   retrieval: 'Searching the knowledge',
 }
+
+// The order of the settings inside a group. The chat API base URL and the chat model come first and in this order, because
+// they must be changed together. A setting that is not listed (one an admin added) goes last, by key.
+const settingOrder = [
+  'ollama.base_url',
+  'embedding.model',
+  'embedding.query_prefix',
+  'embedding.document_prefix',
+  'retrieval.top_k',
+  'retrieval.min_score',
+  'retrieval.max_score_gap',
+  'retrieval.follow_up_max_words',
+  'chat.base_url',
+  'chat.model',
+  'chat.reasoning_effort',
+  'chat.temperature',
+  'chat.top_p',
+  'chat.max_tokens',
+  'chat.num_ctx',
+  'chat.keep_alive',
+  'chat.history_messages',
+  'chat.system_prompt',
+  'chat.format_reminder',
+]
+
+const position = (key: string) => {
+  const index = settingOrder.indexOf(key)
+  return index === -1 ? settingOrder.length : index
+}
+
+const bySettingOrder = (a: Setting, b: Setting) => position(a.key) - position(b.key) || a.key.localeCompare(b.key)
 
 const groupTitle = (group: string) => groupTitles[group] ?? group.charAt(0).toUpperCase() + group.slice(1)
 
@@ -161,10 +192,11 @@ function AiSettingsList() {
         groups.map((group) => (
           <section key={group} className="mt-8 first:mt-6">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{groupTitle(group)}</h2>
-            {group === 'chat' && <ChatModelGuide settings={settings} />}
+            {group === 'chat' && <AiProviderList settings={settings} onChanged={() => setVersion((v) => v + 1)} />}
             <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               {settings
                 .filter((s) => groupName(s.key) === group)
+                .sort(bySettingOrder)
                 .map((setting) => (
                   <div key={setting.key} className="grid gap-3 px-6 py-5 sm:grid-cols-[1fr_18rem_auto] sm:items-start">
                     <div className="min-w-0">

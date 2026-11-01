@@ -86,7 +86,7 @@ Data lives in two volumes: `server-data` (the SQLite database) and `ollama-data`
 | --- | --- | --- |
 | `Admin:Username` / `Admin:Password` | none, from `.env` | The admin login. Required: the server refuses to start without it |
 | `Jwt:Key` | none, from `.env` | Token signing key, at least 32 characters. Required |
-| `ChatApi:ApiKey` | empty, from `.env` | The key of an external chat API, when the chat provider is `api` |
+| `ChatApi:ApiKey` | empty, from `.env` | The key of an online chat service (when the Chat API base URL has a path) |
 | `ConnectionStrings:Default` | `Data Source=data/ticketing.db` | The SQLite file |
 
 ## Host the client on Vercel
@@ -105,19 +105,18 @@ The client is a static site, so it can be hosted apart from the API. In Vercel, 
 
 The chat answers can come from a model on our own server (Ollama, the default) or from an external service that speaks the OpenAI chat format. The app supports both, and an admin switches between them on the **Settings** page, with no code change. Embeddings always stay on Ollama, so the uploaded knowledge stays valid when the chat provider changes.
 
-**0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat provider, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. A new database starts with the built-in defaults, and in Docker the Ollama address is set to the Ollama container by itself. To start a new database with other values, set `AiDefaults__OllamaUrl`, `AiDefaults__ChatProvider`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. An existing database keeps its settings, so for that one we change the Settings page (step 2).
+**0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. A new database starts with the built-in defaults, and in Docker the Ollama address is set to the Ollama container by itself. To start a new database with other values, set `AiDefaults__OllamaUrl`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. An existing database keeps its settings, so for that one we change the Settings page (step 2).
 
 **1. Put the key in `.env`.** We add the line `ChatApi__ApiKey=<the key>` to the `.env` file, the same file for Docker and for running without Docker. The key is a secret, so it never goes in `appsettings.json` (that file is committed to git) and is never stored in the database. After a change, we restart the API, or run `docker compose up -d` for Docker.
 
-**2. Set three settings** on the Settings page (**Chat API base URL** is the same field that holds `http://localhost:11434` when the chat uses a local Ollama):
+**2. Choose the model** on the Settings page, AI assistant tab: click **Use** on the service in the "Services we can use" list (or on a model we saved), which sets the two settings below together. There is no separate provider setting: an address with no path (`http://localhost:11434`) is Ollama, and an address with a path is an online service.
 
 | Setting | Gemini | Cloudflare Workers AI |
 | --- | --- | --- |
-| Chat provider | `api` | `api` |
 | Chat API base URL | `https://generativelanguage.googleapis.com/v1beta/openai` | `https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1` |
-| Chat model | the model name from Google AI Studio, for example `gemini-3.8-flash` | for example `@cf/meta/llama-3.1-8b-instruct` |
+| Chat model | the model name from Google AI Studio, for example `gemini-flash-latest` | for example `@cf/meta/llama-3.1-8b-instruct` |
 
-The key comes from Google AI Studio (Gemini), or from a Cloudflare API token with Workers AI access (Cloudflare). Check each service's current model names and free limits. To go back to the local model, set **Chat provider** to `ollama`, **Chat API base URL** to `http://localhost:11434` (`http://ollama:11434` in Docker) and **Chat model** to `qwen2.5:7b`.
+The key comes from Google AI Studio (Gemini), or from a Cloudflare API token with Workers AI access (Cloudflare). Check each service's current model names and free limits. To go back to the local model, click **Use** on "Ollama (on our own machine)", or set **Chat API base URL** to `http://localhost:11434` (`http://ollama:11434` in Docker) and **Chat model** to `qwen2.5:7b`.
 
 **Things to know.** The prompt was tuned on `qwen2.5:7b`, so re-test the ticket flow with another model. The questions and the knowledge sections are sent to the external service, so don't use real company data on a free tier without reading its terms. When only the API is used, the chat model does not have to be downloaded: remove it from the `pull-models` line in `docker-compose.yml` (keep `nomic-embed-text`).
 

@@ -22,7 +22,7 @@ public class ApiChatClient(HttpClient http, IOptions<ChatApiOptions> options) : 
     {
         var key = options.Value.ApiKey;
         if (string.IsNullOrWhiteSpace(key))
-            throw new ChatModelException("The chat provider is set to 'api', but no API key is set. Set the environment variable ChatApi__ApiKey on the server.");
+            throw new ChatModelException("The chat model is an online service (the Chat API base URL has a path), but no API key is set. Set the environment variable ChatApi__ApiKey on the server (in the .env file).");
 
         var body = new Dictionary<string, object>
         {
@@ -103,7 +103,7 @@ public class ApiChatClient(HttpClient http, IOptions<ChatApiOptions> options) : 
             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
                 $"The chat API rejected the key ({(int)response.StatusCode}). Check the environment variable ChatApi__ApiKey. {detail}",
             HttpStatusCode.NotFound =>
-                $"The chat API did not find '{chat.Model}' or the address {chat.BaseUrl} (404). The Chat provider is 'api'; for a model run by Ollama (for example at http://localhost:11434) it must be 'ollama'. The Chat provider, the 'Chat API base URL' and the 'Chat model' must belong together. A service also retires old model names from time to time, so check its current list of models. {detail}",
+                $"The chat API did not find '{chat.Model}' or the address {chat.BaseUrl} (404). For a model run by Ollama, the address has no path (for example http://localhost:11434). The 'Chat API base URL' and the 'Chat model' must belong together. A service also retires old model names from time to time, so check its current list of models. {detail}",
             HttpStatusCode.TooManyRequests =>
                 $"The chat API limit was reached (429). Wait a moment and try again, or check the plan's limits. {detail}",
             _ => $"The chat API returned {(int)response.StatusCode} for model '{chat.Model}': {detail}"
