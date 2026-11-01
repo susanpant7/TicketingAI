@@ -13,7 +13,6 @@ import {
   switchEmbeddingModel,
   type AiProvider,
   type AiProvidersInfo,
-  type EmbeddingProvider,
   type ModelChoice,
   type ModelKind,
   type SaveAiModelRequest,
@@ -34,8 +33,6 @@ const keys = {
     baseUrl: 'embedding.base_url',
     model: 'embedding.model',
     apiKeyName: 'embedding.api_key_name',
-    queryPrefix: 'embedding.query_prefix',
-    documentPrefix: 'embedding.document_prefix',
   },
 }
 
@@ -69,8 +66,6 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     baseUrl: value(k.baseUrl),
     model: value(k.model),
     apiKeyName: value(k.apiKeyName),
-    queryPrefix: isEmbedding ? value(keys.embedding.queryPrefix) : '',
-    documentPrefix: isEmbedding ? value(keys.embedding.documentPrefix) : '',
   }
 
   const [info, setInfo] = useState<AiProvidersInfo | null>(null)
@@ -114,17 +109,13 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
 
   if (!info) return null
 
-  const providers: (AiProvider & Partial<Pick<EmbeddingProvider, 'queryPrefix' | 'documentPrefix'>>)[] = isEmbedding
-    ? info.embeddingProviders
-    : info.providers
+  const providers: AiProvider[] = isEmbedding ? info.embeddingProviders : info.providers
   const services: Choice[] = providers.map((p) => ({
     key: `service-${p.name}`,
     name: p.name,
     baseUrl: p.baseUrl,
     model: p.exampleModel,
     apiKeyName: p.apiKeyName,
-    queryPrefix: p.queryPrefix ?? '',
-    documentPrefix: p.documentPrefix ?? '',
     hasApiKey: p.hasApiKey,
     needsApiKey: p.needsApiKey,
     notes: (
@@ -142,8 +133,6 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     baseUrl: m.baseUrl,
     model: m.model,
     apiKeyName: m.apiKeyName,
-    queryPrefix: m.queryPrefix,
-    documentPrefix: m.documentPrefix,
     hasApiKey: m.apiKeyName === '' ? !isOnline(m.baseUrl) || m.hasApiKey : m.hasApiKey,
     needsApiKey: isOnline(m.baseUrl),
     notes: m.notes,
@@ -176,6 +165,7 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
   const tourProviders: TourProvider[] = [...services, ...savedChoices]
     .map((c): Choice => (sameUrl(c.baseUrl, current.baseUrl) ? { ...c, apiKeyName: keyInUse, hasApiKey: keyInUseSet } : c))
     .filter((c) => c.hasApiKey || !c.needsApiKey)
+    .filter((c) => !c.baseUrl.includes('<'))
     .filter((c, i, all) => all.findIndex((other) => sameUrl(other.baseUrl, c.baseUrl)) === i)
 
   const currentKeyMissing = isOnline(current.baseUrl) && !(isEmbedding ? info.embeddingKeyInUseSet : info.chatKeyInUseSet)
@@ -564,12 +554,6 @@ function Row({ choice, inUse, usedModel, actions }: RowProps) {
           Model: <code>{choice.model}</code>
           {usedModel && <span className="text-slate-400"> (in use: {usedModel})</span>}
         </p>
-        {(choice.queryPrefix || choice.documentPrefix) && (
-          <p className="break-all text-sm text-slate-600">
-            Prefixes: <code>{choice.queryPrefix || '(none)'}</code> for a question,{' '}
-            <code>{choice.documentPrefix || '(none)'}</code> for a section
-          </p>
-        )}
         <p className="text-sm text-slate-600">
           API key name:{' '}
           {choice.apiKeyName ? (

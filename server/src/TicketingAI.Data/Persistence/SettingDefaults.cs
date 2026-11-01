@@ -6,8 +6,6 @@ public static class SettingKeys
     public const string EmbeddingApiKeyName = "embedding.api_key_name";
     public const string EmbeddingModel = "embedding.model";
 
-    public const string EmbeddingQueryPrefix = "embedding.query_prefix";
-    public const string EmbeddingDocumentPrefix = "embedding.document_prefix";
     public const string RetrievalTopK = "retrieval.top_k";
     public const string RetrievalMinScore = "retrieval.min_score";
     public const string RetrievalMaxScoreGap = "retrieval.max_score_gap";
@@ -98,12 +96,6 @@ public static class SettingDefaults
             ""),
         new(SettingKeys.EmbeddingModel, "Embedding model",
             "The model that converts text into vectors, for the knowledge and for every question. Vectors from different models cannot be compared, so changing it converts the whole stored knowledge to the new model (every section is embedded again). Change it with Use in the list above, which does that and only saves the change when it worked. The two prefixes below belong to the model.",
-            ""),
-        new(SettingKeys.EmbeddingQueryPrefix, "Embedding query prefix",
-            "Text put before the user's question when it is converted to a vector, joined with one space. It depends on the embedding model: nomic-embed-text expects search_query:.",
-            ""),
-        new(SettingKeys.EmbeddingDocumentPrefix, "Embedding document prefix",
-            "Text put before each knowledge chunk when it is converted to a vector, joined with one space. It depends on the embedding model: nomic-embed-text expects search_document:. After changing it, upload the knowledge files again.",
             ""),
         new(SettingKeys.RetrievalTopK, "Results to retrieve",
             "How many of the closest knowledge chunks are sent to the chat model. Higher gives more coverage but adds noise and a larger, slower prompt. Typical: 3 to 5.",

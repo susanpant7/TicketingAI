@@ -68,7 +68,7 @@ export default function AiModelForm({ kind, saved, initial, title, onUse, onSave
           <TextField
             label="Name"
             required
-          maxLength={100}
+            maxLength={100}
             placeholder={isEmbedding ? 'Gemini embeddings (free)' : 'Groq GPT OSS (free)'}
             value={values.name}
             onChange={(e) => change({ name: e.target.value })}
@@ -101,24 +101,6 @@ export default function AiModelForm({ kind, saved, initial, title, onUse, onSave
           The name of the variable in the server's <code>.env</code> file that holds this service's key (it must end in{' '}
           <code>API_KEY</code>). Leave it empty for Ollama. Only the name is saved here, never the key.
         </p>
-        {isEmbedding && (
-          <div className="grid gap-5 sm:grid-cols-2">
-            <TextField
-              label="Query prefix"
-              maxLength={100}
-              placeholder="search_query:"
-              value={values.queryPrefix}
-              onChange={(e) => change({ queryPrefix: e.target.value })}
-            />
-            <TextField
-              label="Document prefix"
-              maxLength={100}
-              placeholder="search_document:"
-              value={values.documentPrefix}
-              onChange={(e) => change({ documentPrefix: e.target.value })}
-            />
-          </div>
-        )}
         {!onUse && (
           <TextAreaField
             label="Notes"

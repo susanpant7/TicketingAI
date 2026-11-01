@@ -223,7 +223,7 @@ answer = chat(prompt)                              -- POST /api/chat on Ollama
 **Rules to remember**
 - We use the **same embedding model** for the files and for the questions. If we change it, we load all the files again.
 - We use the **prefix** that the embedding model was trained with, on both sides.
-- We keep the **settings** (model names, prefixes, number of results, score threshold, prompt) in a table or a config file, not in code. We read them from the `Settings` table, so they can be changed without a deploy.
+- We keep the **settings** (model names, number of results, score threshold, prompt) in a table or a config file, not in code. We read them from the `Settings` table, so they can be changed without a deploy.
 - We plan for the edit flow from the start: replacing or deleting the rows of a file must be one operation. Ours is the Add and Flush and Add upload.
 
 ## 3. What RAG is
@@ -307,7 +307,7 @@ Both model names, and every number that tunes the behaviour, are rows in the `Se
 
 **Embedding and similarity.** A vector is just a list of numbers. The question and each chunk become vectors, and the closest vectors are the most related texts. "Closest" is measured as **cosine distance**; the app uses `score = 1 - distance`, so 1 is identical and lower is less related.
 
-**Prefixes.** `nomic-embed-text` was trained with a label in front of each text. The app writes `search_document:` in front of every chunk when it is embedded, and `search_query:` in front of the user's message. This puts a question close to the passage that answers it. The prefix is only used to make the vector: the text saved in the table and the text shown to the chat model have no prefix. Both prefixes are settings.
+**Prefixes.** `nomic-embed-text` was trained with a label in front of each text. The app writes `search_document:` in front of every chunk when it is embedded, and `search_query:` in front of the user's message. This puts a question close to the passage that answers it. The prefix is only used to make the vector: the text saved in the table and the text shown to the chat model have no prefix. The same two prefixes are used for every embedding model (they are fixed in `Knowledge/EmbeddingText.cs`, not settings), because a model that does not need them is not hurt by them.
 
 **What similarity cannot do.** In our test questions the score did **not** separate answerable from unanswerable questions: answerable questions scored as low as 0.65, while questions the documents do not cover scored as high as 0.79. So a threshold cannot decide "do we know this?". The app uses `retrieval.min_score` (0.6) only to drop clearly unrelated sections, and the **prompt** tells the model what to do when the sections do not answer the question.
 
@@ -348,7 +348,7 @@ Full-time employees receive 18 days of paid annual leave per year...
 ### 3.2 Steps
 
 1. **Parse and validate** (`KnowledgeUploadParser`).
-2. **Build the text to embed** for each section: `"{embedding.document_prefix} {title} - {heading}\n{content}"`:
+2. **Build the text to embed** for each section: `"search_document: {title} - {heading}\n{content}"`:
    ```
    search_document: Leave Policy - Annual leave entitlement
    Full-time employees receive 18 days of paid annual leave per year...
@@ -583,8 +583,6 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 | `embedding.base_url` | `http://localhost:11434` | Where the embedding model runs. No path (`http://localhost:11434`) is Ollama's own API (`/api/embed`); a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI format (`/embeddings`). From a Docker container, an Ollama on the computer is `http://host.docker.internal:11434` |
 | `embedding.api_key_name` | (empty) | The name of the environment variable that holds the key of an online embedding service (for example `GEMINI_API_KEY`). The key itself is never stored |
 | `embedding.model` | `nomic-embed-text` | The model that makes the vectors. **Changing it converts all the stored knowledge**: every section is embedded again with the new model, and the change is saved only when that worked. The embedding settings are changed with Use on the Settings page, not by editing them |
-| `embedding.query_prefix` | `search_query:` | In front of the user's message when it is embedded |
-| `embedding.document_prefix` | `search_document:` | In front of each section when it is embedded. It belongs to the model and changes with it |
 | `retrieval.top_k` | 4 | How many sections to fetch |
 | `retrieval.min_score` | 0.5 | Sections below this are dropped |
 | `retrieval.max_score_gap` | 0.05 | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off |
@@ -622,7 +620,7 @@ We work through it in this order. Each step rules out one part of the pipeline.
 - **Temperature 0** gives the most repeatable answers. It does not make a 7B model deterministic across prompt changes.
 - **Measured weaknesses.** The department line was right for all 14 test questions, but the **wording of "not covered" answers is unreliable**: it sometimes asserts "we do not offer X", adds advice or another contact, or stretches a nearby section. It can still write a poem when asked in a tricky way. These come from the model size and are the first things to re-test after a prompt change.
 - **No server-side memory.** The conversation lives in the page and is sent with each message, so it is lost on logout or reload.
-- **Changing the embedding model converts the store.** Every section is embedded again from its stored text, with the prefix of the new model, and the old vectors are replaced together with the settings in one transaction. A failure changes nothing. It takes about a minute for 270 sections on a CPU.
+- **Changing the embedding model converts the store.** Every section is embedded again from its stored text, with the same prefix, and the old vectors are replaced together with the settings in one transaction. A failure changes nothing. It takes about a minute for 270 sections on a CPU.
 - **Small sections matter.** A section that mixes two topics gets one vector that sits between them and matches neither well.
 
 ## 15. Where to look in the code

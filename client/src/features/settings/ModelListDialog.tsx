@@ -8,7 +8,7 @@ import Modal from '@/shared/components/Modal'
 
 interface ModelListDialogProps {
   kind: ModelKind
-  /** The service or saved model whose models are listed: its address, key name and prefixes are used for every test. */
+  /** The service or saved model whose models are listed: its address and key name are used for every test. */
   choice: ModelChoice & { name: string }
   loading: boolean
   /** Why the list could not be loaded. */
@@ -48,8 +48,6 @@ export default function ModelListDialog({
         baseUrl: choice.baseUrl,
         model,
         apiKeyName: choice.apiKeyName,
-        queryPrefix: choice.queryPrefix,
-        documentPrefix: choice.documentPrefix,
       })
       setResults((r) => ({ ...r, [model]: milliseconds }))
     } catch (err) {

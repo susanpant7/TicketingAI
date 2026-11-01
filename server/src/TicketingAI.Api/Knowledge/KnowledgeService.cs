@@ -48,7 +48,7 @@ public partial class KnowledgeService(
                     .ToList();
 
                 var texts = sections
-                    .Select(s => EmbeddingText.Document(settings.EmbeddingDocumentPrefix, s.DocumentTitle, s.Heading, s.Content))
+                    .Select(s => EmbeddingText.Document(s.DocumentTitle, s.Heading, s.Content))
                     .ToList();
                 var vectors = await embeddingClient.EmbedAsync(texts, settings.Embedding, cancellationToken);
 
@@ -153,7 +153,7 @@ public partial class KnowledgeService(
         // Read the settings first. The query prefix must match the model and the prefix used when the sections were stored.
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
         var vectors = await embeddingClient.EmbedAsync(
-            [EmbeddingText.Query(settings.EmbeddingQueryPrefix, query)], settings.Embedding, cancellationToken);
+            [EmbeddingText.Query(query)], settings.Embedding, cancellationToken);
 
         var rows = await repository.SearchAsync(vectors[0], topK);
         return rows

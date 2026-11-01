@@ -8,7 +8,7 @@ namespace TicketingAI.Api.Settings;
 /// created in a new database and by "Restore defaults". An empty value means "use the built-in default". Changing them later does
 /// not change a database that already has the settings: use the Settings page for that.
 /// When an address is one of the known services (see <see cref="AiProviders"/>), the rest of that service is filled in as well: its
-/// key name, its example model (unless a model is given) and, for an embedding model, its prefixes.
+/// key name, its example model (unless a model is given).
 /// When no address is given, no chat or embedding model is selected: an admin chooses them on the Settings page, or they are given here.
 /// </summary>
 public class AiDefaultsOptions
@@ -47,7 +47,7 @@ public class AiDefaultsOptions
         Add(SettingKeys.ChatBaseUrl, chatUrl);
         Add(SettingKeys.ChatModel, ChatModel);
 
-        // A known service at the address brings its own key name (and model, and prefixes) with it.
+        // A known service at the address brings its own key name (and model) with it.
         var chat = AiProviders.All.FirstOrDefault(p => Same(p.BaseUrl, chatUrl));
         if (chat is not null)
         {
@@ -63,9 +63,6 @@ public class AiDefaultsOptions
             if (embedding.ApiKeyName.Length > 0)
                 overrides[SettingKeys.EmbeddingApiKeyName] = embedding.ApiKeyName;
 
-            // The prefixes belong to the model: nomic-embed-text needs them, the online models need none, so an empty prefix is a value.
-            overrides[SettingKeys.EmbeddingQueryPrefix] = embedding.QueryPrefix;
-            overrides[SettingKeys.EmbeddingDocumentPrefix] = embedding.DocumentPrefix;
         }
 
         return overrides;

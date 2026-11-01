@@ -35,15 +35,10 @@ export interface SavedAiModel {
   model: string
   apiKeyName: string
   hasApiKey: boolean
-  queryPrefix: string
-  documentPrefix: string
   notes: string
 }
 
-export type SaveAiModelRequest = Pick<
-  SavedAiModel,
-  'name' | 'baseUrl' | 'model' | 'apiKeyName' | 'queryPrefix' | 'documentPrefix' | 'notes'
->
+export type SaveAiModelRequest = Pick<SavedAiModel, 'name' | 'baseUrl' | 'model' | 'apiKeyName' | 'notes'>
 
 /** A known service. `hasApiKey` says whether the variable named `apiKeyName` is set on the server. */
 export interface AiProvider {
@@ -57,14 +52,9 @@ export interface AiProvider {
   hasApiKey: boolean
 }
 
-export interface EmbeddingProvider extends AiProvider {
-  queryPrefix: string
-  documentPrefix: string
-}
-
 export interface AiProvidersInfo {
   providers: AiProvider[]
-  embeddingProviders: EmbeddingProvider[]
+  embeddingProviders: AiProvider[]
   /** Whether the key the chat model is using right now is set . */
   chatKeyInUseSet: boolean
   /** The same for the embedding model. */
@@ -103,8 +93,6 @@ export interface ModelChoice {
   baseUrl: string
   model: string
   apiKeyName: string
-  queryPrefix: string
-  documentPrefix: string
 }
 
 /** Sets the Chat API base URL, the Chat model and the Chat API key name together. */
@@ -126,8 +114,6 @@ export const switchEmbeddingModel = (choice: ModelChoice) =>
       baseUrl: choice.baseUrl,
       model: choice.model,
       apiKeyName: choice.apiKeyName,
-      queryPrefix: choice.queryPrefix,
-      documentPrefix: choice.documentPrefix,
     }),
   })
 

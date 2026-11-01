@@ -6,8 +6,8 @@ namespace TicketingAI.Api.Settings;
 public record UseChatModelRequest([Required] string BaseUrl, [Required] string Model, string? ApiKeyName);
 
 /// <summary>
-/// Sets the embedding address, model, key name and prefixes together, and converts the stored knowledge to the new model first. The
+/// Sets the embedding address, model, key name together, and converts the stored knowledge to the new model first. The
 /// settings are only saved when that worked.
 /// </summary>
 public record UseEmbeddingModelRequest(
-    [Required] string BaseUrl, [Required] string Model, string? ApiKeyName, string? QueryPrefix, string? DocumentPrefix);
+    [Required] string BaseUrl, [Required] string Model, string? ApiKeyName);

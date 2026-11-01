@@ -114,6 +114,19 @@ Before you choose a plan:
 - **To keep the data, use a paid instance with a disk** mounted at `/app/data`, as in the table. If the service then stops with "unable to open database file", the disk is not writable for the container's non-root user: check the disk's mount path first, because the image runs as a non-root user.
 - **Memory:** the free 512 MB is enough for the API alone, since the models are online.
 
+## Use the Ollama on our computer from the server
+
+A server such as Render cannot reach `localhost` on our computer. A Cloudflare Tunnel gives the Ollama on our computer a public https address:
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create ollama
+cloudflared tunnel route dns ollama ollama-k3x9f.susanpant.com.np   # use a long random name, there is no login on this address
+cloudflared tunnel run --url http://localhost:11434 --http-host-header localhost:11434 ollama
+```
+
+In the app, Settings, AI assistant, Embeddings, we **Edit** the entry "Ollama on our computer, from a server" in the list (it comes with the address `https://<my-ollama>.susanpant.com.np`), put our own address in it, save it, then **View models** and **Select** `nomic-embed-text` on the saved model. The computer, Ollama and the tunnel must stay on, because every question is embedded there.
+
 ## Host the client on Vercel
 
 The client is a static site, so it can be hosted apart from the API. In Vercel, import the repository and set:
@@ -164,7 +177,7 @@ To switch the model, open the Settings page, AI assistant tab, and use **View mo
 
 For a model on our own computer (Ollama), the model must exist there first: run `ollama pull <model>` on that computer (for example `ollama pull qwen2.5:3b`), then **Select** it on the Settings page. It applies to the next message, with no restart.
 
-**Changing the embedding model** (`nomic-embed-text`) works the same way, in the Embedding group of the Settings page (**View models** on a saved model or a service, then **Select** to see what a key can use). The difference: vectors from different models cannot be compared, so **Use converts all the stored knowledge to the new model**: every section is embedded again from its text. It can take a minute, and the change is saved only when it worked, so a wrong key or a missing model changes nothing. The model's two prefixes (`search_document:` and `search_query:` for `nomic-embed-text`, none for most online ones) are set together with it.
+**Changing the embedding model** (`nomic-embed-text`) works the same way, in the Embedding group of the Settings page (**View models** on a saved model or a service, then **Select** to see what a key can use). The difference: vectors from different models cannot be compared, so **Use converts all the stored knowledge to the new model**: every section is embedded again from its text. It can take a minute, and the change is saved only when it worked, so a wrong key or a missing model changes nothing. The two prefixes (`search_document:` and `search_query:`) are the same for every embedding model and are not settings.
 
 **Where to get embeddings for free.** The embedding box lists Ollama (on our own machine), Google Gemini, Mistral, Jina AI, Cohere, OpenAI (paid, but very cheap) and Cloudflare Workers AI. Groq and Cerebras have no embedding models (their model lists show only chat, speech and safety models), so with Groq for the chat, use another service for the embeddings. Each service has its own key variable in `.env`, and the free plans have limits.
 

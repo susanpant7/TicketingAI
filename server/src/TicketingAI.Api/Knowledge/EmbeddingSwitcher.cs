@@ -11,13 +11,13 @@ public class EmbeddingSwitcher(IKnowledgeRepository knowledge, IEmbeddingClient 
 {
     /// <summary>Embeds the text of every stored section with the given model. Returns the new vector of each section, by its id.</summary>
     public async Task<Dictionary<int, byte[]>> EmbedAllAsync(
-        EmbeddingModelOptions options, string documentPrefix, CancellationToken cancellationToken)
+        EmbeddingModelOptions options, CancellationToken cancellationToken)
     {
         var chunks = await knowledge.GetTextsAsync();
         if (chunks.Count == 0)
             return [];
 
-        var texts = chunks.Select(c => EmbeddingText.Document(documentPrefix, c.DocumentTitle, c.Heading, c.Content)).ToList();
+        var texts = chunks.Select(c => EmbeddingText.Document(c.DocumentTitle, c.Heading, c.Content)).ToList();
         var vectors = await embeddingClient.EmbedAsync(texts, options, cancellationToken);
 
         return chunks

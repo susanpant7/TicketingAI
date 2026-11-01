@@ -7,8 +7,6 @@ public record AiSettings(
     string EmbeddingBaseUrl,
     string EmbeddingApiKeyName,
     string EmbeddingModel,
-    string EmbeddingQueryPrefix,
-    string EmbeddingDocumentPrefix,
     int TopK,
     double MinScore,
     double MaxScoreGap,

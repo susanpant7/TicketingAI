@@ -60,7 +60,7 @@ public class SettingsController(
                     !p.NeedsApiKey || keys.IsSet(p.ApiKeyName)))
                 .ToList(),
             AiProviders.Embedding
-                .Select(p => new EmbeddingProviderDto(p.Name, p.BaseUrl, p.ExampleModel, p.QueryPrefix, p.DocumentPrefix, p.NeedsApiKey,
+                .Select(p => new EmbeddingProviderDto(p.Name, p.BaseUrl, p.ExampleModel, p.NeedsApiKey,
                     p.FreeTier, p.SignUpUrl, p.ApiKeyName, !p.NeedsApiKey || keys.IsSet(p.ApiKeyName)))
                 .ToList(),
             keys.Get(settings.ChatApiKeyName, settings.ChatBaseUrl) is not null,

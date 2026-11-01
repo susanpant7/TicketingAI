@@ -28,8 +28,6 @@ public partial class SettingsService(
             EmbeddingBaseUrl: Text(stored, SettingKeys.EmbeddingBaseUrl),
             EmbeddingApiKeyName: Text(stored, SettingKeys.EmbeddingApiKeyName),
             EmbeddingModel: Text(stored, SettingKeys.EmbeddingModel),
-            EmbeddingQueryPrefix: Text(stored, SettingKeys.EmbeddingQueryPrefix),
-            EmbeddingDocumentPrefix: Text(stored, SettingKeys.EmbeddingDocumentPrefix),
             TopK: Int(stored, SettingKeys.RetrievalTopK),
             MinScore: Number(stored, SettingKeys.RetrievalMinScore),
             MaxScoreGap: Number(stored, SettingKeys.RetrievalMaxScoreGap),
@@ -115,7 +113,7 @@ public partial class SettingsService(
             var options = new EmbeddingModelOptions(
                 DefaultOf(SettingKeys.EmbeddingModel), DefaultOf(SettingKeys.EmbeddingBaseUrl),
                 DefaultOf(SettingKeys.EmbeddingApiKeyName), DefaultOf(SettingKeys.ChatKeepAlive));
-            vectors = await embeddingSwitcher.EmbedAllAsync(options, DefaultOf(SettingKeys.EmbeddingDocumentPrefix), cancellationToken);
+            vectors = await embeddingSwitcher.EmbedAllAsync(options, cancellationToken);
         }
 
         await settings.ReplaceAllAsync(defaults, vectors, deleteKnowledge: changed && noEmbeddingModel);
@@ -148,9 +146,7 @@ public partial class SettingsService(
         {
             [SettingKeys.EmbeddingBaseUrl] = request.BaseUrl.Trim().TrimEnd('/'),
             [SettingKeys.EmbeddingModel] = request.Model.Trim(),
-            [SettingKeys.EmbeddingApiKeyName] = request.ApiKeyName?.Trim() ?? "",
-            [SettingKeys.EmbeddingQueryPrefix] = request.QueryPrefix?.Trim() ?? "",
-            [SettingKeys.EmbeddingDocumentPrefix] = request.DocumentPrefix?.Trim() ?? ""
+            [SettingKeys.EmbeddingApiKeyName] = request.ApiKeyName?.Trim() ?? ""
         };
         var problem = Problem(values);
         if (problem is not null)
@@ -161,7 +157,7 @@ public partial class SettingsService(
         var keepAlive = (await settings.GetAsync(SettingKeys.ChatKeepAlive))?.Value ?? DefaultOf(SettingKeys.ChatKeepAlive);
         var options = new EmbeddingModelOptions(
             values[SettingKeys.EmbeddingModel], values[SettingKeys.EmbeddingBaseUrl], values[SettingKeys.EmbeddingApiKeyName], keepAlive);
-        var vectors = await embeddingSwitcher.EmbedAllAsync(options, values[SettingKeys.EmbeddingDocumentPrefix], cancellationToken);
+        var vectors = await embeddingSwitcher.EmbedAllAsync(options, cancellationToken);
 
         await settings.ChangeValuesAsync(values, vectors);
         return new UseModelResult(vectors.Count);
@@ -182,13 +178,12 @@ public partial class SettingsService(
         var options = new EmbeddingModelOptions(
             request.Model.Trim(), request.BaseUrl.Trim().TrimEnd('/'), request.ApiKeyName?.Trim() ?? "", current.KeepAlive);
         await embeddingClient.EmbedAsync(
-            [EmbeddingText.Document(request.DocumentPrefix?.Trim() ?? "", "Test", "Test", "This is a test.")], options, cancellationToken);
+            [EmbeddingText.Document("Test", "Test", "This is a test.")], options, cancellationToken);
     }
 
     private static readonly string[] EmbeddingKeys =
     [
-        SettingKeys.EmbeddingBaseUrl, SettingKeys.EmbeddingApiKeyName, SettingKeys.EmbeddingModel,
-        SettingKeys.EmbeddingQueryPrefix, SettingKeys.EmbeddingDocumentPrefix
+        SettingKeys.EmbeddingBaseUrl, SettingKeys.EmbeddingApiKeyName, SettingKeys.EmbeddingModel
     ];
 
     private static string? Problem(Dictionary<string, string> values) =>

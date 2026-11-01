@@ -4,9 +4,9 @@ namespace TicketingAI.Api.Settings;
 public record AiProvider(
     string Name, string BaseUrl, string ExampleModel, bool NeedsApiKey, string FreeTier, string SignUpUrl, string ApiKeyName);
 
-/// <summary>A service that can turn text into vectors, with the text its model expects before a question and before a knowledge section.</summary>
+/// <summary>A service that can turn text into vectors, for the embeddings.</summary>
 public record EmbeddingProvider(
-    string Name, string BaseUrl, string ExampleModel, string QueryPrefix, string DocumentPrefix, bool NeedsApiKey, string FreeTier,
+    string Name, string BaseUrl, string ExampleModel, bool NeedsApiKey, string FreeTier,
     string SignUpUrl, string ApiKeyName);
 
 /// <summary>A service for the Settings page. HasApiKey says whether its key variable is set; the key itself is never sent.</summary>
@@ -14,7 +14,7 @@ public record AiProviderDto(
     string Name, string BaseUrl, string ExampleModel, bool NeedsApiKey, string FreeTier, string SignUpUrl, string ApiKeyName, bool HasApiKey);
 
 public record EmbeddingProviderDto(
-    string Name, string BaseUrl, string ExampleModel, string QueryPrefix, string DocumentPrefix, bool NeedsApiKey, string FreeTier,
+    string Name, string BaseUrl, string ExampleModel, bool NeedsApiKey, string FreeTier,
     string SignUpUrl, string ApiKeyName, bool HasApiKey);
 
 /// <summary>What the Settings page shows about the known services.</summary>
@@ -55,29 +55,31 @@ public static class AiProviders
             "https://dash.cloudflare.com/profile/api-tokens", "CLOUDFLARE_API_KEY")
     ];
 
-    // The services with an embeddings endpoint. Groq and Cerebras have none (their model lists show only chat, speech and safety models). The prefixes are what the model was
-    // trained with: nomic-embed-text needs them, the others none.
+    // The services with an embeddings endpoint. Groq and Cerebras have none (their model lists show only chat, speech and safety models).
     public static IReadOnlyList<EmbeddingProvider> Embedding { get; } =
     [
-        new("Ollama (on our own machine)", "http://localhost:11434", "nomic-embed-text", "search_query:", "search_document:", false,
+        new("Ollama (on our own machine)", "http://localhost:11434", "nomic-embed-text", false,
             "Free, runs on our own machine. Pull the model first: ollama pull nomic-embed-text. From a Docker container, use http://host.docker.internal:11434.",
             "https://ollama.com/download", ""),
-        new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-embedding-001", "", "", true,
+        new("Ollama on our computer, from a server", "https://<my-ollama>.susanpant.com.np", "nomic-embed-text", false,
+            "For a server (Render) that must use the Ollama running on our own computer: Edit it, replace <my-ollama> with the name of our Cloudflare Tunnel (cloudflared tunnel --url http://localhost:11434 --http-host-header localhost:11434), and save. The computer and the tunnel must stay on.",
+            "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/", ""),
+        new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-embedding-001", true,
             "Free tier with rate limits. The same key as Gemini chat works.",
             "https://aistudio.google.com/apikey", "GEMINI_API_KEY"),
-        new("Mistral", "https://api.mistral.ai/v1", "mistral-embed", "", "", true,
+        new("Mistral", "https://api.mistral.ai/v1", "mistral-embed", true,
             "Free \"Experiment\" plan with rate limits. The same key as Mistral chat works.",
             "https://console.mistral.ai/api-keys", "MISTRAL_API_KEY"),
-        new("Jina AI", "https://api.jina.ai/v1", "jina-embeddings-v5-text-small", "", "", true,
+        new("Jina AI", "https://api.jina.ai/v1", "jina-embeddings-v5-text-small", true,
             "New keys come with free tokens for every model (100 requests a minute). Also listed: jina-embeddings-v3 and jina-embeddings-v4. The key is created on its page without an account.",
             "https://jina.ai/embeddings/", "JINA_API_KEY"),
-        new("Cohere", "https://api.cohere.ai/compatibility/v1", "embed-v5.0-pro", "", "", true,
+        new("Cohere", "https://api.cohere.ai/compatibility/v1", "embed-v5.0-pro", true,
             "A free trial key with limits (check Cohere's page). This is Cohere's OpenAI-compatible address.",
             "https://dashboard.cohere.com/api-keys", "COHERE_API_KEY"),
-        new("OpenAI", "https://api.openai.com/v1", "text-embedding-3-small", "", "", true,
+        new("OpenAI", "https://api.openai.com/v1", "text-embedding-3-small", true,
             "Paid, but very cheap: converting all the knowledge costs a fraction of a cent.",
             "https://platform.openai.com/api-keys", "OPENAI_API_KEY"),
-        new("Cloudflare Workers AI", "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1", "@cf/baai/bge-m3", "", "", true,
+        new("Cloudflare Workers AI", "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1", "@cf/baai/bge-m3", true,
             "A free daily allowance. Replace <ACCOUNT_ID> in the address with the account id.",
             "https://dash.cloudflare.com/profile/api-tokens", "CLOUDFLARE_API_KEY")
     ];

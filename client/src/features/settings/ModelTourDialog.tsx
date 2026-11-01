@@ -107,8 +107,6 @@ export default function ModelTourDialog({ kind, providers, current, start, onSel
           baseUrl: provider.baseUrl,
           model,
           apiKeyName: provider.apiKeyName,
-          queryPrefix: provider.queryPrefix,
-          documentPrefix: provider.documentPrefix,
         })
         if (run.cancelled) return
         addLog(true, `${provider.name} · ${model}: answered in ${formatTime(milliseconds)}`)
