@@ -153,12 +153,9 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
   const isCurrent = (c: ModelChoice) => sameUrl(c.baseUrl, current.baseUrl) && c.model === current.model
   const savedInUse = savedChoices.find(isCurrent)
   const serviceInUse = services.find((s) => sameUrl(s.baseUrl, current.baseUrl))
-  // The variable the model in use really reads, as the server works it out: its saved key name, else its service's, else ChatApi__ApiKey.
+  // The variable the model in use really reads, as the server works it out: its saved key name, else its service's.
   const keyInUse =
-    (isEmbedding ? info.embeddingKeyNameInUse : info.chatKeyNameInUse) ||
-    current.apiKeyName ||
-    serviceInUse?.apiKeyName ||
-    'ChatApi__ApiKey'
+    (isEmbedding ? info.embeddingKeyNameInUse : info.chatKeyNameInUse) || current.apiKeyName || serviceInUse?.apiKeyName || ''
   const keyInUseSet = isEmbedding ? info.embeddingKeyInUseSet : info.chatKeyInUseSet
   // The model in use is only shown at the top. The lists below hold the models that are not in use.
   const savedNotInUse = savedChoices.filter((c) => c !== savedInUse)
@@ -315,7 +312,11 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
       {currentKeyMissing && (
         <div className="mt-3">
           <Alert
-            message={`The ${isEmbedding ? 'embedding' : 'chat'} model uses an online service, but its key (${keyInUse}) is not set in .env, so it can't work.`}
+            message={
+              keyInUse
+                ? `The ${isEmbedding ? 'embedding' : 'chat'} model uses an online service, but its key (${keyInUse}) is not set in .env, so it can't work.`
+                : `The ${isEmbedding ? 'embedding' : 'chat'} model uses an online service, but no key name is saved for it. Select the model again, or Edit it and set the key name.`
+            }
           />
         </div>
       )}
@@ -581,7 +582,7 @@ function Row({ choice, inUse, usedModel, actions }: RowProps) {
               )}
             </>
           ) : choice.needsApiKey ? (
-            <span className="text-slate-500">none saved (uses the service's key, or ChatApi__ApiKey)</span>
+            <span className="text-slate-500">none saved (the service's own key is used)</span>
           ) : (
             <span className="text-slate-400">none needed</span>
           )}

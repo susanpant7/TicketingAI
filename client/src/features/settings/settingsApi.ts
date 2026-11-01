@@ -65,11 +65,11 @@ export interface EmbeddingProvider extends AiProvider {
 export interface AiProvidersInfo {
   providers: AiProvider[]
   embeddingProviders: EmbeddingProvider[]
-  /** Whether the key the chat model is using right now is set (an empty key name means ChatApi__ApiKey). */
+  /** Whether the key the chat model is using right now is set . */
   chatKeyInUseSet: boolean
   /** The same for the embedding model. */
   embeddingKeyInUseSet: boolean
-  /** The name of the variable the chat model really reads (a saved name, else its service's, else ChatApi__ApiKey). */
+  /** The name of the variable the chat model really reads (a saved name, else its service's). */
   chatKeyNameInUse: string
   /** The same for the embedding model. */
   embeddingKeyNameInUse: string

@@ -23,9 +23,8 @@ public class ApiChatClient(HttpClient http, ApiKeyResolver keys) : IChatModelCli
     {
         var key = keys.Get(chat.ApiKeyName, chat.BaseUrl)
             ?? throw new ChatModelException(
-                "The chat model is an online service, but no key is set: the environment variable " +
-                $"{keys.EffectiveName(chat.ApiKeyName, chat.BaseUrl)} is missing in the .env file, or the " +
-                "'Chat API key name' is not valid. Set it and restart the server.");
+                $"The chat model is an online service, but no key is set: {keys.MissingKey(chat.ApiKeyName, chat.BaseUrl)}. " +
+                "Set it and restart the server.");
 
         var body = new Dictionary<string, object>
         {

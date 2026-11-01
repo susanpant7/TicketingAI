@@ -28,8 +28,7 @@ public class AiModelLister(
         {
             var key = keys.Get(keyName, baseUrl)
                 ?? throw new ChatModelException(
-                    $"No key is set: the environment variable {keys.EffectiveName(keyName, baseUrl)} " +
-                    "is missing in the .env file, or its name is not valid. Set it and restart the server.");
+                    $"No key is set: {keys.MissingKey(keyName, baseUrl)}. Set it and restart the server.");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
         }
 

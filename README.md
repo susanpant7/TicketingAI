@@ -48,7 +48,6 @@ More detail: the **Guide** page in the app (public; how to run, set up and use t
 | --- | --- | --- |
 | `Admin:Username` / `Admin:Password` | none, from `.env` | The admin login. Required: the server refuses to start without it |
 | `Jwt:Key` | none, from `.env` | Token signing key, at least 32 characters. Required |
-| `ChatApi:ApiKey` | empty, from `.env` | The key of an online chat service (when the Chat API base URL has a path) |
 | `ConnectionStrings:Default` | `Data Source=data/ticketing.db` | The SQLite file |
 
 ## Run the backend in Docker

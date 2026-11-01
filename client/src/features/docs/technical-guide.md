@@ -590,7 +590,7 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 | `retrieval.max_score_gap` | 0.05 | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off |
 | `retrieval.follow_up_max_words` | 5 | Messages this short are searched together with the previous user message. `0` turns it off |
 | `chat.api_key_name` | (empty) | The name of the environment variable that holds the key of an online chat service (for example `GROQ_API_KEY`). Empty for Ollama. The key itself is never stored |
-| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://host.docker.internal:11434` from a Docker container) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable `ChatApi__ApiKey`, never a setting |
+| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://host.docker.internal:11434` from a Docker container) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable named in the key name of the model (for example `GEMINI_API_KEY`), never a setting |
 | `chat.model` | `qwen2.5:7b` | Model that writes the answers |
 | `chat.temperature` | 0.2 | Randomness. 0 gives the most repeatable answers |
 | `chat.top_p` | 0.9 | Sent to Ollama |

@@ -19,9 +19,8 @@ public class OnlineEmbeddingClient(HttpClient http, ApiKeyResolver keys) : IEmbe
     {
         var key = keys.Get(options.ApiKeyName, options.BaseUrl)
             ?? throw new EmbeddingException(
-                $"The embedding model is an online service, but no key is set: the environment variable " +
-                $"{keys.EffectiveName(options.ApiKeyName, options.BaseUrl)} is missing in the .env file, or the " +
-                "'Embedding API key name' is not valid. Set it and restart the server.");
+                $"The embedding model is an online service, but no key is set: {keys.MissingKey(options.ApiKeyName, options.BaseUrl)}. " +
+                "Set it and restart the server.");
 
         var vectors = new List<float[]>(texts.Count);
         foreach (var batch in texts.Chunk(BatchSize))

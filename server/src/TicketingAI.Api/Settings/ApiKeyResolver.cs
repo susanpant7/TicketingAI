@@ -8,9 +8,6 @@ namespace TicketingAI.Api.Settings;
 /// </summary>
 public partial class ApiKeyResolver(IConfiguration configuration)
 {
-    /// <summary>The variable of the first version, used when no name is given.</summary>
-    public const string LegacyKeyName = "ChatApi__ApiKey";
-
     [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9_]*$")]
     private static partial Regex NamePattern();
 
@@ -22,14 +19,14 @@ public partial class ApiKeyResolver(IConfiguration configuration)
         name.Length <= 100 && NamePattern().IsMatch(name)
         && (name.EndsWith("API_KEY", StringComparison.OrdinalIgnoreCase) || name.EndsWith("ApiKey", StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>The key, or null when the name is not valid or the variable is not set. An empty name means the legacy variable.</summary>
+    /// <summary>The key, or null when the name is empty or not valid, or the variable is not set.</summary>
     public string? Get(string? keyName)
     {
-        var name = string.IsNullOrWhiteSpace(keyName) ? LegacyKeyName : keyName.Trim();
+        var name = keyName?.Trim() ?? "";
         if (!IsValidName(name))
             return null;
 
-        // "ChatApi__ApiKey" is the configuration key "ChatApi:ApiKey"; "GROQ_API_KEY" has no "__" and stays as it is.
+        // A name with "__" is a nested configuration key ("A__B" is "A:B"); "GROQ_API_KEY" has no "__" and stays as it is.
         var value = configuration[name.Replace("__", ":")];
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
@@ -38,8 +35,7 @@ public partial class ApiKeyResolver(IConfiguration configuration)
 
     /// <summary>
     /// The name of the variable a model really reads. A saved name is used as it is. With no name saved, the key variable of the known
-    /// service at the same address is used when it is set (a model for Google Gemini reads GEMINI_API_KEY), and otherwise the legacy
-    /// variable of the first version.
+    /// service at the same address is used (a model for Google Gemini reads GEMINI_API_KEY). Empty when there is none.
     /// </summary>
     public string EffectiveName(string? keyName, string baseUrl)
     {
@@ -48,10 +44,19 @@ public partial class ApiKeyResolver(IConfiguration configuration)
 
         var service = AiProviders.All.Select(p => (p.BaseUrl, p.ApiKeyName)).Concat(AiProviders.Embedding.Select(p => (p.BaseUrl, p.ApiKeyName)))
             .FirstOrDefault(p => string.Equals(p.BaseUrl.TrimEnd('/'), baseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
-                                 && !string.IsNullOrEmpty(p.ApiKeyName) && IsSet(p.ApiKeyName));
-        return service.ApiKeyName ?? LegacyKeyName;
+                                 && !string.IsNullOrEmpty(p.ApiKeyName));
+        return service.ApiKeyName ?? "";
     }
 
     /// <summary>The key a model really reads (see <see cref="EffectiveName"/>), or null when it is not set.</summary>
     public string? Get(string? keyName, string baseUrl) => Get(EffectiveName(keyName, baseUrl));
+
+    /// <summary>Says what is missing for a model whose key is not set, for an error message.</summary>
+    public string MissingKey(string? keyName, string baseUrl)
+    {
+        var name = EffectiveName(keyName, baseUrl);
+        return name.Length > 0
+            ? $"the environment variable {name} is missing in the .env file, or its name is not valid"
+            : "no key name is saved for it (choose the model again, or Edit it and set the key name)";
+    }
 }
