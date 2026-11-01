@@ -9,7 +9,9 @@ name: ticketing-ai-api
 
 services:
   server:
-    build: ./server
+    build:
+      context: .
+      dockerfile: server/Dockerfile
     restart: unless-stopped
     env_file: .env
     environment:

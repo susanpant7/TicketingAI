@@ -1,0 +1,11 @@
+# The build context of the server image is the repository root (see server/Dockerfile). Only server/src is needed, so the rest is left out.
+.git
+client
+docs
+**/bin/
+**/obj/
+**/*.db*
+**/node_modules
+.env
+.env.*
+.vscode

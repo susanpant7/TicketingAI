@@ -1,11 +1,12 @@
+# Built from the repository ROOT (docker build -f server/Dockerfile .), which is also Render's default build context.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY src/TicketingAI.Api/TicketingAI.Api.csproj src/TicketingAI.Api/
-COPY src/TicketingAI.Data/TicketingAI.Data.csproj src/TicketingAI.Data/
+COPY server/src/TicketingAI.Api/TicketingAI.Api.csproj src/TicketingAI.Api/
+COPY server/src/TicketingAI.Data/TicketingAI.Data.csproj src/TicketingAI.Data/
 RUN dotnet restore src/TicketingAI.Api/TicketingAI.Api.csproj
 
-COPY src/ src/
+COPY server/src/ src/
 RUN dotnet publish src/TicketingAI.Api/TicketingAI.Api.csproj -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

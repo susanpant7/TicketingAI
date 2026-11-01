@@ -24,7 +24,9 @@ services:
     restart: "no"
 
   server:
-    build: ./server
+    build:
+      context: .
+      dockerfile: server/Dockerfile
     restart: unless-stopped
     # The secrets: Admin__Username, Admin__Password, Jwt__Key and the key of each online AI service (GEMINI_API_KEY, GROQ_API_KEY, ...),
     # and any other setting, such as AiDefaults__ChatBaseUrl. The .env file is not committed. See .env.example.

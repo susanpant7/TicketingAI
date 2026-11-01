@@ -124,12 +124,15 @@ Render builds the same `server/Dockerfile` from the GitHub repository. In the Re
 | Render setting | Value |
 | --- | --- |
 | Language | Docker |
-| Root Directory | `server` |
-| Dockerfile Path | `./Dockerfile` |
+| Root Directory | leave **empty** |
+| Dockerfile Path | `./server/Dockerfile` |
+| Docker Build Context Directory | leave the default (`.`, the repository root) |
 | Health Check Path | `/api/health` |
 | Environment variable `PORT` | `8080` (the port the API listens on in the image, so Render knows where to send the traffic) |
 | Environment variables | the same as the `.env` of step 1: `Admin__Username`, `Admin__Password`, `Jwt__Key`, `GEMINI_API_KEY`, `Cors__AllowedOrigins` (Render can import a whole `.env` file with **Add from .env**) |
 | Disk (paid plans only) | mount path `/app/data`, 1 GB: this keeps the SQLite database |
+
+The image is built from the repository root (the Dockerfile copies `server/src/...`), so the build context must stay the repository root. If the build says `"/src": not found`, the context was set to another folder: set it back to `.`. Under **Advanced**, **Build Filters** with the included path `server/**` makes a push that only changes the client skip the API's deploy.
 
 Render gives the service an https address such as `https://ticketing-ai-api.onrender.com`, so no tunnel or proxy is needed. Use that address as `VITE_API_URL` in Vercel (no slash at the end), and put the Vercel address in `Cors__AllowedOrigins`. Every push to the branch deploys again.
 
