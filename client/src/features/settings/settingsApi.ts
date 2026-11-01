@@ -123,8 +123,8 @@ export const switchEmbeddingModel = (choice: ModelChoice) =>
   apiFetch<{ reembedded: number }>('/settings/use-embedding-model', { method: 'POST', body: JSON.stringify(choice) })
 
 /**
- * Tests one model of a known service with a tiny request and saves nothing. It resolves when the model works, and throws an error with
- * the service's own message when it does not (a retired name, a wrong key).
+ * Tests one model of a known service with a tiny request and saves nothing. It resolves with how long the model took to answer, and
+ * throws an error with the service's own message when it does not (a retired name, a wrong key).
  */
 export const testModel = (kind: ModelKind, choice: ModelChoice) =>
-  apiFetch<void>(`/settings/test-model/${kind}`, { method: 'POST', body: JSON.stringify(choice) })
+  apiFetch<{ milliseconds: number }>(`/settings/test-model/${kind}`, { method: 'POST', body: JSON.stringify(choice) })

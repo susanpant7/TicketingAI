@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatTime } from '@/features/settings/formatTime'
 import { testModel, type ModelChoice, type ModelKind } from '@/features/settings/settingsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
@@ -36,15 +37,21 @@ export default function ModelListDialog({
   onSelect,
   onClose,
 }: ModelListDialogProps) {
-  // 'testing' while the request runs, 'ok' once the model answered. A failed test is removed again and shown in the dialog above.
-  const [results, setResults] = useState<Record<string, 'testing' | 'ok'>>({})
+  // 'testing' while the request runs, then the time in milliseconds once the model answered. A failed test is removed again and shown in the dialog above.
+  const [results, setResults] = useState<Record<string, 'testing' | number>>({})
   const [failure, setFailure] = useState<{ model: string; message: string } | null>(null)
 
   async function test(model: string) {
     setResults((r) => ({ ...r, [model]: 'testing' }))
     try {
-      await testModel(kind, { ...choice, model })
-      setResults((r) => ({ ...r, [model]: 'ok' }))
+      const { milliseconds } = await testModel(kind, {
+        baseUrl: choice.baseUrl,
+        model,
+        apiKeyName: choice.apiKeyName,
+        queryPrefix: choice.queryPrefix,
+        documentPrefix: choice.documentPrefix,
+      })
+      setResults((r) => ({ ...r, [model]: milliseconds }))
     } catch (err) {
       setResults(({ [model]: _removed, ...rest }) => rest)
       setFailure({ model, message: errorMessage(err, 'The test failed.') })
@@ -58,7 +65,11 @@ export default function ModelListDialog({
 
   return (
     <>
-      <Modal title={`${choice.name}: ${kind === 'embedding' ? 'embedding' : 'chat'} models`} onClose={onClose} maxWidth="max-w-2xl">
+      <Modal
+        title={`${choice.name}: ${kind === 'embedding' ? 'embedding' : 'chat'} models`}
+        onClose={onClose}
+        maxWidth="max-w-2xl"
+      >
         {loading ? (
           <p className="text-sm text-slate-500">Asking the service which models this key can use...</p>
         ) : error ? (
@@ -68,7 +79,8 @@ export default function ModelListDialog({
         ) : (
           <>
             <p className="text-sm text-slate-600">
-              {models.length} {models.length === 1 ? 'model' : 'models'} listed, the one in use first. A service can list models this key cannot use, so
+              {models.length} {models.length === 1 ? 'model' : 'models'} listed, the one in use first. A service can list models
+              this key cannot use, so
               <strong> Test</strong> a model before you <strong>Select</strong> it.
             </p>
             <ul className="mt-3 max-h-96 divide-y divide-slate-100 overflow-y-auto rounded-lg ring-1 ring-slate-200">
@@ -77,12 +89,16 @@ export default function ModelListDialog({
                   <div className="min-w-0">
                     <code className="break-all text-sm">{name}</code>
                     {name === current && (
-                      <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">In use</span>
+                      <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                        In use
+                      </span>
                     )}
                     {name === current && !models.includes(name) && (
                       <span className="ml-2 text-xs text-amber-700">not in the service's list</span>
                     )}
-                    {results[name] === 'ok' && <span className="ml-2 text-xs text-emerald-700">✓ works with this key</span>}
+                    {typeof results[name] === 'number' && (
+                      <span className="ml-2 text-xs text-emerald-700">✓ answered in {formatTime(results[name])}</span>
+                    )}
                     {results[name] === 'testing' && <span className="ml-2 text-xs text-slate-500">Testing...</span>}
                   </div>
                   <div className="flex gap-2">
@@ -108,7 +124,9 @@ export default function ModelListDialog({
       {failure && (
         <Modal title={`Test failed: ${failure.model}`} onClose={() => setFailure(null)} maxWidth="max-w-lg">
           <Alert message={failure.message} />
-          <p className="mt-3 text-sm text-slate-500">The model was not changed. Pick another model, or check the key and the name.</p>
+          <p className="mt-3 text-sm text-slate-500">
+            The model was not changed. Pick another model, or check the key and the name.
+          </p>
           <div className="mt-5 flex justify-end">
             <Button onClick={() => setFailure(null)}>Close</Button>
           </div>

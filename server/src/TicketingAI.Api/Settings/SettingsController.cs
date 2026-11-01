@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TicketingAI.Api.Chat;
@@ -87,11 +88,11 @@ public class SettingsController(
     }
 
     /// <summary>
-    /// Tests one model of a known service with a tiny request, and saves nothing. It answers 204 when the model works, and a problem with
-    /// the service's own message when it does not (a retired name, a wrong key).
+    /// Tests one model of a known service with a tiny request, and saves nothing. It answers with how long the model took when it works,
+    /// and a problem with the service's own message when it does not (a retired name, a wrong key).
     /// </summary>
     [HttpPost("test-model/{kind}")]
-    public async Task<IActionResult> TestModel(string kind, UseEmbeddingModelRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<TestModelResult>> TestModel(string kind, UseEmbeddingModelRequest request, CancellationToken cancellationToken)
     {
         if (!SavedAiModelService.IsKind(kind))
             return NotFound();
@@ -99,11 +100,12 @@ public class SettingsController(
         try
         {
             await modelLister.EnsureKnownAsync(request.BaseUrl, cancellationToken);
+            var clock = Stopwatch.StartNew();
             if (kind == SavedAiModel.Chat)
                 await settingsService.TestChatModelAsync(new UseChatModelRequest(request.BaseUrl, request.Model, request.ApiKeyName), cancellationToken);
             else
                 await settingsService.TestEmbeddingModelAsync(request, cancellationToken);
-            return NoContent();
+            return new TestModelResult(clock.ElapsedMilliseconds);
         }
         catch (Exception ex) when (ex is ChatModelException or EmbeddingException)
         {

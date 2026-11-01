@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import AiModelForm from '@/features/settings/AiModelForm'
 import ModelListDialog from '@/features/settings/ModelListDialog'
+import ModelTourDialog, { type TourProvider } from '@/features/settings/ModelTourDialog'
 import {
   deleteSavedModel,
   getAiProviders,
@@ -76,10 +77,16 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
   const [working, setWorking] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [form, setForm] = useState<{ saved: SavedAiModel | null; initial?: SaveAiModelRequest; title?: string; inUse?: boolean } | null>(null)
+  const [form, setForm] = useState<{
+    saved: SavedAiModel | null
+    initial?: SaveAiModelRequest
+    title?: string
+    inUse?: boolean
+  } | null>(null)
   const [deleting, setDeleting] = useState<SavedAiModel | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [confirming, setConfirming] = useState<Choice | null>(null)
+  const [tour, setTour] = useState<'current' | 'beginning' | null>(null)
   const [viewing, setViewing] = useState<{ choice: Choice; loading: boolean; models: string[]; error: string } | null>(null)
 
   useEffect(() => {
@@ -164,6 +171,13 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     needsApiKey: isOnline(current.baseUrl),
     notes: '',
   }
+  // The services the tour goes through: the ones we have a key for (Ollama needs none), then the saved models at other addresses. The
+  // service at the address in use is tested with the key the chat is really using.
+  const tourProviders: TourProvider[] = [...services, ...savedChoices]
+    .map((c): Choice => (sameUrl(c.baseUrl, current.baseUrl) ? { ...c, apiKeyName: keyInUse, hasApiKey: keyInUseSet } : c))
+    .filter((c) => c.hasApiKey || !c.needsApiKey)
+    .filter((c, i, all) => all.findIndex((other) => sameUrl(other.baseUrl, c.baseUrl)) === i)
+
   const currentKeyMissing = isOnline(current.baseUrl) && !(isEmbedding ? info.embeddingKeyInUseSet : info.chatKeyInUseSet)
 
   // Chat: sets the settings. Embedding: converts the stored knowledge to the new model first (it can take a minute), which only saves
@@ -255,18 +269,25 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
       <p className="mt-1 text-sm text-slate-600">
         {isEmbedding ? (
           <>
-            An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine; one with a path is an
-            online service. <strong>Use converts all the stored knowledge to the new model</strong> (about a minute), and is only saved
-            when that worked.
+            An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine; one with a path is
+            an online service. <strong>Use converts all the stored knowledge to the new model</strong> (about a minute), and is
+            only saved when that worked.
           </>
         ) : (
           <>
-            An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine (free, private, slower).
-            One with a path is an online service (fast, but the questions and the knowledge are sent to it).
+            An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine (free, private,
+            slower). One with a path is an online service (fast, but the questions and the knowledge are sent to it).
           </>
         )}{' '}
-        Each service's key is kept in <code>.env</code> under the <strong>API key name</strong> on its row. Only the name is saved here.{' '}
-        {isEmbedding ? '' : <>The model list can include models this key cannot use, so <strong>Use</strong> tests the model first.</>}
+        Each service's key is kept in <code>.env</code> under the <strong>API key name</strong> on its row. Only the name is saved
+        here.{' '}
+        {isEmbedding ? (
+          ''
+        ) : (
+          <>
+            The model list can include models this key cannot use, so <strong>Use</strong> tests the model first.
+          </>
+        )}
       </p>
 
       {currentKeyMissing && (
@@ -278,12 +299,18 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
       )}
       {working !== '' && !isEmbedding && (
         <div className="mt-3">
-          <Alert variant="warning" message="Testing the model with a small question before switching. It is only used when it answers." />
+          <Alert
+            variant="warning"
+            message="Testing the model with a small question before switching. It is only used when it answers."
+          />
         </div>
       )}
       {working !== '' && isEmbedding && (
         <div className="mt-3">
-          <Alert variant="warning" message="Converting the knowledge to the new model. This can take a minute, please keep this page open." />
+          <Alert
+            variant="warning"
+            message="Converting the knowledge to the new model. This can take a minute, please keep this page open."
+          />
         </div>
       )}
       {notice && (
@@ -297,7 +324,26 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
         </div>
       )}
 
-      <ul className="mt-6 rounded-xl bg-white px-4 ring-1 ring-indigo-200">
+      {!isEmbedding && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button size="sm" disabled={working !== '' || tourProviders.length === 0} onClick={() => setTour('current')}>
+            Next model
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={working !== '' || tourProviders.length === 0}
+            onClick={() => setTour('beginning')}
+          >
+            Start from the beginning
+          </Button>
+          <span className="self-center text-sm text-slate-500">
+            Tries the models of the services we have a key for, one after another, with the response time of each.
+          </span>
+        </div>
+      )}
+
+      <ul className="mt-4 rounded-xl bg-white px-4 ring-1 ring-indigo-200">
         <Row
           choice={inUseChoice}
           inUse
@@ -356,6 +402,19 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
         ))}
       </ul>
 
+      {tour && (
+        <ModelTourDialog
+          providers={tourProviders}
+          current={current}
+          start={tour}
+          onSelect={(provider, model) => {
+            setTour(null)
+            choose({ ...provider, model, notes: '', hasApiKey: true, needsApiKey: isOnline(provider.baseUrl) })
+          }}
+          onClose={() => setTour(null)}
+        />
+      )}
+
       {viewing && (
         <ModelListDialog
           kind={kind}
@@ -384,7 +443,14 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
             form.inUse
               ? (values) => {
                   setForm(null)
-                  choose({ ...values, key: 'in-use', name: 'in use', notes: '', hasApiKey: true, needsApiKey: isOnline(values.baseUrl) })
+                  choose({
+                    ...values,
+                    key: 'in-use',
+                    name: 'in use',
+                    notes: '',
+                    hasApiKey: true,
+                    needsApiKey: isOnline(values.baseUrl),
+                  })
                 }
               : undefined
           }
@@ -456,8 +522,8 @@ function Row({ choice, inUse, usedModel, actions }: RowProps) {
         </p>
         {(choice.queryPrefix || choice.documentPrefix) && (
           <p className="break-all text-sm text-slate-600">
-            Prefixes: <code>{choice.queryPrefix || '(none)'}</code> for a question, <code>{choice.documentPrefix || '(none)'}</code> for a
-            section
+            Prefixes: <code>{choice.queryPrefix || '(none)'}</code> for a question,{' '}
+            <code>{choice.documentPrefix || '(none)'}</code> for a section
           </p>
         )}
         <p className="text-sm text-slate-600">
