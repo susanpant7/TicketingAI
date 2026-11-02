@@ -95,7 +95,8 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     return () => {
       ignore = true
     }
-  }, [])
+    // Asked again when the model in use changes, so the "key is set" answer is for the new model.
+  }, [current.baseUrl, current.apiKeyName])
 
   useEffect(() => {
     let ignore = false
