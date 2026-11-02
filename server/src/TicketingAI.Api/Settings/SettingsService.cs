@@ -10,7 +10,7 @@ namespace TicketingAI.Api.Settings;
 
 public partial class SettingsService(
     ISettingRepository settings, ILogger<SettingsService> logger, IOptions<AiDefaultsOptions> aiDefaults, EmbeddingSwitcher embeddingSwitcher,
-    IChatModelClient chatModel, IEmbeddingClient embeddingClient, ApiKeyResolver apiKeys) : ISettingsService
+    IChatModelClient chatModel, IEmbeddingClient embeddingClient) : ISettingsService
 {
     private const int MaxKeyLength = 100;
     private const int MaxLabelLength = 100;

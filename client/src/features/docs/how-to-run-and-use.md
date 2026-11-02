@@ -1,6 +1,6 @@
 # How to run and use the app
 
-Ticketing AI is a support app for a company. Employees chat with an AI assistant that answers from the company's own knowledge. If the answer does not solve the problem, the assistant can create a ticket and assign it to someone in the right department. This page explains how to run the app, how to set it up the first time, and how to use it. How the AI works is on the [Docs](/docs) page.
+Ticketing AI is a support app for a company. Employees chat with an AI assistant that answers from the company's own knowledge. If the answer does not solve the problem, the assistant can create a ticket and assign it to someone in the right department. This page explains how to run the app, how to set it up the first time, and how to use it. How the AI works is on the [AI and RAG](/docs?tab=ai-rag) tab.
 
 **The code is on GitHub:** [github.com/susanpant7/TicketingAI](https://github.com/susanpant7/TicketingAI). To get it:
 
@@ -10,6 +10,15 @@ cd TicketingAI
 ```
 
 All the commands below are run from this project folder.
+
+**Tech stack.**
+
+| Part | What we use |
+| --- | --- |
+| Client | React 19 and TypeScript, built with Vite, styled with Tailwind |
+| API | .NET 10 Web API (ASP.NET Core), with Entity Framework Core |
+| Database | **SQLite** (one file). The app currently uses SQLite for everything: users, tickets, settings and the knowledge. The vector search runs inside it, with the sqlite-vec extension |
+| AI models | Ollama on our own computer, or online services (Gemini, Groq, ...), chosen on the Settings page |
 
 ## 1. Run the app
 
@@ -65,23 +74,23 @@ A new database is empty. We log in as the admin and open **Settings**, then the 
 
 Now everything is set up to use RAG with the AI model. Section 5 has more about the model settings.
 
-The same data can also be added by hand, page by page:
+**The Knowledge page.** All the knowledge the AI knows about our application can be viewed on the **Knowledge** page. Every stored section is listed there, in tabs by department, with its document and category. On the same page we can:
 
-- **Departments.** On **Departments** we click **Load default departments**, or add our own with **Add department**. Each department has a description of what it handles and a contact. The assistant uses both, to tell an employee who to contact.
+- **Add knowledge files for a department.** We choose the department and the files (`.md` or `.txt`, in the format in section 4), pick **Add** or **Flush and Add**, and click **Add**. **Remove knowledge** deletes all the knowledge of the selected department.
+- **Write one piece of knowledge ourselves.** The **Write knowledge** button opens a form with a title, a department and one or more sections (a name and the details). It is a way to add a single knowledge chunk without writing a file.
+- **Test a question.** **Test a question** shows which sections the assistant would find for it, with their scores.
 
-  ![The Departments page](/guide-images/admin-departments.png)
+![The Knowledge page](/guide-images/admin-knowledge.png)
 
-  *The Departments page after clicking Load default departments. Each department shows what it handles and its contact.*
-- **Users.** On **Users** we click **Load default users**. We enter one password for all of them, and the 15 default users are divided equally over the departments. We can also add users one by one with **Add user**. Every user belongs to a department, so this is only possible after the departments are loaded.
-- **Knowledge.** On **Knowledge** we choose a department and upload its knowledge files (see section 4 for the file format). This is what the assistant answers from, and nothing works well without it.
+*The Knowledge page. We choose the department and the files and click Add, or click Write knowledge at the top right. Below, the stored sections are listed in tabs by department.*
 
-  ![The Knowledge page](/guide-images/admin-knowledge.png)
+![The Write knowledge dialog](/guide-images/admin-write-knowledge.png)
 
-  *The Knowledge page. We choose the department and the files, pick Add or Flush and Add, and click Add. Below, the stored sections are listed in tabs by department.*
+*The Write knowledge dialog. A title, a department and one or more sections; each section is one piece the assistant can find.*
 
 ## 3. Use the app as an employee
 
-**Log in** with the username and the password the admin gave us. A round chat button appears at the bottom right of every page.
+An employee can log in to the application, and then ask any question or ask for help with an issue. The AI replies based on the knowledge data that the admin loaded (the company's own documents), so the answers follow what the company really says. A round chat button at the bottom right of every page opens the chat. To log in, we use the username and the password the admin gave us.
 
 **Ask a question.** We click the chat button and type a question, for example "how many leave days do I get?". The assistant answers from the company knowledge. Casual messages like "hello" get a short friendly reply, and requests that are not about work are politely declined.
 
@@ -119,7 +128,7 @@ The admin has these pages. The admin does not report or receive tickets, and can
 | **Departments** | Add, edit and delete departments. A department that still has users cannot be deleted |
 | **Users** | Add, edit and delete users, and change their department |
 | **Settings** | Change the models, the prompt, and how the assistant searches. **Load default AI assistant data** (Manage App Data tab) puts the settings back |
-| **Docs** | The developer documentation about the AI (this is open to everyone, without login) |
+| **Dev Docs** | The installation guide and the AI and RAG documentation (open to everyone, without login) |
 
 **Uploading knowledge.** Each file starts with a title and a department, then one or more sections:
 
@@ -142,17 +151,31 @@ Employees can take up to 12 days of paid sick leave per year...
 
 ## 5. Change the AI model
 
-A new database has no chat or embedding model selected: we choose them on the Settings page. For a model on our own computer, `qwen2.5:7b` answers and `nomic-embed-text` turns text into numbers. The prompt was tuned on `qwen2.5:7b`, so we re-test the ticket flow after switching to another model.
+Everything about the AI that we can change is on the **AI assistant** tab of the Settings page, including the AI models: the chat model, the embedding model, how the knowledge is searched, and how long the answers can be. A new database has no chat or embedding model selected, so we choose them here.
 
-To change the chat model, we use **View models** (then **Select**), **Edit** or **Next model** on the Settings page. For an online service, the key in `.env` is enough: nothing has to be downloaded. For a model on our own computer (Ollama), the model must be pulled there first (`ollama pull qwen2.5:3b`), and then we **Select** it. It applies to the next message, with no restart.
+![The chat model part of the AI assistant tab](/guide-images/admin-ai-models.png)
 
-![The Settings page](/guide-images/admin-settings.png)
+*The chat model part of the AI assistant tab. The model in use is at the top, then the saved models, then the services we can use.*
 
-*The Settings page. Chat model, Messages of history and Max answer length are edited here.*
+**Next model and Search model from the beginning.** A model can stop working (the service retired it, a limit was reached, the key cannot use it). These two buttons find another model that works, without trying them by hand:
 
-To go back to a model on our own computer, we click **View models** on "Ollama (on our own machine)" and **Select** the model, or **Edit** the model in use and set the address to `http://localhost:11434` and the model to `qwen2.5:7b`. Models we use often can be saved with **Add chat model**, to switch with one click. The prompt was tuned on `qwen2.5:7b`, so we re-test after switching. The questions and the knowledge sections are sent to the online service, so we avoid real company data on a free tier.
+- **Next model** tests the models one after another, starting after the model in use, and stops at the first one that answers a small test question. It shows how long the answer took.
+- **Search model from the beginning** does the same, but starts at the first model of the first service (after a confirmation).
 
-The **embedding model** is chosen the same way, in the Embedding group of the Settings page. It is different in one thing: numbers from two different models cannot be compared, so **Use converts all the stored knowledge to the new model** (every section is embedded again). That takes about a minute, and the change is only saved when it worked, so a wrong key changes nothing. The two prefixes put in front of the texts are the same for every model and are not settings.
+When a model answers, we click **Select** to use it, or **Next** to look further. A model that gives an error is skipped by itself, and the reason is listed. Only the services we have a key for are tried.
+
+**View models, Test and Select.** To pick a model ourselves, we click **View models** on the model in use, on a saved model, or on a service. The dialog lists the models the service offers for our key, with the model in use first.
+
+![The list of models of a service](/guide-images/admin-view-models.png)
+
+*The models of Google Gemini. Test sends one small request and shows the answer time (or the error). Select uses the model.*
+
+- **Test** sends one small question to that model and saves nothing. It shows how long the model took, or why it failed. A service can list models our key cannot use, so we test before we select.
+- **Select** uses the model from the next message, with no restart. It tests the model first, so a model that does not work is never saved.
+
+For an online service, the key in `.env` is enough: nothing has to be downloaded. For a model on our own computer (Ollama), the model must be pulled there first (`ollama pull qwen2.5:3b`). To go back to our own computer, we click **View models** on "Ollama (on our own machine)" and **Select** the model. Models we use often can be saved with **Add chat model**, and **Edit** changes the address, the model or the key name. The questions and the knowledge sections are sent to an online service, so we avoid real company data on a free tier.
+
+The **embedding model** is chosen the same way, in the Embedding group of the Settings page. It is different in one thing: numbers from two different models cannot be compared, so **Select cleans the stored knowledge and inserts it again with the new model** (every section is embedded again). That takes about a minute, and the change is only saved when it worked, so a wrong key changes nothing. The two prefixes put in front of the texts are the same for every model and are not settings.
 
 **Making replies faster.** On the Settings page we can lower **Results to retrieve** (4 by default), raise **Maximum score gap** carefully so fewer sections are sent (a shorter prompt is a faster reply), lower **Messages of history** (3 by default; 1 sends only the last message and still works for a ticket) and **Max answer length** (2000 by default; keep it generous, because a model that thinks counts its thinking in it, and then the chat says the reply was cut off). For a hosted model that thinks before it answers (such as the newer Gemini models), **Reasoning effort** can be set to `none`, `minimal` or `low`, depending on what the model accepts. The server log has a timing line for every message that shows where the time goes.
 

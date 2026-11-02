@@ -6,8 +6,7 @@ import { SparkleIcon } from '@/shared/components/icons'
 
 const publicLinks = [
   { to: '/', label: 'Home' },
-  { to: '/guide', label: 'Guide' },
-  { to: '/docs', label: 'Docs' },
+  { to: '/docs', label: 'Dev Docs' },
 ]
 const privateLinks = [{ to: '/tickets', label: 'Tickets' }]
 const adminLinks = [
@@ -20,11 +19,7 @@ const adminLinks = [
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
   const isAdmin = user?.role === 'Admin'
-  const links = [
-    ...publicLinks,
-    ...(isAuthenticated ? privateLinks : []),
-    ...(isAdmin ? adminLinks : []),
-  ]
+  const links = [...publicLinks, ...(isAuthenticated ? privateLinks : []), ...(isAdmin ? adminLinks : [])]
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
@@ -43,9 +38,7 @@ export default function Navbar() {
                 to={to}
                 className={({ isActive }) =>
                   `rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`
                 }
               >

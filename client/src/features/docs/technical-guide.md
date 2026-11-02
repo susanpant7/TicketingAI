@@ -137,8 +137,6 @@ The result: **to change what the assistant knows, upload a file.** To remove kno
 | Can show where an answer came from | No | Yes: the sections that were used are known |
 | Cost of a change | Hours | Minutes |
 
-One thing changed on the way: the old model chose a **user and a team**. Now the model names the **department** (from the sections it used and from the department descriptions), and the app itself picks the person inside that department, one by one in turn (round-robin). The details are in the workflow sections below.
-
 ### How to implement RAG in a new project
 
 We need four things: two models, knowledge files, one table, and a little code for each of the two pipelines. The reference for each step is a file in this repository.

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from '@/app/MainLayout'
 import AdminRoute from '@/features/auth/AdminRoute'
 import AuthProvider from '@/features/auth/AuthProvider'
@@ -14,7 +14,6 @@ import UsersPage from '@/features/users/UsersPage'
 
 // Loaded only when the page is opened, because the Markdown renderer is large.
 const DocsPage = lazy(() => import('@/features/docs/DocsPage'))
-const GuidePage = lazy(() => import('@/features/docs/GuidePage'))
 
 export default function App() {
   return (
@@ -32,14 +31,7 @@ export default function App() {
                 </Suspense>
               }
             />
-            <Route
-              path="/guide"
-              element={
-                <Suspense fallback={<p className="mt-8 text-center text-sm text-slate-500">Loading...</p>}>
-                  <GuidePage />
-                </Suspense>
-              }
-            />
+            <Route path="/guide" element={<Navigate to="/docs" replace />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/tickets" element={<TicketsPage />} />
               <Route element={<AdminRoute />}>
