@@ -20,9 +20,9 @@ export default function Modal({ title, onClose, maxWidth = 'max-w-lg', children 
       ref={dialogRef}
       onClose={onClose}
       onClick={(e) => e.target === dialogRef.current && onClose()}
-      className={`m-auto w-[calc(100%-2rem)] ${maxWidth} rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/50 backdrop:backdrop-blur-sm`}
+      className={`m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] ${maxWidth} overflow-y-auto rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/50 backdrop:backdrop-blur-sm`}
     >
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button

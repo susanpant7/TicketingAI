@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
 
 const controlClass =
-  'mt-1.5 block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-slate-100 disabled:text-slate-500'
+  'mt-1.5 block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-base text-slate-900 sm:text-sm shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-slate-100 disabled:text-slate-500'
 
 function FieldLabel({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -20,10 +20,7 @@ export function TextField({ label, ...props }: { label: string } & InputHTMLAttr
   )
 }
 
-export function TextAreaField({
-  label,
-  ...props
-}: { label: string } & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextAreaField({ label, ...props }: { label: string } & TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <FieldLabel label={label}>
       <textarea className={controlClass} {...props} />
@@ -31,11 +28,7 @@ export function TextAreaField({
   )
 }
 
-export function SelectField({
-  label,
-  children,
-  ...props
-}: { label: string } & SelectHTMLAttributes<HTMLSelectElement>) {
+export function SelectField({ label, children, ...props }: { label: string } & SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <FieldLabel label={label}>
       <select className={controlClass} {...props}>

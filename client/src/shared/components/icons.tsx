@@ -59,6 +59,12 @@ export const CloseIcon = (props: IconProps) => (
   </Icon>
 )
 
+export const MenuIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Icon>
+)
+
 export const InboxIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M4 13l2.5-7.5A2 2 0 0 1 8.4 4h7.2a2 2 0 0 1 1.9 1.5L20 13" />

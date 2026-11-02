@@ -64,7 +64,7 @@ export default function UploadForm({ onUploaded }: { onUploaded: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-base font-semibold text-slate-900">Upload knowledge files</h2>
       <p className="mt-1 text-sm text-slate-500">
         Each .md or .txt file starts with <code>title:</code> and <code>department:</code> lines, then sections written as{' '}
@@ -80,8 +80,8 @@ export default function UploadForm({ onUploaded }: { onUploaded: () => void }) {
             </option>
           ))}
         </SelectField>
-        <div className="flex items-end gap-3">
-          <label className="block min-w-0 flex-1 text-sm font-medium text-slate-700">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block min-w-0 flex-1 basis-48 text-sm font-medium text-slate-700">
             Files
             <input
               ref={fileInput}

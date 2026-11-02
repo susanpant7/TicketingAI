@@ -39,20 +39,20 @@ The model stays as it is. The company knowledge lives in a database. When someon
 
 **Part 1: getting the knowledge ready** (done once for each file)
 
-1. **We take the company documents.** For example the leave policy or the VPN guide. *(Data)*
-2. **We read them.** The app opens the file and finds the title, the department and the sections. *(Parsing)*
-3. **We cut them into small pieces.** One piece is about one topic. *(Chunking)*
-4. **We turn each piece into numbers.** An AI model reads the piece and gives back a list of numbers that stands for its meaning. *(Embedding)*
-5. **We save the pieces and their numbers in the database.** The text and its numbers are stored together. *(Vector DB)*
+1. **We take the company documents.** For example the leave policy or the VPN guide. _(Data)_
+2. **We read them.** The app opens the file and finds the title, the department and the sections. _(Parsing)_
+3. **We cut them into small pieces.** One piece is about one topic. _(Chunking)_
+4. **We turn each piece into numbers.** An AI model reads the piece and gives back a list of numbers that stands for its meaning. _(Embedding)_
+5. **We save the pieces and their numbers in the database.** The text and its numbers are stored together. _(Vector DB)_
 
 **Part 2: answering a question** (every time someone chats)
 
-1. **The employee asks a question.** *(User query)*
-2. **We turn the question into numbers**, with the same AI model, so it can be compared with the saved pieces. *(Embedding)*
-3. **We find the pieces that are closest.** Pieces whose numbers are close to the numbers of the question have a close meaning, so they are the most related to the question. *(Semantic search)*
-4. **We take those pieces out of the database.** This text is what the AI will read to answer. *(Retrieve context)*
-5. **We give the pieces and the question to the chat AI**, and tell it to answer only from those pieces. *(LLM)*
-6. **We show the answer to the employee.** *(Answer)*
+1. **The employee asks a question.** _(User query)_
+2. **We turn the question into numbers**, with the same AI model, so it can be compared with the saved pieces. _(Embedding)_
+3. **We find the pieces that are closest.** Pieces whose numbers are close to the numbers of the question have a close meaning, so they are the most related to the question. _(Semantic search)_
+4. **We take those pieces out of the database.** This text is what the AI will read to answer. _(Retrieve context)_
+5. **We give the pieces and the question to the chat AI**, and tell it to answer only from those pieces. _(LLM)_
+6. **We show the answer to the employee.** _(Answer)_
 
 Part 1 fills the database, and Part 2 searches it. Here are the same steps again, with an example.
 
@@ -65,18 +65,20 @@ title: Leave Policy
 department: HR
 
 ## Annual leave entitlement
+
 Full-time employees receive 18 days of paid annual leave per year. Leave is counted from the first day of the Nepali fiscal year.
 
 ## Sick leave
+
 Employees can take up to 12 days of paid sick leave per year. A medical certificate is needed for more than 2 days in a row.
 ```
 
 **Step 2. We split each document into small sections.** We split at every `## ` heading, so each section is one topic with its own title. The file above becomes two sections:
 
-| Section | Title (heading) | Text (content) |
-| --- | --- | --- |
-| 1 | Annual leave entitlement | Full-time employees receive 18 days of paid annual leave per year. Leave is counted from the first day of the Nepali fiscal year. |
-| 2 | Sick leave | Employees can take up to 12 days of paid sick leave per year. A medical certificate is needed for more than 2 days in a row. |
+| Section | Title (heading)          | Text (content)                                                                                                                    |
+| ------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1       | Annual leave entitlement | Full-time employees receive 18 days of paid annual leave per year. Leave is counted from the first day of the Nepali fiscal year. |
+| 2       | Sick leave               | Employees can take up to 12 days of paid sick leave per year. A medical certificate is needed for more than 2 days in a row.      |
 
 Small sections matter because each one gets its own entry in the database, and later the app finds and uses only the sections that match the question. One section about one topic is found much more reliably than a whole document about many topics.
 
@@ -112,10 +114,10 @@ Each list has 768 numbers (the examples are cut short). Two texts with a similar
 
 **Step 4. We save each section in the database: its text, and next to it its list of numbers.** One row per section:
 
-| Heading | Content (the text) | Embedding (the list of numbers) |
-| --- | --- | --- |
+| Heading                  | Content (the text)                      | Embedding (the list of numbers)  |
+| ------------------------ | --------------------------------------- | -------------------------------- |
 | Annual leave entitlement | Full-time employees receive 18 days ... | `[0.0123, -0.0456, 0.1012, ...]` |
-| Sick leave | Employees can take up to 12 days ... | `[0.0311, 0.0052, -0.0874, ...]` |
+| Sick leave               | Employees can take up to 12 days ...    | `[0.0311, 0.0052, -0.0874, ...]` |
 
 The readable text is saved too, because that text is what we later give to the chat model. The numbers are only used to find the right rows.
 
@@ -128,14 +130,14 @@ The readable text is saved too, because that text is what we later give to the c
 
 The result: **to change what the assistant knows, upload a file.** To remove knowledge, delete it. There is no training, no Colab and no waiting.
 
-| | Fine-tuning | RAG (what we use now) |
-| --- | --- | --- |
-| Where the company knowledge lives | Inside the model | In a database, as text |
-| Adding or changing knowledge | Prepare data, train again, redeploy | Upload a file |
-| Removing knowledge | Train again | Delete the rows |
-| Needs a GPU and training | Yes | No |
-| Can show where an answer came from | No | Yes: the sections that were used are known |
-| Cost of a change | Hours | Minutes |
+|                                    | Fine-tuning                         | RAG (what we use now)                      |
+| ---------------------------------- | ----------------------------------- | ------------------------------------------ |
+| Where the company knowledge lives  | Inside the model                    | In a database, as text                     |
+| Adding or changing knowledge       | Prepare data, train again, redeploy | Upload a file                              |
+| Removing knowledge                 | Train again                         | Delete the rows                            |
+| Needs a GPU and training           | Yes                                 | No                                         |
+| Can show where an answer came from | No                                  | Yes: the sections that were used are known |
+| Cost of a change                   | Hours                               | Minutes                                    |
 
 ### How to implement RAG in a new project
 
@@ -155,6 +157,7 @@ title: Leave Policy
 department: HR
 
 ## Annual leave entitlement
+
 Full-time employees receive 18 days of paid annual leave per year...
 ```
 
@@ -219,6 +222,7 @@ answer = chat(prompt)                              -- POST /api/chat on Ollama
 **7. We test it in two stages.** First we test retrieval without the model: for each test question, we check that the right section is among the top results. In this app that is `GET /api/knowledge/search?q=...`. Only when retrieval is good, we test the answers. If retrieval is wrong, we fix the files and sections, not the prompt.
 
 **Rules to remember**
+
 - We use the **same embedding model** for the files and for the questions. If we change it, we load all the files again.
 - We use the **prefix** that the embedding model was trained with, on both sides.
 - We keep the **settings** (model names, number of results, score threshold, prompt) in a table or a config file, not in code. We read them from the `Settings` table, so they can be changed without a deploy.
@@ -244,11 +248,11 @@ An **embedding model** solves this. It converts a text into a **list of numbers*
 
 A **vector database** is, in simple terms, **a normal database table with one extra column that holds that list of numbers, plus a function that tells how close two lists are.** That is all. In our app it is the `KnowledgeChunks` table in SQLite:
 
-| Id | Heading | Content (the text) | Embedding (the extra column: a list of numbers) |
-| --- | --- | --- | --- |
-| 14 | Annual leave entitlement | Full-time employees receive 18 days of paid annual leave per year... | `[0.012, -0.045, 0.101, ... 768 numbers]` |
-| 15 | Sick leave | Employees can take up to 12 days of paid sick leave... | `[0.031, 0.005, -0.087, ... 768 numbers]` |
-| 21 | Resetting your password | Use the self-service reset page at password.ticket.com... | `[-0.090, 0.064, 0.022, ... 768 numbers]` |
+| Id  | Heading                  | Content (the text)                                                   | Embedding (the extra column: a list of numbers) |
+| --- | ------------------------ | -------------------------------------------------------------------- | ----------------------------------------------- |
+| 14  | Annual leave entitlement | Full-time employees receive 18 days of paid annual leave per year... | `[0.012, -0.045, 0.101, ... 768 numbers]`       |
+| 15  | Sick leave               | Employees can take up to 12 days of paid sick leave...               | `[0.031, 0.005, -0.087, ... 768 numbers]`       |
+| 21  | Resetting your password  | Use the self-service reset page at password.ticket.com...            | `[-0.090, 0.064, 0.022, ... 768 numbers]`       |
 
 The extra feature is the **distance comparison**. We give the database the numbers of the question, and it returns the rows whose numbers are closest, with a score:
 
@@ -290,12 +294,12 @@ ANSWER (on every chat message)
               (Ollama /api/embed)   (sqlite-vec, top 5)          (sections + history)  (Ollama /api/chat)  (answer, department, ticket)
 ```
 
-| Piece | What it is |
-| --- | --- |
-| Embedding model | `nomic-embed-text`. Turns a text into a list of 768 numbers (a **vector**). Texts with similar meaning get similar vectors |
-| Chat model | `qwen2.5:7b`. Reads the prompt and writes the answer |
-| Vector store | The `KnowledgeChunks` table in SQLite, with the **sqlite-vec** extension for the similarity query. There is no separate vector database |
-| Ollama | Runs the models on our own computer, when we use local models. It is optional: the models can be online services, and Docker does not include it |
+| Piece           | What it is                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Embedding model | `nomic-embed-text`. Turns a text into a list of 768 numbers (a **vector**). Texts with similar meaning get similar vectors                       |
+| Chat model      | `qwen2.5:7b`. Reads the prompt and writes the answer                                                                                             |
+| Vector store    | The `KnowledgeChunks` table in SQLite, with the **sqlite-vec** extension for the similarity query. There is no separate vector database          |
+| Ollama          | Runs the models on our own computer, when we use local models. It is optional: the models can be online services, and Docker does not include it |
 
 Both model names, and every number that tunes the behaviour, are rows in the `Settings` table (see [section 12](#12-settings-that-tune-the-ai)). The app reads them on every request.
 
@@ -310,6 +314,7 @@ Both model names, and every number that tunes the behaviour, are rows in the `Se
 **What similarity cannot do.** In our test questions the score did **not** separate answerable from unanswerable questions: answerable questions scored as low as 0.65, while questions the documents do not cover scored as high as 0.79. So a threshold cannot decide "do we know this?". The app uses `retrieval.min_score` (0.6) only to drop clearly unrelated sections, and the **prompt** tells the model what to do when the sections do not answer the question.
 
 **Measured during development** (Intel i9 Mac, 32 GB, CPU only, 37 sample documents with about 270 sections, about 83 test questions):
+
 - The right document was in the top 5 for 99% of the questions and was the top result for 92%.
 - Embedding all 270 sections took about 38 seconds.
 - Qwen 7B read about 43 tokens per second and wrote about 6 tokens per second, so a company question took roughly 15 to 25 seconds and casual chat 5 to 8.
@@ -335,9 +340,11 @@ title: Leave Policy
 department: HR
 
 ## Annual leave entitlement
+
 Full-time employees receive 18 days of paid annual leave per year...
 
 ## Sick leave
+
 ...
 ```
 
@@ -362,14 +369,14 @@ Full-time employees receive 18 days of paid annual leave per year...
    ```
 4. **Store one row per section** in `KnowledgeChunks`:
 
-   | Column | Value |
-   | --- | --- |
-   | `DocumentTitle`, `Heading`, `Content` | From the file. `Content` has no prefix |
-   | `Category` | The **department name** (this is what ties a chunk to a department) |
-   | `SourceFile` | The uploaded file name |
-   | `ContentHash` | SHA-256 of the content |
-   | `Embedding` | The 768 numbers as raw **float32** values in a blob (3072 bytes) |
-   | `IngestedAt` | UTC time |
+   | Column                                | Value                                                               |
+   | ------------------------------------- | ------------------------------------------------------------------- |
+   | `DocumentTitle`, `Heading`, `Content` | From the file. `Content` has no prefix                              |
+   | `Category`                            | The **department name** (this is what ties a chunk to a department) |
+   | `SourceFile`                          | The uploaded file name                                              |
+   | `ContentHash`                         | SHA-256 of the content                                              |
+   | `Embedding`                           | The 768 numbers as raw **float32** values in a blob (3072 bytes)    |
+   | `IngestedAt`                          | UTC time                                                            |
 
 5. All files are validated and embedded **before** anything is saved, so if Ollama fails the existing knowledge stays as it was.
 
@@ -422,9 +429,19 @@ This compares the query with every row. For a few thousand sections that is fast
 ```http
 GET /api/knowledge/search?q=how many leave days do I get&k=3        (admin only)
 ```
+
 ```json
-[ { "id": 14, "documentTitle": "Leave Policy", "category": "HR", "heading": "Annual leave entitlement",
-    "content": "Full-time employees receive 18 days...", "sourceFile": "leave-policy.md", "score": 0.78 } ]
+[
+  {
+    "id": 14,
+    "documentTitle": "Leave Policy",
+    "category": "HR",
+    "heading": "Annual leave entitlement",
+    "content": "Full-time employees receive 18 days...",
+    "sourceFile": "leave-policy.md",
+    "score": 0.78
+  }
+]
 ```
 
 ## 9. Generation: the prompt and the model
@@ -474,7 +491,10 @@ POST {ollama.base_url}/api/chat
 ```json
 {
   "model": "qwen2.5:7b",
-  "message": { "role": "assistant", "content": "Department: IT\nProblem: yes\n\nYou can try resetting your password at password.ticket.com ..." },
+  "message": {
+    "role": "assistant",
+    "content": "Department: IT\nProblem: yes\n\nYou can try resetting your password at password.ticket.com ..."
+  },
   "done": true
 }
 ```
@@ -485,14 +505,14 @@ POST {ollama.base_url}/api/chat
 
 Every message is handled by the same prompt. The model decides which kind it is, and each kind says which `Department:` line to use. No code branches on the kind, and there are no word lists: the prompt decides.
 
-| # | Kind | What the model must do |
-| --- | --- | --- |
-| 1 | A question the sections answer | Answer only from the sections, with the exact numbers, names and addresses. The reply also has a `Problem: yes` or `Problem: no` line: yes only when the employee reports something broken or blocked, no for a question about a rule, amount or date. Department of the section used |
-| 2 | A work question the sections do not answer | Say it has no such information, and give the contact of the right department. Never guess, never say the company does or does not offer something |
-| 3 | Casual chat (greeting, thanks, small talk) | A short friendly reply in different words each time. `Department: none` |
-| 4 | An unrelated task (poems, trivia, code) | Decline politely. `Department: none` |
-| 5 | The problem is not solved | Offer to create a ticket and ask for confirmation. Create nothing |
-| 6 | The employee agreed to the offered ticket | Reply with the ticket lines (section 11) |
+| #   | Kind                                       | What the model must do                                                                                                                                                                                                                                                                |
+| --- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | A question the sections answer             | Answer only from the sections, with the exact numbers, names and addresses. The reply also has a `Problem: yes` or `Problem: no` line: yes only when the employee reports something broken or blocked, no for a question about a rule, amount or date. Department of the section used |
+| 2   | A work question the sections do not answer | Say it has no such information, and give the contact of the right department. Never guess, never say the company does or does not offer something                                                                                                                                     |
+| 3   | Casual chat (greeting, thanks, small talk) | A short friendly reply in different words each time. `Department: none`                                                                                                                                                                                                               |
+| 4   | An unrelated task (poems, trivia, code)    | Decline politely. `Department: none`                                                                                                                                                                                                                                                  |
+| 5   | The problem is not solved                  | Offer to create a ticket and ask for confirmation. Create nothing                                                                                                                                                                                                                     |
+| 6   | The employee agreed to the offered ticket  | Reply with the ticket lines (section 11)                                                                                                                                                                                                                                              |
 
 ## 10. Turning the reply into a response
 
@@ -607,7 +627,12 @@ The answer comes back one JSON object per line, so the page can show the text wh
 ```
 
 ```json
-{ "reply": { "answer": "Resetting your password did not work. Do you want me to create a ticket for the IT department?", "department": "IT" } }
+{
+  "reply": {
+    "answer": "Resetting your password did not work. Do you want me to create a ticket for the IT department?",
+    "department": "IT"
+  }
+}
 ```
 
 Nothing is created yet. The model only offered.
@@ -621,28 +646,37 @@ Nothing is created yet. The model only offered.
     { "role": "user", "content": "i am not able to reset my password" },
     { "role": "assistant", "content": "You can try resetting your password ... Let me know." },
     { "role": "user", "content": "that did not work" },
-    { "role": "assistant", "content": "Resetting your password did not work. Do you want me to create a ticket for the IT department?" }
+    {
+      "role": "assistant",
+      "content": "Resetting your password did not work. Do you want me to create a ticket for the IT department?"
+    }
   ]
 }
 ```
 
 Inside the server, in this order:
+
 1. The model sees its own offer and writes the ticket lines (`Action: create_ticket`, `Title: ...`, `Description: ...`) in its raw reply (section 11, step 3).
 2. The server checks the lines (section 7.2), picks the person in the IT department in turn, and saves the row in the `Tickets` table:
 
-   | Column | Value |
-   | --- | --- |
-   | `Title`, `Description` | from the model's lines |
-   | `Department` | IT, the one the model named |
-   | `ReportedBy` | the employee from the token |
-   | `AssignedTo` | the next IT member in turn (never the admin) |
-   | `Status` | `New` |
-   | `CreatedAt` | now |
+   | Column                 | Value                                        |
+   | ---------------------- | -------------------------------------------- |
+   | `Title`, `Description` | from the model's lines                       |
+   | `Department`           | IT, the one the model named                  |
+   | `ReportedBy`           | the employee from the token                  |
+   | `AssignedTo`           | the next IT member in turn (never the admin) |
+   | `Status`               | `New`                                        |
+   | `CreatedAt`            | now                                          |
 
 3. It answers with the model's sentence, and its own facts after it:
 
 ```json
-{ "reply": { "answer": "I'm creating the ticket now.\n\nTicket #1 was created and assigned to Aarav Sharma (IT).", "department": "IT" } }
+{
+  "reply": {
+    "answer": "I'm creating the ticket now.\n\nTicket #1 was created and assigned to Aarav Sharma (IT).",
+    "department": "IT"
+  }
+}
 ```
 
 If the line says `create_ticket` but something is wrong (the department is unknown, it has no members, the caller is the admin, the title is empty), no ticket is saved, and the answer is a plain message instead.
@@ -678,26 +712,26 @@ The response is the changed ticket, in the same shape as above. For anyone else 
 
 All of these are rows in the `Settings` table, editable on the Settings page (admin). They are read before every embedding and chat call with no cache, so a change applies to the next message.
 
-| Key | Default | Effect |
-| --- | --- | --- |
-| `embedding.base_url` | `http://localhost:11434` | Where the embedding model runs. No path (`http://localhost:11434`) is Ollama's own API (`/api/embed`); a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI format (`/embeddings`). From a Docker container, an Ollama on the computer is `http://host.docker.internal:11434` |
-| `embedding.api_key_name` | (empty) | The name of the environment variable that holds the key of an online embedding service (for example `GEMINI_API_KEY`). The key itself is never stored |
-| `embedding.model` | `nomic-embed-text` | The model that makes the vectors. **Changing it converts all the stored knowledge**: every section is embedded again with the new model, and the change is saved only when that worked. The embedding settings are changed with Use on the Settings page, not by editing them |
-| `retrieval.top_k` | 4 | How many sections to fetch |
-| `retrieval.min_score` | 0.5 | Sections below this are dropped |
-| `retrieval.max_score_gap` | 0.05 | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off |
-| `retrieval.follow_up_max_words` | 5 | Messages this short are searched together with the previous user message. `0` turns it off |
-| `chat.api_key_name` | (empty) | The name of the environment variable that holds the key of an online chat service (for example `GROQ_API_KEY`). Empty for Ollama. The key itself is never stored |
-| `chat.base_url` | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://host.docker.internal:11434` from a Docker container) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable named in the key name of the model (for example `GEMINI_API_KEY`), never a setting |
-| `chat.model` | `qwen2.5:7b` | Model that writes the answers |
-| `chat.temperature` | 0.2 | Randomness. 0 gives the most repeatable answers |
-| `chat.top_p` | 0.9 | Sent to Ollama |
-| `chat.num_ctx` | 4096 | Context window in tokens. The system prompt, history, sections and answer must fit |
-| `chat.reasoning_effort` | (empty) | Only for an online service: asks a thinking model to think less (for example `none`, `minimal`, `low`), which makes the first word arrive sooner. Empty sends nothing |
-| `chat.max_tokens` | 2000 | Maximum answer length (`num_predict` for Ollama, `max_tokens` for an online service). Replies are short because the prompt asks for that, so this is only a safety limit. Keep it generous: a model that thinks counts its thinking in it, and when it is used up the chat reports that the reply was cut off (raise it, or lower `chat.reasoning_effort`) |
-| `chat.history_messages` | 3 | How many recent messages the model gets. More messages mean a longer prompt and a slower reply. 1 is enough for a ticket, because the assistant's offer states the problem. A short follow-up is searched together with the previous question, taken from the whole conversation the page sends, whatever this is set to |
-| `chat.system_prompt` | (long text) | The six kinds of message and the reply format. Placeholders: `{{departments}}`, `{{department_names}}` |
-| `chat.format_reminder` | (short text) | Repeated at the end of the final user message. Same placeholders |
+| Key                             | Default                  | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `embedding.base_url`            | `http://localhost:11434` | Where the embedding model runs. No path (`http://localhost:11434`) is Ollama's own API (`/api/embed`); a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI format (`/embeddings`). From a Docker container, an Ollama on the computer is `http://host.docker.internal:11434`                                                                                                                                                         |
+| `embedding.api_key_name`        | (empty)                  | The name of the environment variable that holds the key of an online embedding service (for example `GEMINI_API_KEY`). The key itself is never stored                                                                                                                                                                                                                                                                                                                 |
+| `embedding.model`               | `nomic-embed-text`       | The model that makes the vectors. **Changing it converts all the stored knowledge**: every section is embedded again with the new model, and the change is saved only when that worked. The embedding settings are changed with Use on the Settings page, not by editing them                                                                                                                                                                                         |
+| `retrieval.top_k`               | 4                        | How many sections to fetch                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `retrieval.min_score`           | 0.5                      | Sections below this are dropped                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `retrieval.max_score_gap`       | 0.05                     | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off                                                                                                                                                                                                                                                                                                                                   |
+| `retrieval.follow_up_max_words` | 5                        | Messages this short are searched together with the previous user message. `0` turns it off                                                                                                                                                                                                                                                                                                                                                                            |
+| `chat.api_key_name`             | (empty)                  | The name of the environment variable that holds the key of an online chat service (for example `GROQ_API_KEY`). Empty for Ollama. The key itself is never stored                                                                                                                                                                                                                                                                                                      |
+| `chat.base_url`                 | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://host.docker.internal:11434` from a Docker container) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable named in the key name of the model (for example `GEMINI_API_KEY`), never a setting |
+| `chat.model`                    | `qwen2.5:7b`             | Model that writes the answers                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `chat.temperature`              | 0.2                      | Randomness. 0 gives the most repeatable answers                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `chat.top_p`                    | 0.9                      | Sent to Ollama                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `chat.num_ctx`                  | 4096                     | Context window in tokens. The system prompt, history, sections and answer must fit                                                                                                                                                                                                                                                                                                                                                                                    |
+| `chat.reasoning_effort`         | (empty)                  | Only for an online service: asks a thinking model to think less (for example `none`, `minimal`, `low`), which makes the first word arrive sooner. Empty sends nothing                                                                                                                                                                                                                                                                                                 |
+| `chat.max_tokens`               | 2000                     | Maximum answer length (`num_predict` for Ollama, `max_tokens` for an online service). Replies are short because the prompt asks for that, so this is only a safety limit. Keep it generous: a model that thinks counts its thinking in it, and when it is used up the chat reports that the reply was cut off (raise it, or lower `chat.reasoning_effort`)                                                                                                            |
+| `chat.history_messages`         | 3                        | How many recent messages the model gets. More messages mean a longer prompt and a slower reply. 1 is enough for a ticket, because the assistant's offer states the problem. A short follow-up is searched together with the previous question, taken from the whole conversation the page sends, whatever this is set to                                                                                                                                              |
+| `chat.system_prompt`            | (long text)              | The six kinds of message and the reply format. Placeholders: `{{departments}}`, `{{department_names}}`                                                                                                                                                                                                                                                                                                                                                                |
+| `chat.format_reminder`          | (short text)             | Repeated at the end of the final user message. Same placeholders                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 A model named in a setting must exist at its address: for Ollama it must be pulled (`ollama pull <model>` on that computer), and an online service has its own model names. Nothing writes the settings at startup: a setting with no row uses its default, and **Load default AI assistant data** (Settings, Manage App Data tab) saves all of them as rows (and resets any value we changed). So an old prompt stays until we edit it or restore the defaults.
 

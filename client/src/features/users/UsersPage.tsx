@@ -82,7 +82,7 @@ export default function UsersPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         title="Users"
         description="Add, edit and remove users, and manage their departments."
@@ -119,23 +119,23 @@ export default function UsersPage() {
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
-          <p className="px-6 py-12 text-center text-sm text-slate-500">Loading users...</p>
+          <p className="px-4 py-12 text-center sm:px-6 text-sm text-slate-500">Loading users...</p>
         ) : users.length === 0 ? (
-          <p className="px-6 py-12 text-center text-sm text-slate-500">No users yet.</p>
+          <p className="px-4 py-12 text-center sm:px-6 text-sm text-slate-500">No users yet.</p>
         ) : (
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-6 py-3 font-medium">User</th>
-                <th className="hidden px-6 py-3 font-medium md:table-cell">Username</th>
-                <th className="px-6 py-3 font-medium">Department</th>
-                <th className="px-6 py-3" />
+                <th className="px-4 sm:px-6 py-3 font-medium">User</th>
+                <th className="hidden px-4 sm:px-6 py-3 font-medium md:table-cell">Username</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Department</th>
+                <th className="px-4 sm:px-6 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50/60">
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex items-center gap-3">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
                         {user.fullName[0]}
@@ -146,11 +146,11 @@ export default function UsersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="hidden px-6 py-4 text-slate-600 md:table-cell">{user.username}</td>
-                  <td className="px-6 py-4">
+                  <td className="hidden px-4 sm:px-6 py-4 text-slate-600 md:table-cell">{user.username}</td>
+                  <td className="px-4 sm:px-6 py-4">
                     <CategoryBadge name={user.departmentName} />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => openForm(user)}>
                         Edit

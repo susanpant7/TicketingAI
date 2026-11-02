@@ -5,7 +5,7 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-indigo-600 px-4 py-2.5 text-sm leading-6 text-white shadow-sm">
+        <p className="max-w-[88%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md sm:max-w-[80%] bg-indigo-600 px-4 py-2.5 text-sm leading-6 text-white shadow-sm">
           {message.content}
         </p>
       </div>
@@ -15,7 +15,7 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   return (
     <div className="flex items-start gap-3">
       <AssistantAvatar />
-      <p className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-tl-md bg-white px-4 py-2.5 text-sm leading-6 text-slate-800 shadow-sm ring-1 ring-slate-200">
+      <p className="max-w-[88%] whitespace-pre-wrap break-words rounded-2xl rounded-tl-md sm:max-w-[80%] bg-white px-4 py-2.5 text-sm leading-6 text-slate-800 shadow-sm ring-1 ring-slate-200">
         {message.content}
       </p>
     </div>
@@ -36,7 +36,9 @@ export function TypingIndicator() {
             />
           ))}
         </div>
-        <p className="mt-2 text-xs text-slate-400">Searching the knowledge base and writing an answer. This can take up to a minute.</p>
+        <p className="mt-2 text-xs text-slate-400">
+          Searching the knowledge base and writing an answer. This can take up to a minute.
+        </p>
       </div>
     </div>
   )

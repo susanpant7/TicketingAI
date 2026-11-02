@@ -6,11 +6,7 @@ import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import { ChevronDownIcon, SparkleIcon } from '@/shared/components/icons'
 
-const suggestions = [
-  'How do I reset my password?',
-  "I can't connect to the VPN",
-  'How many leave days do I get?',
-]
+const suggestions = ['How do I reset my password?', "I can't connect to the VPN", 'How many leave days do I get?']
 
 interface ChatPanelProps {
   open: boolean
@@ -64,7 +60,7 @@ export default function ChatPanel({ open, onMinimize, onReply }: ChatPanelProps)
       role="dialog"
       aria-label="Chat assistant"
       onKeyDown={(e) => e.key === 'Escape' && onMinimize()}
-      className={`fixed bottom-4 right-4 z-30 h-[min(60rem,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 ${open ? 'flex' : 'hidden'}`}
+      className={`fixed inset-0 z-30 flex-col overflow-hidden bg-white shadow-2xl sm:inset-auto sm:bottom-4 sm:right-4 sm:h-[min(60rem,calc(100dvh-2rem))] sm:w-[calc(100vw-2rem)] sm:max-w-5xl sm:rounded-2xl sm:ring-1 sm:ring-slate-200 ${open ? 'flex' : 'hidden'}`}
     >
       <header className="flex items-center gap-3 bg-indigo-600 px-4 py-3 text-white">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/20">

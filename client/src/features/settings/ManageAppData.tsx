@@ -179,7 +179,7 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 max-w-2xl">
             <h2 className="font-semibold text-slate-900">Load all default data</h2>
@@ -215,7 +215,7 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Load default data for one part</h2>
         <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {modules.map((module) => (
-            <div key={module.id} className="grid gap-3 px-6 py-5 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div key={module.id} className="grid gap-3 px-4 py-5 sm:px-6 sm:grid-cols-[1fr_auto] sm:items-center">
               <div className="min-w-0">
                 <p className="font-medium text-slate-900">{module.title}</p>
                 <p className="mt-1 text-sm text-slate-500">{module.description}</p>
@@ -244,7 +244,7 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
         </div>
       </section>
 
-      <section className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 max-w-2xl">
             <h2 className="font-semibold text-red-700">Clean up data</h2>

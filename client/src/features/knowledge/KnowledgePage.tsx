@@ -99,11 +99,17 @@ export default function KnowledgePage() {
     try {
       // The last section goes with its document, since a document needs at least one section.
       if (sections.length === 1) await deleteKnowledgeDocument(sourceFile)
-      else await saveSections(sourceFile, sections.filter((_, i) => i !== index))
+      else
+        await saveSections(
+          sourceFile,
+          sections.filter((_, i) => i !== index),
+        )
       setNotice(`Deleted "${sections[index].heading}" from ${titleOf(sourceFile)}.`)
       refresh()
     } catch (err) {
-      setError(err instanceof Error && !(err instanceof TypeError) ? err.message : errorMessage(err, 'Could not delete the section.'))
+      setError(
+        err instanceof Error && !(err instanceof TypeError) ? err.message : errorMessage(err, 'Could not delete the section.'),
+      )
     } finally {
       setBusy(false)
       setDeletingSection(null)
@@ -144,7 +150,7 @@ export default function KnowledgePage() {
   const lastIngested = chunks.length > 0 ? chunks.reduce((a, b) => (a.ingestedAt > b.ingestedAt ? a : b)).ingestedAt : null
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         title="Knowledge"
         description="The assistant answers from this knowledge base: documents uploaded below or written here, one tab per department."
@@ -173,10 +179,11 @@ export default function KnowledgePage() {
       {(loading || chunks.length > 0 || !error) && (
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {loading ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">Loading...</p>
+            <p className="px-4 py-12 text-center sm:px-6 text-sm text-slate-500">Loading...</p>
           ) : chunks.length === 0 ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">
-              The knowledge base is empty. Upload or write documents above, or load the default files in Settings → Manage App Data.
+            <p className="px-4 py-12 text-center sm:px-6 text-sm text-slate-500">
+              The knowledge base is empty. Upload or write documents above, or load the default files in Settings → Manage App
+              Data.
             </p>
           ) : (
             <>
@@ -184,10 +191,10 @@ export default function KnowledgePage() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-6 py-3 font-medium">Section</th>
-                    <th className="hidden px-6 py-3 font-medium md:table-cell">Document</th>
-                    {selectedTab === ALL && <th className="px-6 py-3 font-medium">Category</th>}
-                    <th className="px-6 py-3" />
+                    <th className="px-4 sm:px-6 py-3 font-medium">Section</th>
+                    <th className="hidden px-4 sm:px-6 py-3 font-medium md:table-cell">Document</th>
+                    {selectedTab === ALL && <th className="px-4 sm:px-6 py-3 font-medium">Category</th>}
+                    <th className="px-4 sm:px-6 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -199,15 +206,37 @@ export default function KnowledgePage() {
                         onClick={() => setExpandedId(expandedId === chunk.id ? null : chunk.id)}
                         className="cursor-pointer align-top hover:bg-slate-50/60"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <p className="font-medium text-slate-900">{chunk.heading}</p>
                           <p
                             className={`mt-1 max-w-xl whitespace-pre-wrap text-slate-500 ${expandedId === chunk.id ? '' : 'line-clamp-1'}`}
                           >
                             {chunk.content}
                           </p>
+                          {/* On a phone the Document column is hidden, so its title and links are here. */}
+                          <div className="mt-2 md:hidden" onClick={(e) => e.stopPropagation()}>
+                            <p className="text-xs text-slate-500">{chunk.documentTitle}</p>
+                            <div className="mt-1 flex gap-3 text-xs">
+                              <button
+                                type="button"
+                                disabled={busy}
+                                className="font-medium text-indigo-600 hover:text-indigo-500"
+                                onClick={() => setEditing(chunk.sourceFile)}
+                              >
+                                Edit document
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                className="font-medium text-indigo-600 hover:text-indigo-500"
+                                onClick={() => setEditingSection({ sourceFile: chunk.sourceFile, index: null })}
+                              >
+                                Add section
+                              </button>
+                            </div>
+                          </div>
                         </td>
-                        <td className="hidden px-6 py-4 md:table-cell">
+                        <td className="hidden px-4 sm:px-6 py-4 md:table-cell">
                           <p className="text-slate-600">{chunk.documentTitle}</p>
                           <div className="mt-1 flex gap-3 text-xs" onClick={(e) => e.stopPropagation()}>
                             <button
@@ -229,11 +258,11 @@ export default function KnowledgePage() {
                           </div>
                         </td>
                         {selectedTab === ALL && (
-                          <td className="px-6 py-4">
+                          <td className="px-4 sm:px-6 py-4">
                             <CategoryBadge name={chunk.category} />
                           </td>
                         )}
-                        <td className="px-6 py-3">
+                        <td className="px-4 sm:px-6 py-3">
                           <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
@@ -342,19 +371,20 @@ function SearchTester() {
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-base font-semibold text-slate-900">Test a question</h2>
       <p className="mt-1 text-sm text-slate-500">
-        See which sections the assistant would find for a question. Use the scores to tune the minimum similarity on the Settings page.
+        See which sections the assistant would find for a question. Use the scores to tune the minimum similarity on the Settings
+        page.
       </p>
-      <form onSubmit={handleSearch} className="mt-4 flex gap-3">
+      <form onSubmit={handleSearch} className="mt-4 flex flex-col gap-3 sm:flex-row">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="How many leave days do I get?"
           maxLength={500}
           aria-label="Question"
-          className="block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+          className="block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm ring-1 sm:text-sm ring-inset ring-slate-300 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-600"
         />
         <Button type="submit" disabled={searching || query.trim().length === 0}>
           {searching ? 'Searching...' : 'Search'}

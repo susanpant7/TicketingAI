@@ -2,14 +2,7 @@ import type { ComponentType, SVGProps } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
 import { buttonClass } from '@/shared/components/buttonStyles'
-import {
-  BookIcon,
-  BuildingIcon,
-  ChatIcon,
-  SlidersIcon,
-  TicketIcon,
-  UsersIcon,
-} from '@/shared/components/icons'
+import { BookIcon, BuildingIcon, ChatIcon, SlidersIcon, TicketIcon, UsersIcon } from '@/shared/components/icons'
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>
 
@@ -58,17 +51,17 @@ export default function HomePage() {
   return (
     <main>
       <section className="bg-gradient-to-b from-indigo-50 via-white to-slate-50">
-        <div className="mx-auto max-w-4xl px-6 py-20 text-center">
+        <div className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 sm:py-20">
           <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
             {isAdmin ? 'Administration' : 'Company support'}
           </span>
 
           {isAuthenticated && user ? (
             <>
-              <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              <h1 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl">
                 Hello, <span className="text-indigo-600">{user.username}</span>
               </h1>
-              <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+              <p className="mx-auto mt-5 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8 text-slate-600">
                 {isAdmin
                   ? 'Keep the assistant useful: set up the departments and users, and keep its knowledge up to date.'
                   : 'Ask the assistant anything about work. Use the chat button at the bottom right of the page.'}
@@ -83,13 +76,13 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+              <h1 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-6xl">
                 Support that answers
                 <span className="text-indigo-600"> before you ask twice</span>
               </h1>
-              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-                Chat with an AI assistant that knows your company, and turn any unresolved issue into a ticket for the
-                right department in seconds.
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8 text-slate-600">
+                Chat with an AI assistant that knows your company, and turn any unresolved issue into a ticket for the right
+                department in seconds.
               </p>
               <div className="mt-10 flex justify-center">
                 <Link to="/login" className={buttonClass('primary', 'lg')}>
@@ -102,8 +95,8 @@ export default function HomePage() {
       </section>
 
       {isAdmin ? (
-        <section className="mx-auto max-w-6xl px-6 pb-24">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {adminLinks.map(({ to, ...card }) => (
               <Link
                 key={to}
@@ -116,9 +109,9 @@ export default function HomePage() {
           </div>
         </section>
       ) : (
-        <section className="mx-auto max-w-6xl px-6 pb-24">
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
           <h2 className="text-center text-sm font-semibold uppercase tracking-wide text-slate-500">How it works</h2>
-          <div className="mt-6 grid gap-6 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-3 sm:gap-6">
             {steps.map((step, index) => (
               <div key={step.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="mb-4 text-xs font-semibold text-indigo-600">Step {index + 1}</p>

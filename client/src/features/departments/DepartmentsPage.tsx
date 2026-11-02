@@ -27,7 +27,10 @@ export default function DepartmentsPage() {
         setDepartments(loaded)
         setError('')
       })
-      .catch((err) => !ignore && setError(errorMessage(err, 'Could not load the departments. Make sure the API is running, then try again.')))
+      .catch(
+        (err) =>
+          !ignore && setError(errorMessage(err, 'Could not load the departments. Make sure the API is running, then try again.')),
+      )
       .finally(() => !ignore && setLoading(false))
     return () => {
       ignore = true
@@ -83,12 +86,12 @@ export default function DepartmentsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         title="Departments"
         description="Add, rename and delete departments. A department that still has users cannot be deleted."
         action={
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button variant="secondary" onClick={handleLoadDefaults} disabled={loadingDefaults}>
               {loadingDefaults ? 'Loading...' : 'Load default departments'}
             </Button>
@@ -106,27 +109,28 @@ export default function DepartmentsPage() {
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
-          <p className="px-6 py-12 text-center text-sm text-slate-500">Loading departments...</p>
+          <p className="px-4 py-12 text-center sm:px-6 text-sm text-slate-500">Loading departments...</p>
         ) : departments.length === 0 ? (
-          <p className="px-6 py-12 text-center text-sm text-slate-500">No departments yet.</p>
+          <p className="px-4 py-12 text-center sm:px-6 text-sm text-slate-500">No departments yet.</p>
         ) : (
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-6 py-3 font-medium">Department</th>
-                <th className="hidden px-6 py-3 font-medium md:table-cell">Contact</th>
-                <th className="px-6 py-3" />
+                <th className="px-4 sm:px-6 py-3 font-medium">Department</th>
+                <th className="hidden px-4 sm:px-6 py-3 font-medium md:table-cell">Contact</th>
+                <th className="px-4 sm:px-6 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {departments.map((department) => (
                 <tr key={department.id} className="hover:bg-slate-50/60">
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <p className="font-medium text-slate-900">{department.name}</p>
                     {department.description && <p className="mt-0.5 text-slate-500">{department.description}</p>}
+                    <p className="mt-1 break-all text-xs text-slate-500 md:hidden">{department.contact}</p>
                   </td>
-                  <td className="hidden px-6 py-4 text-slate-600 md:table-cell">{department.contact}</td>
-                  <td className="px-6 py-4">
+                  <td className="hidden px-4 sm:px-6 py-4 text-slate-600 md:table-cell">{department.contact}</td>
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => openForm(department)}>
                         Edit

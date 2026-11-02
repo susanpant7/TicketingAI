@@ -52,7 +52,12 @@ export default function KnowledgeEditor({
     setError('')
     setSaving(true)
     try {
-      const result = await saveKnowledgeDocument({ sourceFile, title: title.trim(), departmentId: Number(departmentId), sections })
+      const result = await saveKnowledgeDocument({
+        sourceFile,
+        title: title.trim(),
+        departmentId: Number(departmentId),
+        sections,
+      })
       if (result.error) {
         setError(result.error)
         setSaving(false)

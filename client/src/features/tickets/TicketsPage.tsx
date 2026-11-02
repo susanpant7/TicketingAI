@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/features/auth/useAuth'
-import {
-  getTickets,
-  STATUS_LABELS,
-  updateTicketStatus,
-  type Ticket,
-  type TicketStatus,
-} from '@/features/tickets/ticketsApi'
+import { getTickets, STATUS_LABELS, updateTicketStatus, type Ticket, type TicketStatus } from '@/features/tickets/ticketsApi'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
 import CategoryBadge from '@/shared/components/CategoryBadge'
@@ -48,7 +42,10 @@ export default function TicketsPage() {
     let ignore = false
     getTickets()
       .then((loaded) => !ignore && setTickets(loaded))
-      .catch((err) => !ignore && setError(errorMessage(err, 'Could not load the tickets. Make sure the API is running, then try again.')))
+      .catch(
+        (err) =>
+          !ignore && setError(errorMessage(err, 'Could not load the tickets. Make sure the API is running, then try again.')),
+      )
       .finally(() => !ignore && setLoading(false))
     return () => {
       ignore = true
@@ -81,7 +78,7 @@ export default function TicketsPage() {
   ]
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         title="Tickets"
         description={isAdmin ? 'All the tickets.' : 'Tickets you reported and tickets assigned to you.'}
@@ -100,7 +97,7 @@ export default function TicketsPage() {
           {!isAdmin && <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />}
 
           {visible.length === 0 ? (
-            <div className="flex flex-col items-center px-6 py-16 text-center">
+            <div className="flex flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16">
               <span className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                 <InboxIcon className="size-6" />
               </span>
@@ -117,16 +114,16 @@ export default function TicketsPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Ticket</th>
-                  <th className="px-6 py-3 font-medium">Department</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Ticket</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Department</th>
                   {(isAdmin || !showAssignedColumns) && (
-                    <th className="hidden px-6 py-3 font-medium md:table-cell">Assigned to</th>
+                    <th className="hidden px-4 sm:px-6 py-3 font-medium md:table-cell">Assigned to</th>
                   )}
                   {(isAdmin || showAssignedColumns) && (
-                    <th className="hidden px-6 py-3 font-medium md:table-cell">Reported by</th>
+                    <th className="hidden px-4 sm:px-6 py-3 font-medium md:table-cell">Reported by</th>
                   )}
-                  <th className="hidden px-6 py-3 font-medium lg:table-cell">Created</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="hidden px-4 sm:px-6 py-3 font-medium lg:table-cell">Created</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -136,7 +133,7 @@ export default function TicketsPage() {
                     onClick={() => setExpandedId(expandedId === ticket.id ? null : ticket.id)}
                     className="cursor-pointer align-top hover:bg-slate-50/60"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <p className="font-medium text-slate-900">
                         #{ticket.id} {ticket.title}
                       </p>
@@ -145,18 +142,24 @@ export default function TicketsPage() {
                       >
                         {ticket.description}
                       </p>
+                      {/* On a phone the Assigned to, Reported by and Created columns are hidden, so they are here. */}
+                      <p className="mt-1 text-xs text-slate-500 lg:hidden">
+                        {(isAdmin || !showAssignedColumns) && <span className="md:hidden">To {ticket.assignedTo} · </span>}
+                        {(isAdmin || showAssignedColumns) && <span className="md:hidden">By {ticket.reportedBy} · </span>}
+                        {formatDate(ticket.createdAt)}
+                      </p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <CategoryBadge name={ticket.department} />
                     </td>
                     {(isAdmin || !showAssignedColumns) && (
-                      <td className="hidden px-6 py-4 text-slate-600 md:table-cell">{ticket.assignedTo}</td>
+                      <td className="hidden px-4 sm:px-6 py-4 text-slate-600 md:table-cell">{ticket.assignedTo}</td>
                     )}
                     {(isAdmin || showAssignedColumns) && (
-                      <td className="hidden px-6 py-4 text-slate-600 md:table-cell">{ticket.reportedBy}</td>
+                      <td className="hidden px-4 sm:px-6 py-4 text-slate-600 md:table-cell">{ticket.reportedBy}</td>
                     )}
-                    <td className="hidden px-6 py-4 text-slate-600 lg:table-cell">{formatDate(ticket.createdAt)}</td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    <td className="hidden px-4 sm:px-6 py-4 text-slate-600 lg:table-cell">{formatDate(ticket.createdAt)}</td>
+                    <td className="px-4 sm:px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       {canChangeStatus ? (
                         <select
                           aria-label={`Status of ticket ${ticket.id}`}

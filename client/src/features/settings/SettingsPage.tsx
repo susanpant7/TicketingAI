@@ -91,7 +91,7 @@ export default function SettingsPage() {
   }, [knowledgeVersion])
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       {knowledgeCount === 0 && (
         <div role="alert" className="mb-6 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-white shadow-sm">
           The app does not have any knowledge files. Select an embedding model to load the knowledge data.
@@ -185,7 +185,7 @@ function AiSettingsList({ onKnowledgeChanged }: { onKnowledgeChanged: () => void
             {rowsOf(group).length > 0 && (
               <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 {rowsOf(group).map((setting) => (
-                  <div key={setting.key} className="grid gap-3 px-6 py-5 sm:grid-cols-[1fr_18rem_auto] sm:items-start">
+                  <div key={setting.key} className="grid gap-3 px-4 py-5 sm:px-6 lg:grid-cols-[1fr_18rem_auto] lg:items-start">
                     <div className="min-w-0">
                       <p className="font-medium text-slate-900">{setting.label}</p>
                       <p className="mt-1 text-sm text-slate-500">{setting.description}</p>

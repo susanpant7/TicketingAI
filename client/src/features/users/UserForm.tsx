@@ -53,13 +53,7 @@ export default function UserForm({ user, departments, onSaved, onCancel }: UserF
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <TextField
-            label="Full name"
-            required
-            maxLength={100}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
+          <TextField label="Full name" required maxLength={100} value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </div>
 
         <TextField label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

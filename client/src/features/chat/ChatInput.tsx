@@ -50,7 +50,7 @@ export default function ChatInput({ disabled, onSend }: ChatInputProps) {
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type your question..."
-        className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+        className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2 text-base text-slate-900 sm:text-sm placeholder:text-slate-400 focus:outline-none"
       />
       <button
         type="submit"
