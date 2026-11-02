@@ -1,6 +1,6 @@
 # How to run and use the app
 
-Ticketing AI is a support app for a company. Employees chat with an AI assistant that answers from the company's own knowledge. If the answer does not solve the problem, the assistant can create a ticket and assign it to someone in the right department. This page explains how to run the app, how to set it up the first time, and how to use it. How the AI works is on the [AI and RAG](/docs?tab=ai-rag) tab.
+Ticketing AI is a support app for a company. Employees chat with an AI assistant that answers from the company's own knowledge. If the answer does not solve the problem, the assistant can create a ticket and assign it to someone in the right department. This page explains how to run the app, how to set it up the first time, and how to use it. How the AI works is explained in simple words on the [AI and RAG](/docs?tab=ai-rag) tab, and step by step on the [Workflow](/docs?tab=workflow) tab.
 
 **The code is on GitHub:** [github.com/susanpant7/TicketingAI](https://github.com/susanpant7/TicketingAI). To get it:
 
