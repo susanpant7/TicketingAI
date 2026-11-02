@@ -102,7 +102,7 @@ export default function SettingsPage() {
         description="How the assistant searches the knowledge and writes its answers, and the app's default data."
       />
       <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <Tabs tabs={tabs} active={tab} onChange={setTab} />
+        <Tabs fill tabs={tabs} active={tab} onChange={setTab} />
       </div>
       <div className="mt-6">
         {tab === 'ai' ? <AiSettingsList onKnowledgeChanged={knowledgeChanged} /> : <ManageAppData onChanged={knowledgeChanged} />}

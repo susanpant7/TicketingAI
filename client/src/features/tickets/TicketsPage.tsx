@@ -94,7 +94,7 @@ export default function TicketsPage() {
         <p className="mt-8 text-center text-sm text-slate-500">Loading...</p>
       ) : (
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {!isAdmin && <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />}
+          {!isAdmin && <Tabs fill tabs={tabs} active={activeTab} onChange={setActiveTab} />}
 
           {visible.length === 0 ? (
             <div className="flex flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16">

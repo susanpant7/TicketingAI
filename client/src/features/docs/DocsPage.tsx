@@ -28,7 +28,7 @@ export default function DocsPage() {
         description="How to run the app, the ideas behind its AI and RAG, and how the app works step by step."
       />
       <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <Tabs tabs={tabs} active={tab} onChange={(id) => setParams(id === 'installation' ? {} : { tab: id })} />
+        <Tabs fill tabs={tabs} active={tab} onChange={(id) => setParams(id === 'installation' ? {} : { tab: id })} />
       </div>
       <div className="mt-6">
         <MarkdownDocument key={tab} markdown={documents[tab]} />
