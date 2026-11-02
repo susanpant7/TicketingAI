@@ -572,6 +572,108 @@ The ticket offer in step 2 names the problem and the department, so the title an
 
 The model does not know who the ticket goes to, which is why the prompt tells it not to name the assignee.
 
+### 7.3 The requests and responses, in simple words
+
+There is **no "create ticket" request** that the page sends. The page only sends the chat message, as it does for every message. The ticket is created inside the server while it handles that message. Here is what goes over the wire for the same conversation.
+
+**Who is asking.** Every request carries the login token in a header, `Authorization: Bearer <token>`. The server reads the employee id from it, and that employee becomes the **reporter** of the ticket. The page never sends who the reporter is.
+
+**Request 1: the problem.** `POST /api/chat/stream`. The body is the new message and the earlier messages of the conversation (the server keeps no conversation of its own):
+
+```json
+{
+  "message": "i am not able to reset my password",
+  "history": []
+}
+```
+
+The answer comes back one JSON object per line, so the page can show the text while it is written. `draft` lines are the reply so far, and the last line, `reply`, is the final answer:
+
+```
+{"draft":"You can try resetting your password at password.ticket.com ..."}
+{"reply":{"answer":"You can try resetting your password at password.ticket.com ...\n\nIf this does not solve the issue, I can create a ticket for the IT department. Let me know.","department":"IT"}}
+```
+
+**Request 2: the problem is not solved.** The page sends the whole conversation so far in `history`:
+
+```json
+{
+  "message": "that did not work",
+  "history": [
+    { "role": "user", "content": "i am not able to reset my password" },
+    { "role": "assistant", "content": "You can try resetting your password ... Let me know." }
+  ]
+}
+```
+
+```json
+{ "reply": { "answer": "Resetting your password did not work. Do you want me to create a ticket for the IT department?", "department": "IT" } }
+```
+
+Nothing is created yet. The model only offered.
+
+**Request 3: "yes".** This is the request that creates the ticket. The body looks like the one before, with one more pair of messages in `history`:
+
+```json
+{
+  "message": "yes",
+  "history": [
+    { "role": "user", "content": "i am not able to reset my password" },
+    { "role": "assistant", "content": "You can try resetting your password ... Let me know." },
+    { "role": "user", "content": "that did not work" },
+    { "role": "assistant", "content": "Resetting your password did not work. Do you want me to create a ticket for the IT department?" }
+  ]
+}
+```
+
+Inside the server, in this order:
+1. The model sees its own offer and writes the ticket lines (`Action: create_ticket`, `Title: ...`, `Description: ...`) in its raw reply (section 11, step 3).
+2. The server checks the lines (section 7.2), picks the person in the IT department in turn, and saves the row in the `Tickets` table:
+
+   | Column | Value |
+   | --- | --- |
+   | `Title`, `Description` | from the model's lines |
+   | `Department` | IT, the one the model named |
+   | `ReportedBy` | the employee from the token |
+   | `AssignedTo` | the next IT member in turn (never the admin) |
+   | `Status` | `New` |
+   | `CreatedAt` | now |
+
+3. It answers with the model's sentence, and its own facts after it:
+
+```json
+{ "reply": { "answer": "I'm creating the ticket now.\n\nTicket #1 was created and assigned to Aarav Sharma (IT).", "department": "IT" } }
+```
+
+If the line says `create_ticket` but something is wrong (the department is unknown, it has no members, the caller is the admin, the title is empty), no ticket is saved, and the answer is a plain message instead.
+
+**Seeing the ticket: `GET /api/tickets`.** No body. The Tickets page asks for the list, and the server returns the tickets the person reported or that are assigned to them (the admin gets all of them):
+
+```json
+[
+  {
+    "id": 1,
+    "title": "Cannot reset password",
+    "description": "The employee cannot reset their password with the self-service page, and the suggested steps did not work.",
+    "department": "IT",
+    "status": "New",
+    "reportedBy": "Meera Thapa",
+    "reportedByUsername": "meera",
+    "assignedTo": "Aarav Sharma",
+    "assignedToUsername": "aarav",
+    "createdAt": "2026-11-01T10:42:00Z"
+  }
+]
+```
+
+**Changing the status: `PUT /api/tickets/1/status`.** Only the person the ticket is assigned to can do it. The body holds the new status, which is `New`, `InProgress` or `Completed`:
+
+```json
+{ "status": "InProgress" }
+```
+
+The response is the changed ticket, in the same shape as above. For anyone else the server answers `403` with a message, and `404` when the ticket does not exist.
+
 ## 12. Settings that tune the AI
 
 All of these are rows in the `Settings` table, editable on the Settings page (admin). They are read before every embedding and chat call with no cache, so a change applies to the next message.
