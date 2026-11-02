@@ -194,10 +194,24 @@ The **embedding model** is chosen the same way, in the Embedding group of the Se
    cloudflared tunnel route dns ollama <my-ollama>.susanpant.com.np
    ```
 
+   **Or in the Cloudflare dashboard,** without the commands above (the names of the menus can differ a little between versions):
+
+   1. Open the Cloudflare dashboard, go to **Zero Trust**, then **Networks**, then **Tunnels**, and click **Create a tunnel**.
+   2. Choose **Cloudflared**, name the tunnel `ollama`, and save. The page shows an install command with a token. We keep it for step 3.
+   3. Open the **Public Hostname** tab (or **Add a public hostname**) and fill it in: **Subdomain** `<my-ollama>` (a long random name), **Domain** `susanpant.com.np`, **Type** `HTTP`, **URL** `localhost:11434`.
+   4. Under **Additional application settings**, then **HTTP Settings**, set **HTTP Host Header** to `localhost:11434`. Without it, Ollama refuses the requests.
+   5. Save the hostname. Cloudflare adds the DNS record for us.
+
 3. **Run the tunnel.** Ollama only accepts requests for its own host name, so the Host header is rewritten. We leave this terminal open:
 
    ```bash
    cloudflared tunnel run --url http://localhost:11434 --http-host-header localhost:11434 ollama
+   ```
+
+   If we created the tunnel in the dashboard, its address and Host header are already saved there, so we run the command the dashboard shows instead (it uses the token):
+
+   ```bash
+   cloudflared tunnel run --token <token>
    ```
 
    In a second terminal we check it. The models of our computer must be listed:
@@ -207,6 +221,15 @@ The **embedding model** is chosen the same way, in the Embedding group of the Se
    ```
 
 4. **Add it in the app.** On Settings, AI assistant tab, in the Embeddings part, we click **Edit** on "Ollama on our computer, from a server". We put our address in it, with no path, for example `https://<my-ollama>.susanpant.com.np` (not `.../api/tags`). The model is `nomic-embed-text` and the API key name stays empty. We save, then click **View models** on the new saved model and **Select** `nomic-embed-text`. The stored knowledge is cleaned and inserted again through our computer.
+
+**The next time,** the tunnel, its address and the saved model already exist, so we only start Ollama and the tunnel again. Steps 1 and 2 and the setup in the app are not repeated:
+
+```bash
+ollama serve                       # skip this if the Ollama desktop app is already running
+cloudflared tunnel run --url http://localhost:11434 --http-host-header localhost:11434 ollama
+```
+
+(`ollama` here is the name we gave the tunnel with `cloudflared tunnel create`. For a tunnel made in the dashboard, we run `cloudflared tunnel run --token <token>` instead.) We leave that terminal open for as long as the embeddings are used.
 
 Ollama and the tunnel must stay running, and the computer must be awake, because every question is embedded there. If they are off, the chat and the knowledge upload fail with "Cannot reach Ollama". The chat model is separate: it can still be an online service. To stop sharing the address, we run `cloudflared tunnel delete ollama` and remove the DNS record in Cloudflare.
 
