@@ -177,6 +177,39 @@ For an online service, the key in `.env` is enough: nothing has to be downloaded
 
 The **embedding model** is chosen the same way, in the Embedding group of the Settings page. It is different in one thing: numbers from two different models cannot be compared, so **Select cleans the stored knowledge and inserts it again with the new model** (every section is embedded again). That takes about a minute, and the change is only saved when it worked, so a wrong key changes nothing. The two prefixes put in front of the texts are the same for every model and are not settings.
 
+**Using the Ollama on our computer for the embeddings, from a server.** A server such as Render cannot reach `localhost` on our computer. A **Cloudflare Tunnel** gives the Ollama on our computer a public https address, so the server can use it for the embeddings. The domain must be on Cloudflare, and `cloudflared` must be installed (`brew install cloudflared`).
+
+1. **Pull the embedding model** on our computer, and make sure Ollama is running:
+
+   ```bash
+   ollama pull nomic-embed-text
+   curl http://localhost:11434/api/tags
+   ```
+
+2. **Create the tunnel and its address.** We use a long random name, because there is no login on this address and anyone who knows it can use our Ollama. The second command adds the DNS record in Cloudflare by itself.
+
+   ```bash
+   cloudflared tunnel login
+   cloudflared tunnel create ollama
+   cloudflared tunnel route dns ollama <my-ollama>.susanpant.com.np
+   ```
+
+3. **Run the tunnel.** Ollama only accepts requests for its own host name, so the Host header is rewritten. We leave this terminal open:
+
+   ```bash
+   cloudflared tunnel run --url http://localhost:11434 --http-host-header localhost:11434 ollama
+   ```
+
+   In a second terminal we check it. The models of our computer must be listed:
+
+   ```bash
+   curl https://<my-ollama>.susanpant.com.np/api/tags
+   ```
+
+4. **Add it in the app.** On Settings, AI assistant tab, in the Embeddings part, we click **Edit** on "Ollama on our computer, from a server". We put our address in it, with no path, for example `https://<my-ollama>.susanpant.com.np` (not `.../api/tags`). The model is `nomic-embed-text` and the API key name stays empty. We save, then click **View models** on the new saved model and **Select** `nomic-embed-text`. The stored knowledge is cleaned and inserted again through our computer.
+
+Ollama and the tunnel must stay running, and the computer must be awake, because every question is embedded there. If they are off, the chat and the knowledge upload fail with "Cannot reach Ollama". The chat model is separate: it can still be an online service. To stop sharing the address, we run `cloudflared tunnel delete ollama` and remove the DNS record in Cloudflare.
+
 **Making replies faster.** On the Settings page we can lower **Results to retrieve** (4 by default), raise **Maximum score gap** carefully so fewer sections are sent (a shorter prompt is a faster reply), lower **Messages of history** (3 by default; 1 sends only the last message and still works for a ticket) and **Max answer length** (2000 by default; keep it generous, because a model that thinks counts its thinking in it, and then the chat says the reply was cut off). For a hosted model that thinks before it answers (such as the newer Gemini models), **Reasoning effort** can be set to `none`, `minimal` or `low`, depending on what the model accepts. The server log has a timing line for every message that shows where the time goes.
 
 ## 6. If something goes wrong
