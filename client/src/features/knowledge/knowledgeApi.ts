@@ -1,4 +1,5 @@
-import { apiFetch } from '@/shared/api/apiClient'
+import { apiFetch, ApiError } from '@/shared/api/apiClient'
+import { streamEvents } from '@/shared/api/streamClient'
 
 export interface KnowledgeChunk {
   id: number
@@ -11,7 +12,6 @@ export interface KnowledgeChunk {
 }
 
 export const getChunks = () => apiFetch<KnowledgeChunk[]>('/knowledge/chunks')
-
 
 export interface UploadFileResult {
   fileName: string
@@ -30,8 +30,26 @@ export function uploadKnowledge(departmentId: number, flush: boolean, files: Fil
   return apiFetch<UploadFileResult[]>('/knowledge/upload', { method: 'POST', body: form })
 }
 
-/** Uploads the default knowledge files into their departments, which must exist. */
-export const loadDefaultKnowledge = () => apiFetch<UploadFileResult[]>('/knowledge/load-defaults', { method: 'POST' })
+/**
+ * Uploads the default knowledge files into their departments, which must exist. It takes a while, so onProgress is told how many files
+ * are done of how many. Resolves with one result per file.
+ */
+export async function loadDefaultKnowledge(onProgress?: (done: number, total: number) => void): Promise<UploadFileResult[]> {
+  let results: UploadFileResult[] | null = null
+  let failure = ''
+  await streamEvents<{ progress?: { done: number; total: number }; result?: UploadFileResult[]; error?: string }>(
+    '/knowledge/load-defaults',
+    { method: 'POST' },
+    (event) => {
+      if (event.progress) onProgress?.(event.progress.done, event.progress.total)
+      if (event.result) results = event.result
+      if (event.error) failure = event.error
+    },
+  )
+  if (failure) throw new ApiError(502, failure)
+  if (!results) throw new ApiError(502, 'Loading the knowledge files was cut off. Please try again.')
+  return results
+}
 
 /** A section as written on the page. */
 export interface KnowledgeSectionInput {

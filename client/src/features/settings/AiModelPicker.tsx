@@ -3,6 +3,7 @@ import AiModelForm from '@/features/settings/AiModelForm'
 import ModelListDialog from '@/features/settings/ModelListDialog'
 import { loadDefaultDepartments } from '@/features/departments/departmentsApi'
 import { loadDefaultKnowledge } from '@/features/knowledge/knowledgeApi'
+import EmbeddingSwitchDialog, { type EmbeddingSwitch } from '@/features/settings/EmbeddingSwitchDialog'
 import ModelTourDialog, { type TourProvider } from '@/features/settings/ModelTourDialog'
 import {
   deleteSavedModel,
@@ -82,7 +83,8 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
   } | null>(null)
   const [deleting, setDeleting] = useState<SavedAiModel | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
-  const [confirming, setConfirming] = useState<Choice | null>(null)
+  // The dialog for changing the embedding model: the question, then the progress, then the result.
+  const [switching, setSwitching] = useState<(EmbeddingSwitch & { choice: Choice }) | null>(null)
   const [confirmingSearch, setConfirmingSearch] = useState(false)
   const [tour, setTour] = useState<'current' | 'beginning' | null>(null)
   const [viewing, setViewing] = useState<{ choice: Choice; loading: boolean; models: string[]; error: string } | null>(null)
@@ -122,9 +124,11 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     notes: (
       <>
         {p.freeTier}{' '}
-        <a href={p.signUpUrl} target="_blank" rel="noreferrer" className="font-semibold text-indigo-600 hover:underline">
-          {p.needsApiKey ? 'Get a key' : 'Download'}
-        </a>
+        {p.signUpUrl && (
+          <a href={p.signUpUrl} target="_blank" rel="noreferrer" className="font-semibold text-indigo-600 hover:underline">
+            {p.needsApiKey ? 'Get a key' : 'Download'}
+          </a>
+        )}
       </>
     ),
   }))
@@ -166,7 +170,8 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
   const tourProviders: TourProvider[] = [...services, ...savedChoices]
     .map((c): Choice => (sameUrl(c.baseUrl, current.baseUrl) ? { ...c, apiKeyName: keyInUse, hasApiKey: keyInUseSet } : c))
     .filter((c) => c.hasApiKey || !c.needsApiKey)
-    .filter((c) => !c.baseUrl.includes('<'))
+    // An address with a blank to fill in (the Ollama tunnel) is not tried. Cloudflare's <ACCOUNT_ID> is filled in by the server.
+    .filter((c) => !(c.baseUrl.includes('<') && !c.needsApiKey))
     .filter((c, i, all) => all.findIndex((other) => sameUrl(other.baseUrl, c.baseUrl)) === i)
 
   const currentKeyMissing = isOnline(current.baseUrl) && !(isEmbedding ? info.embeddingKeyInUseSet : info.chatKeyInUseSet)
@@ -175,37 +180,30 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
   // the settings when it worked.
   // Loads the default knowledge files after the first embedding model is selected. The files belong to the default departments, which
   // are added first when they are missing (the ones that exist are left as they are). A failure is a message, not an error.
-  async function loadKnowledge() {
+  async function loadKnowledge(onProgress: (done: number, total: number) => void) {
     try {
       await loadDefaultDepartments()
-      const results = await loadDefaultKnowledge()
+      const results = await loadDefaultKnowledge(onProgress)
       const failed = results.filter((r) => r.error)
       return failed.length > 0
-        ? `${failed.length} of ${results.length} knowledge files were not loaded. ${failed[0].error}`
-        : `The ${results.length} default knowledge files were loaded.`
+        ? { ok: false, text: `${failed.length} of ${results.length} knowledge files were not loaded. ${failed[0].error}` }
+        : { ok: true, text: `The ${results.length} default knowledge files were loaded.` }
     } catch (err) {
-      return `The knowledge files were not loaded: ${errorMessage(err, 'please try again.')} Load the knowledge files on the Knowledge page.`
+      return {
+        ok: false,
+        text: `The knowledge files were not loaded: ${errorMessage(err, 'please try again.')} Load the knowledge files on the Knowledge page.`,
+      }
     }
   }
 
-  async function apply(choice: Choice) {
+  // Chat: tests the model, then sets the settings.
+  async function applyChat(choice: Choice) {
     setError('')
     setNotice('')
-    setConfirming(null)
     setWorking(choice.key)
     try {
-      const { reembedded } = isEmbedding ? await switchEmbeddingModel(choice) : await switchChatModel(choice)
-      if (isEmbedding && reembedded === 0) {
-        // There was no knowledge, so the default knowledge files are loaded with the new model.
-        setNotice(`Now using ${choice.model}. Loading the knowledge files...`)
-        setNotice(`Now using ${choice.model}. ${await loadKnowledge()}`)
-      } else {
-        setNotice(
-          isEmbedding
-            ? `Now using ${choice.model}. The knowledge was cleaned and reinserted: ${reembedded} ${reembedded === 1 ? 'section was' : 'sections were'} embedded again.`
-            : `Now using ${choice.model}. It answered a test question, so it works with this key.`,
-        )
-      }
+      await switchChatModel(choice)
+      setNotice(`Now using ${choice.model}. It answered a test question, so it works with this key.`)
       onChanged()
     } catch (err) {
       setError(errorMessage(err, 'Could not switch the model. Nothing was changed.'))
@@ -214,7 +212,42 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     }
   }
 
-  const choose = (choice: Choice) => (isEmbedding ? setConfirming(choice) : apply(choice))
+  // Embedding: converts the stored knowledge to the new model first, which only saves the settings when it worked. The dialog stays
+  // open the whole time and shows how far it is.
+  async function switchEmbedding(choice: Choice) {
+    setError('')
+    setNotice('')
+    setWorking(choice.key)
+    const show = (step: string, done = 0, total = 0) =>
+      setSwitching({ state: 'running', model: choice.model, step, done, total, choice })
+    const finish = (ok: boolean, message: string) => setSwitching({ state: 'finished', model: choice.model, ok, message, choice })
+
+    show('Starting...')
+    try {
+      const { reembedded } = await switchEmbeddingModel(choice, (done, total) =>
+        show('Embedding the stored sections again with the new model...', done, total),
+      )
+      if (reembedded === 0) {
+        // There was no knowledge, so the default knowledge files are loaded with the new model.
+        show('Loading the default knowledge files...')
+        const loaded = await loadKnowledge((done, total) => show('Loading the default knowledge files...', done, total))
+        finish(loaded.ok, `Now using ${choice.model}. ${loaded.text}`)
+      } else {
+        finish(
+          true,
+          `Now using ${choice.model}. The knowledge was cleaned and reinserted: ${reembedded} ${reembedded === 1 ? 'section was' : 'sections were'} embedded again.`,
+        )
+      }
+      onChanged()
+    } catch (err) {
+      finish(false, errorMessage(err, 'Could not switch the model. Nothing was changed.'))
+    } finally {
+      setWorking('')
+    }
+  }
+
+  const choose = (choice: Choice) =>
+    isEmbedding ? setSwitching({ state: 'confirm', model: choice.model, choice }) : applyChat(choice)
 
   async function viewModels(choice: Choice) {
     setViewing({ choice, loading: true, models: [], error: '' })
@@ -272,41 +305,43 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
     </>
   )
 
+  const kindLabel = isEmbedding ? 'embedding' : 'chat'
+
   return (
-    <div className="mb-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 sm:p-6">
-      <h3 className="text-base font-semibold text-slate-900">Choosing the {isEmbedding ? 'embedding' : 'chat'} model</h3>
-      <p className="mt-1 text-sm text-slate-600">
-        {isEmbedding ? (
-          <>
-            An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine; one with a path is
-            an online service.{' '}
-            <strong>Selecting a model cleans the stored knowledge and inserts it again with the new model</strong> (about a
-            minute), and is only saved when that worked.
-          </>
-        ) : (
-          <>
-            An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine (free, private,
-            slower). One with a path is an online service (fast, but the questions and the knowledge are sent to it).
-          </>
-        )}{' '}
-        Each service's key is kept in <code>.env</code> under the <strong>API key name</strong> on its row. Only the name is saved
-        here.{' '}
-        {isEmbedding ? (
-          ''
-        ) : (
-          <>
-            The model list can include models this key cannot use, so <strong>Select</strong> tests the model first.
-          </>
-        )}
-      </p>
+    <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-base font-semibold text-slate-900">{isEmbedding ? 'Embedding' : 'Chat'} model in use</h3>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            disabled={working !== '' || tourProviders.length === 0}
+            onClick={() => setTour('current')}
+            title={`Tests the ${kindLabel} models after the one in use, one by one, and stops at the first that answers`}
+          >
+            Next model
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={working !== '' || tourProviders.length === 0}
+            onClick={() => setConfirmingSearch(true)}
+            title={`Tests the ${kindLabel} models from the first one, and stops at the first that answers`}
+          >
+            Search model from the beginning
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setForm({ saved: null })}>
+            Add {kindLabel} model
+          </Button>
+        </div>
+      </div>
 
       {currentKeyMissing && (
         <div className="mt-3">
           <Alert
             message={
               keyInUse
-                ? `The ${isEmbedding ? 'embedding' : 'chat'} model uses an online service, but its key (${keyInUse}) is not set in .env, so it can't work.`
-                : `The ${isEmbedding ? 'embedding' : 'chat'} model uses an online service, but no key name is saved for it. Select the model again, or Edit it and set the key name.`
+                ? `The ${kindLabel} model uses an online service, but its key (${keyInUse}) is not set in .env, so it can't work.`
+                : `The ${kindLabel} model uses an online service, but no key name is saved for it. Select the model again, or Edit it and set the key name.`
             }
           />
         </div>
@@ -316,14 +351,6 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
           <Alert
             variant="warning"
             message="Testing the model with a small question before switching. It is only used when it answers."
-          />
-        </div>
-      )}
-      {working !== '' && isEmbedding && (
-        <div className="mt-3">
-          <Alert
-            variant="warning"
-            message="Converting the knowledge to the new model. This can take a minute, please keep this page open."
           />
         </div>
       )}
@@ -338,32 +365,14 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button size="sm" disabled={working !== '' || tourProviders.length === 0} onClick={() => setTour('current')}>
-          Next model
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={working !== '' || tourProviders.length === 0}
-          onClick={() => setConfirmingSearch(true)}
-        >
-          Search model from the beginning
-        </Button>
-        <span className="self-center text-sm text-slate-500">
-          Tries the {isEmbedding ? 'embedding' : 'chat'} models of the services we have a key for, one after another, with the
-          response time of each.
-        </span>
-      </div>
-
       {current.model === '' ? (
-        <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
-          No {isEmbedding ? 'embedding' : 'chat'} model is selected yet. Choose one below.
+        <div className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+          No {kindLabel} model is selected yet. Choose one below.
           {isEmbedding &&
             ' The knowledge files are not loaded yet: after a model is selected, they are loaded from the Knowledge page.'}
         </div>
       ) : (
-        <ul className="mt-4 rounded-xl bg-white px-4 ring-1 ring-indigo-200">
+        <ul className="mt-3 rounded-xl bg-white px-4 ring-1 ring-indigo-200">
           <Row
             choice={inUseChoice}
             inUse
@@ -377,7 +386,7 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
                     setForm({
                       saved: null,
                       inUse: true,
-                      title: `Edit the ${isEmbedding ? 'embedding' : 'chat'} model in use`,
+                      title: `Edit the ${kindLabel} model in use`,
                       initial: {
                         name: '',
                         ...current,
@@ -398,30 +407,44 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
         </ul>
       )}
 
-      <div className="mt-6 flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-slate-700">Saved {isEmbedding ? 'embedding' : 'chat'} models</p>
-        <Button variant="secondary" size="sm" onClick={() => setForm({ saved: null })}>
-          Add {isEmbedding ? 'embedding' : 'chat'} model
-        </Button>
-      </div>
-      {savedNotInUse.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">
-          None yet. Add a model (its address, model and key name) to switch to it later with one click.
+      <details className="mt-3 text-sm text-slate-600">
+        <summary className="cursor-pointer font-medium text-indigo-700">How choosing a {kindLabel} model works</summary>
+        <p className="mt-2">
+          {isEmbedding ? (
+            <>
+              An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine; one with a path
+              is an online service.{' '}
+              <strong>Selecting a model cleans the stored knowledge and inserts it again with the new model</strong> (about a
+              minute), and is only saved when that worked.
+            </>
+          ) : (
+            <>
+              An address with no path, such as <code>http://localhost:11434</code>, is Ollama on our own machine (free, private,
+              slower). One with a path is an online service (fast, but the questions and the knowledge are sent to it). The model
+              list can include models this key cannot use, so <strong>Select</strong> tests the model first.
+            </>
+          )}{' '}
+          Each service's key is kept in <code>.env</code> under its <strong>API key name</strong>; only the name is saved here.{' '}
+          <strong>Next model</strong> and <strong>Search model from the beginning</strong> try the {kindLabel} models of the
+          services we have a key for, one after another, with the response time of each, and stop at the first that answers.
         </p>
-      ) : (
-        <ul className="mt-2 divide-y divide-slate-200">
-          {savedNotInUse.map((c) => (
-            <Row key={c.key} choice={c} inUse={false} actions={rowActions(c)} />
-          ))}
-        </ul>
-      )}
+      </details>
 
-      <p className="mt-6 text-sm font-semibold text-slate-700">Services we can use</p>
-      <ul className="mt-2 divide-y divide-slate-200">
+      <ModelGroup title={`Saved ${kindLabel} models`} count={savedNotInUse.length} defaultOpen={savedNotInUse.length > 0}>
+        {savedNotInUse.length === 0 ? (
+          <li className="py-3 text-sm text-slate-500">
+            None yet. Add a model (its address, model and key name) to switch to it later with one click.
+          </li>
+        ) : (
+          savedNotInUse.map((c) => <CompactRow key={c.key} choice={c} actions={rowActions(c)} />)
+        )}
+      </ModelGroup>
+
+      <ModelGroup title="Services we can use" count={servicesNotInUse.length}>
         {servicesNotInUse.map((c) => (
-          <Row key={c.key} choice={c} inUse={false} actions={rowActions(c)} />
+          <CompactRow key={c.key} choice={c} actions={rowActions(c)} />
         ))}
-      </ul>
+      </ModelGroup>
 
       {tour && (
         <ModelTourDialog
@@ -508,13 +531,11 @@ export default function AiModelPicker({ kind, settings, onChanged }: AiModelPick
         />
       )}
 
-      {confirming && (
-        <ConfirmDialog
-          title="Clean and reinsert the knowledge?"
-          message={`The stored knowledge will be cleaned and reinserted with ${confirming.model}: every section is embedded again, because vectors from different models cannot be compared. This can take a minute. If it fails (for example a wrong key), nothing is changed.`}
-          confirmLabel="Clean, reinsert and use"
-          onConfirm={() => apply(confirming)}
-          onCancel={() => setConfirming(null)}
+      {switching && (
+        <EmbeddingSwitchDialog
+          value={switching}
+          onConfirm={() => switchEmbedding(switching.choice)}
+          onClose={() => setSwitching(null)}
         />
       )}
     </div>
@@ -575,6 +596,69 @@ function Row({ choice, inUse, usedModel, actions }: RowProps) {
         {choice.notes && <p className="text-sm text-slate-500">{choice.notes}</p>}
       </div>
       <div className="flex flex-wrap gap-2">{actions}</div>
+    </li>
+  )
+}
+
+/** A list that can be folded away, with how many items it holds. */
+function ModelGroup({
+  title,
+  count,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  count: number
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  return (
+    <details open={defaultOpen} className="group mt-3 rounded-xl bg-white ring-1 ring-slate-200">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-700">
+        <span>
+          {title} <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{count}</span>
+        </span>
+        <span className="text-slate-400 transition group-open:rotate-180" aria-hidden="true">
+          &#9662;
+        </span>
+      </summary>
+      <ul className="divide-y divide-slate-100 border-t border-slate-100 px-4">{children}</ul>
+    </details>
+  )
+}
+
+/** One saved model or service in a short form: its name, model and key status. The address and the notes are under Details. */
+function CompactRow({ choice, actions }: { choice: Choice; actions: ReactNode }) {
+  return (
+    <li className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-slate-800">
+          {choice.name}
+          {choice.needsApiKey ? (
+            choice.hasApiKey ? (
+              <span className="ml-2 text-xs font-normal text-emerald-700">&#10003; key set</span>
+            ) : (
+              <span className="ml-2 text-xs font-normal text-amber-700">key not set in .env</span>
+            )
+          ) : (
+            <span className="ml-2 text-xs font-normal text-slate-400">no key needed</span>
+          )}
+        </p>
+        <p className="break-all font-mono text-xs text-slate-500">{choice.model}</p>
+        <details className="mt-1 text-xs text-slate-500">
+          <summary className="cursor-pointer text-indigo-600">Details</summary>
+          <p className="mt-1 break-all">
+            Address: <code>{choice.baseUrl}</code>
+          </p>
+          {choice.apiKeyName && (
+            <p>
+              API key name: <code>{choice.apiKeyName}</code>
+            </p>
+          )}
+          {choice.notes && <p className="mt-1">{choice.notes}</p>}
+        </details>
+      </div>
+      <div className="flex flex-wrap gap-1">{actions}</div>
     </li>
   )
 }

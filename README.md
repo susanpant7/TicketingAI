@@ -69,9 +69,7 @@ file. There is no Ollama and no GPU, so a small machine is enough (about 1 GB of
 1. **Get the code and the secrets on the server.** `git clone` the repository, then `cp .env.example .env` and fill in:
    - `Admin__Username`, `Admin__Password` and `Jwt__Key` (a long random string).
    - The key of the service, for example `GEMINI_API_KEY`.
-   - For the models: a new database has no chat or embedding model selected. After the first login we choose the online service
-     on the Settings page (**Search model from the beginning** or **View models**, then **Select**), for the chat and for the embeddings. Or we
-     set `AiDefaults__ChatBaseUrl` and `AiDefaults__EmbeddingBaseUrl` (for example Gemini's addresses) in `.env`, so a new database starts with them.
+   - For the models: a new database starts with **Groq** as the chat model and no embedding model, and the Settings page warns about the missing one. Put the keys in `.env` (`GROQ_API_KEY`, and for the embeddings for example `CLOUDFLARE_API_KEY` and `CLOUDFLARE_ACCOUNT_ID`), then choose the embedding model on the Settings page (**View models**, then **Select**). Or set `AiDefaults__EmbeddingBaseUrl` (and `AiDefaults__ChatBaseUrl` to change the chat model) in `.env` so a new database starts with them.
    - `Cors__AllowedOrigins`, the address of the client, for example `https://ticketingai.susanpant.com.np`.
 2. **Start it.** Either `dotnet run --project server/src/TicketingAI.Api` (the .NET 10 SDK is needed), or with the single Dockerfile, [below](#run-the-backend-in-docker). The API listens on port 5176 (Docker: 8080 inside the container).
 3. **Put https in front of it.** A page on https cannot call an http address. With the domain on Cloudflare, a **Cloudflare Tunnel** is
@@ -114,19 +112,6 @@ Before you choose a plan:
 - **To keep the data, use a paid instance with a disk** mounted at `/app/data`, as in the table. If the service then stops with "unable to open database file", the disk is not writable for the container's non-root user: check the disk's mount path first, because the image runs as a non-root user.
 - **Memory:** the free 512 MB is enough for the API alone, since the models are online.
 
-## Use the Ollama on our computer from the server
-
-A server such as Render cannot reach `localhost` on our computer. A Cloudflare Tunnel gives the Ollama on our computer a public https address:
-
-```bash
-cloudflared tunnel login
-cloudflared tunnel create ollama
-cloudflared tunnel route dns ollama ollama-k3x9f.susanpant.com.np   # use a long random name, there is no login on this address
-cloudflared tunnel run --url http://localhost:11434 --http-host-header localhost:11434 ollama
-```
-
-In the app, Settings, AI assistant, Embeddings, we **Edit** the entry "Ollama on our computer, from a server" in the list (it comes with the address `https://<my-ollama>.susanpant.com.np`), put our own address in it, save it, then **View models** and **Select** `nomic-embed-text` on the saved model. The computer, Ollama and the tunnel must stay on, because every question is embedded there.
-
 ## Host the client on Vercel
 
 The client is a static site, so it can be hosted apart from the API. In Vercel, import the repository and set:
@@ -143,7 +128,7 @@ The client is a static site, so it can be hosted apart from the API. In Vercel, 
 
 The chat answers can come from a model on our own server (Ollama, the default) or from an external service that speaks the OpenAI chat format. The app supports both, and an admin switches between them on the **Settings** page, with no code change. Embeddings always stay on Ollama, so the uploaded knowledge stays valid when the chat provider changes.
 
-**0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. Nothing writes the settings when the server starts: a setting with no row uses its default, and **Load default AI assistant data** (Settings, Manage App Data tab) saves them all. The defaults select no chat or embedding model: an admin chooses them on the same tab (for Ollama on this computer, `http://localhost:11434`). Choosing an embedding model cleans the stored knowledge and inserts it again with that model, so the knowledge files are loaded after that. To start with a model already chosen, set `AiDefaults__EmbeddingBaseUrl`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. Loading the defaults resets every setting, so on an existing database we change the Settings page instead (step 2).
+**0. Where the settings live.** Everything about the AI assistant that is not secret is a setting in the database, edited on the **Settings** page (AI assistant tab): where Ollama runs, the chat API base URL, the models, the prompt and how the knowledge is searched. Only the key stays outside, in `.env`. Nothing writes the settings when the server starts: a setting with no row uses its default, and **Load default AI assistant data** (Settings, Manage App Data tab) saves them all. The chat model starts as Groq and no embedding model is selected: an admin chooses the embedding model (and can change the chat model) on the same tab (Ollama on this computer, `http://localhost:11434`, is offered when the API runs in development, not on a server). Choosing an embedding model cleans the stored knowledge and inserts it again, and loads the default knowledge files when there are none. Choosing an embedding model cleans the stored knowledge and inserts it again with that model, so the knowledge files are loaded after that. To start with a model already chosen, set `AiDefaults__EmbeddingBaseUrl`, `AiDefaults__ChatBaseUrl` or `AiDefaults__ChatModel` in `.env`. Loading the defaults resets every setting, so on an existing database we change the Settings page instead (step 2).
 
 **1. Put the key in `.env`.** Every service has its own key variable, which `.env.example` lists (`GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `CEREBRAS_API_KEY`, `CLOUDFLARE_API_KEY`, `OPENAI_API_KEY`, `JINA_API_KEY`, `COHERE_API_KEY`). We add the line `GROQ_API_KEY=<the key>` (for Groq, and so on) to the `.env` file, the same file for Docker and for running without Docker. The Settings page shows the **API key name** of each model and whether that variable is set, and saves only the name, never the key. A key is a secret, so it never goes in `appsettings.json` (that file is committed to git) and is never stored in the database. After a change, we restart the API, or run `docker compose up -d` for Docker.
 
@@ -165,7 +150,7 @@ A new database is empty. Log in as the admin and do these in order:
 1. **Departments:** click "Load default departments" (IT, HR, Finance), or add your own.
 2. **Users:** click "Load default users", enter one password for all of them, and they are divided over the departments. You can also add users one by one. Every user belongs to a department.
 3. **Knowledge:** choose a department and upload its knowledge files. The files must start with `title:` and `department:` lines, then `## Section title` sections, and the department in the file must match the selected one. Sample files are in `server/src/TicketingAI.Api/Knowledge/Documents`. "Add" keeps the existing knowledge, "Flush and Add" deletes it first.
-4. **Settings:** click **Load default AI assistant data** on the Manage App Data tab once. Nothing is saved at startup, so until then the app uses the built-in defaults; this saves them as settings, without a chat or embedding model. The models are chosen on the same tab, and the knowledge files are uploaded after an embedding model is selected (it cleans and reinserts the stored knowledge). **Load all default data** (Settings, Manage App Data) loads departments, users and settings the same way, without the knowledge files. It resets every setting, so we do it once, on a new database.
+4. **Settings:** click **Load default AI assistant data** on the Manage App Data tab once. Nothing is saved at startup, so until then the app uses the built-in defaults; this saves them as settings (the chat model is Groq, with no embedding model). The embedding model is chosen on the same tab, and selecting it loads the knowledge files. **Load all default data** (Settings, Manage App Data) loads departments, users and settings the same way, without the knowledge files. It resets every setting, so we do it once, on a new database.
 
 Then log in as an employee (for example `aarav` with the password you chose), open the chat button at the bottom right, and ask a question. If the answer does not help, say so, and the assistant offers to create a ticket. Tickets are listed on the Tickets page, where the assignee can change the status.
 

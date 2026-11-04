@@ -35,12 +35,12 @@ public static class AiProviders
         new("Ollama (on our own machine)", "http://localhost:11434", "qwen2.5:7b", false,
             "Free, runs on our own machine. Pull the model first: ollama pull <model>. From a Docker container, use http://host.docker.internal:11434.",
             "https://ollama.com/download", ""),
-        new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash", true,
-            "Free tier with a daily limit. gemini-3.8-flash is the newest Flash model; gemini-3.5-flash-lite is a lighter, faster one. The older gemini-2.5-flash is no longer available to new accounts.",
-            "https://aistudio.google.com/apikey", "GEMINI_API_KEY"),
         new("Groq", "https://api.groq.com/openai/v1", "openai/gpt-oss-20b", true,
             "Free tier with per-minute and daily limits. Very fast. Which models a key can use differs: use View models to list them, and Test one before you select it. Newer models here think before they answer, so Reasoning effort (low) helps.",
             "https://console.groq.com/keys", "GROQ_API_KEY"),
+        new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash", true,
+            "Free tier with a daily limit. gemini-3.8-flash is the newest Flash model; gemini-3.5-flash-lite is a lighter, faster one. The older gemini-2.5-flash is no longer available to new accounts.",
+            "https://aistudio.google.com/apikey", "GEMINI_API_KEY"),
         new("OpenRouter", "https://openrouter.ai/api/v1", "recursive/flint-v1.0:free", true,
             "Many models with one key; models ending in :free cost nothing but have a small daily limit. The free models change often: pick one at openrouter.ai/models?max_price=0 and save it with Add chat model.",
             "https://openrouter.ai/keys", "OPENROUTER_API_KEY"),
@@ -51,7 +51,7 @@ public static class AiProviders
             "Free tier with a daily token limit. Very fast. Also listed: qwen-3.8-27b.",
             "https://cloud.cerebras.ai", "CEREBRAS_API_KEY"),
         new("Cloudflare Workers AI", "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1", "@cf/meta/llama-3.1-8b-instruct-fp8", true,
-            "A free daily allowance. Replace <ACCOUNT_ID> in the address with the account id, and use an API token with Workers AI access. Also listed: @cf/meta/llama-3.3-70b-instruct-fp8-fast.",
+            "A free daily allowance. Put an API token with Workers AI access in CLOUDFLARE_API_KEY and the account id in CLOUDFLARE_ACCOUNT_ID (in .env): <ACCOUNT_ID> in the address is filled in from it. Also listed: @cf/meta/llama-3.3-70b-instruct-fp8-fast.",
             "https://dash.cloudflare.com/profile/api-tokens", "CLOUDFLARE_API_KEY")
     ];
 
@@ -61,9 +61,6 @@ public static class AiProviders
         new("Ollama (on our own machine)", "http://localhost:11434", "nomic-embed-text", false,
             "Free, runs on our own machine. Pull the model first: ollama pull nomic-embed-text. From a Docker container, use http://host.docker.internal:11434.",
             "https://ollama.com/download", ""),
-        new("Ollama on our computer, from a server", "https://<my-ollama>.susanpant.com.np", "nomic-embed-text", false,
-            "For a server (Render) that must use the Ollama running on our own computer: Edit it, replace <my-ollama> with the name of our Cloudflare Tunnel (cloudflared tunnel --url http://localhost:11434 --http-host-header localhost:11434), and save. The computer and the tunnel must stay on.",
-            "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/", ""),
         new("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-embedding-001", true,
             "Free tier with rate limits. The same key as Gemini chat works.",
             "https://aistudio.google.com/apikey", "GEMINI_API_KEY"),
@@ -79,8 +76,8 @@ public static class AiProviders
         new("OpenAI", "https://api.openai.com/v1", "text-embedding-3-small", true,
             "Paid, but very cheap: converting all the knowledge costs a fraction of a cent.",
             "https://platform.openai.com/api-keys", "OPENAI_API_KEY"),
-        new("Cloudflare Workers AI", "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1", "@cf/baai/bge-m3", true,
-            "A free daily allowance. Replace <ACCOUNT_ID> in the address with the account id.",
+        new("Cloudflare Workers AI", "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1", "@cf/baai/bge-base-en-v1.5", true,
+            "A free daily allowance, and nothing to run ourselves. The same CLOUDFLARE_API_KEY and CLOUDFLARE_ACCOUNT_ID (in .env) as for the chat: <ACCOUNT_ID> in the address is filled in from it. Also listed: bge-small-en-v1.5, bge-large-en-v1.5 and the multilingual bge-m3.",
             "https://dash.cloudflare.com/profile/api-tokens", "CLOUDFLARE_API_KEY")
     ];
 

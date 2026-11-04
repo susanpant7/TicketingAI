@@ -1,4 +1,5 @@
-import { apiFetch } from '@/shared/api/apiClient'
+import { apiFetch, ApiError } from '@/shared/api/apiClient'
+import { streamEvents } from '@/shared/api/streamClient'
 
 export interface Setting {
   key: string
@@ -106,16 +107,29 @@ export const switchChatModel = (choice: ModelChoice) =>
  * Converts the stored knowledge to the new embedding model, then saves the embedding settings. It takes a while, and when it fails
  * nothing is changed. `reembedded` is how many sections were converted.
  */
-export const switchEmbeddingModel = (choice: ModelChoice) =>
-  apiFetch<{ reembedded: number }>('/settings/use-embedding-model', {
-    method: 'POST',
-    // Only the model's own fields: the choice from the page also holds a React element (its notes), which cannot be sent as JSON.
-    body: JSON.stringify({
-      baseUrl: choice.baseUrl,
-      model: choice.model,
-      apiKeyName: choice.apiKeyName,
-    }),
-  })
+export async function switchEmbeddingModel(
+  choice: ModelChoice,
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ reembedded: number }> {
+  let result: { reembedded: number } | null = null
+  let failure = ''
+  await streamEvents<{ progress?: { done: number; total: number }; result?: { reembedded: number }; error?: string }>(
+    '/settings/use-embedding-model',
+    {
+      method: 'POST',
+      // Only the model's own fields: the choice from the page also holds a React element (its notes), which cannot be sent as JSON.
+      body: JSON.stringify({ baseUrl: choice.baseUrl, model: choice.model, apiKeyName: choice.apiKeyName }),
+    },
+    (event) => {
+      if (event.progress) onProgress?.(event.progress.done, event.progress.total)
+      if (event.result) result = event.result
+      if (event.error) failure = event.error
+    },
+  )
+  if (failure) throw new ApiError(502, failure)
+  if (!result) throw new ApiError(502, 'The conversion was cut off. Nothing was changed. Please try again.')
+  return result
+}
 
 /**
  * Tests one model of a known service with a tiny request and saves nothing. It resolves with how long the model took to answer, and

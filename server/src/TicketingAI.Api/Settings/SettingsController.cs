@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TicketingAI.Api.Chat;
@@ -12,7 +13,7 @@ namespace TicketingAI.Api.Settings;
 [Route("api/[controller]")]
 public class SettingsController(
     ISettingsService settingsService, DataCleanup dataCleanup, SavedAiModelService savedModels, AiModelLister modelLister,
-    ApiKeyResolver keys) : ControllerBase
+    ApiKeyResolver keys, IWebHostEnvironment environment) : ControllerBase
 {
     [HttpGet]
     public async Task<List<SettingDto>> GetAll() => await settingsService.GetAllAsync();
@@ -54,14 +55,23 @@ public class SettingsController(
     public async Task<ActionResult<AiProvidersInfo>> GetAiProviders(CancellationToken cancellationToken)
     {
         var settings = await settingsService.GetAiSettingsAsync(cancellationToken);
+        // A service is ready when its key is set and, for Cloudflare, the account id in its address can be filled in.
+        bool Ready(string baseUrl, bool needsKey, string keyName) =>
+            !needsKey || (keys.IsSet(keyName) && !ApiKeyResolver.IsIncomplete(keys.ResolveAddress(baseUrl)));
+
+        // On a server (Production) there is no Ollama on the same machine, so it is not offered.
+        bool Offered(string baseUrl) => !environment.IsProduction() || !AiProviders.IsOllamaApi(baseUrl);
+
         return new AiProvidersInfo(
             AiProviders.All
+                .Where(p => Offered(p.BaseUrl))
                 .Select(p => new AiProviderDto(p.Name, p.BaseUrl, p.ExampleModel, p.NeedsApiKey, p.FreeTier, p.SignUpUrl, p.ApiKeyName,
-                    !p.NeedsApiKey || keys.IsSet(p.ApiKeyName)))
+                    Ready(p.BaseUrl, p.NeedsApiKey, p.ApiKeyName)))
                 .ToList(),
             AiProviders.Embedding
+                .Where(p => Offered(p.BaseUrl))
                 .Select(p => new EmbeddingProviderDto(p.Name, p.BaseUrl, p.ExampleModel, p.NeedsApiKey,
-                    p.FreeTier, p.SignUpUrl, p.ApiKeyName, !p.NeedsApiKey || keys.IsSet(p.ApiKeyName)))
+                    p.FreeTier, p.SignUpUrl, p.ApiKeyName, Ready(p.BaseUrl, p.NeedsApiKey, p.ApiKeyName)))
                 .ToList(),
             keys.Get(settings.ChatApiKeyName, settings.ChatBaseUrl) is not null,
             keys.Get(settings.EmbeddingApiKeyName, settings.EmbeddingBaseUrl) is not null,
@@ -132,22 +142,33 @@ public class SettingsController(
     }
 
     /// <summary>
-    /// Converts the stored knowledge to a new embedding model, then saves the embedding settings. It can take a while, and when it fails
-    /// (a wrong key, a model that is not there) nothing is changed.
+    /// Converts the stored knowledge to a new embedding model, then saves the embedding settings. It can take a while, so the answer is sent
+    /// as it goes, one JSON object per line: {"progress":{"done":16,"total":270}} lines, then {"result":{"reembedded":270}} or
+    /// {"error":"..."}. When it fails (a wrong key, a model that is not there) nothing is changed.
     /// </summary>
     [HttpPost("use-embedding-model")]
-    public async Task<ActionResult<UseModelResult>> UseEmbeddingModel(UseEmbeddingModelRequest request, CancellationToken cancellationToken)
+    public async Task UseEmbeddingModel(UseEmbeddingModelRequest request, CancellationToken cancellationToken)
     {
+        Response.ContentType = "application/x-ndjson";
+        async Task Send(object line)
+        {
+            await Response.WriteAsync(JsonSerializer.Serialize(line, Json) + "\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
+
         try
         {
-            var result = await settingsService.UseEmbeddingModelAsync(request, cancellationToken);
-            return result.Error == SettingError.None ? result : Problem(result.Message, statusCode: StatusCodes.Status400BadRequest);
+            var result = await settingsService.UseEmbeddingModelAsync(
+                request, cancellationToken, (done, total) => Send(new { progress = new { done, total } }));
+            await Send(result.Error == SettingError.None ? new { result = new { reembedded = result.Reembedded } } : new { error = result.Message });
         }
         catch (EmbeddingException ex)
         {
-            return Problem(ex.Message, statusCode: StatusCodes.Status502BadGateway);
+            await Send(new { error = ex.Message });
         }
     }
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [HttpGet("saved-models/{kind}")]
     public async Task<ActionResult<List<SavedAiModelDto>>> GetSavedModels(string kind) =>

@@ -40,7 +40,7 @@ const modules: Module[] = [
     id: 'settings',
     title: 'AI assistant settings',
     description:
-      'The system prompt and the search settings. Replaces every setting, including ones you added. No chat or embedding model is selected: they are chosen on the Settings page. If an embedding model was selected, the stored knowledge is deleted.',
+      'The system prompt and the search settings. Replaces every setting, including ones you added. The chat model starts as Groq (its key is in .env). No embedding model is selected: it is chosen on the Settings page. If an embedding model was selected, the stored knowledge is deleted.',
     button: 'Load default AI assistant data',
     replaces: true,
     run: async () => {
@@ -172,7 +172,7 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
       }
     }
     setNotice(
-      'The default data is loaded, without the knowledge files. No chat or embedding model is selected: choose them on the Settings page (AI assistant tab). After an embedding model is selected, load the knowledge files on the Knowledge page or below.',
+      'The default data is loaded, without the knowledge files. The chat model is Groq. No embedding model is selected: choose one on the Settings page (AI assistant tab), which also loads the knowledge files.',
     )
     setBusy(false)
   }
@@ -261,7 +261,7 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
       {confirming === 'all' && (
         <ConfirmDialog
           title="Load all default data"
-          message="This first deletes everything (tickets, users, knowledge, departments and settings), then loads the defaults (without the knowledge files and without a chat or embedding model). Your own changes cannot be recovered."
+          message="This first deletes everything (tickets, users, knowledge, departments and settings), then loads the defaults (without the knowledge files and without an embedding model). Your own changes cannot be recovered."
           confirmLabel="Load all default data"
           busy={busy}
           onConfirm={loadAll}

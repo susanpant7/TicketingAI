@@ -22,6 +22,8 @@ public class ChatService(
     private const int MaxTitleLength = 200;
     private const int MaxDescriptionLength = 4000;
 
+    // The same lines when the model wrote them at the end of the reply, after the answer, instead of before it.
+    private static readonly Regex TrailingTicketLine = new(@"(?:\r?\n|^)[ \t]*(?<key>Action|Title|Description|Problem):[ \t]*(?<value>[^\r\n]*)\s*$", RegexOptions.IgnoreCase);
     private static readonly Regex TicketLine = new(@"^\s*(?<key>Action|Title|Description|Problem):[ \t]*(?<value>[^\r\n]*)\r?\n?", RegexOptions.IgnoreCase);
 
     public async Task<ChatResponse> AskAsync(
@@ -119,6 +121,25 @@ public class ChatService(
     private static readonly string[] HeaderKeys = ["Department:", "Problem:", "Action:", "Title:", "Description:"];
 
     /// <summary>
+    /// Takes off the header lines a model wrote after the answer (such as "Problem: no"), also while the last line is still being
+    /// written, so the employee never sees them, not even for a moment.
+    /// </summary>
+    private static string WithoutTrailingHeaders(string text)
+    {
+        var lines = text.TrimEnd().Split('\n').ToList();
+        while (lines.Count > 0)
+        {
+            var last = lines[^1].Trim();
+            var mightBeHeader = last.Length == 0 || HeaderKeys.Any(key =>
+                last.StartsWith(key, StringComparison.OrdinalIgnoreCase) || key.StartsWith(last, StringComparison.OrdinalIgnoreCase));
+            if (!mightBeHeader) break;
+            lines.RemoveAt(lines.Count - 1);
+        }
+        return string.Join('\n', lines).Trim();
+    }
+
+
+    /// <summary>
     /// The part of an unfinished reply the employee may see: the reply without its leading header lines. Until a line is known
     /// not to be a header (it is complete, or no longer starts like one), nothing more is shown.
     /// </summary>
@@ -131,7 +152,7 @@ public class ChatService(
             var line = lineEnd < 0 ? rest : rest[..lineEnd];
             var mightBeHeader = HeaderKeys.Any(key =>
                 line.StartsWith(key, StringComparison.OrdinalIgnoreCase) || key.StartsWith(line, StringComparison.OrdinalIgnoreCase));
-            if (!mightBeHeader) return rest.Trim();
+            if (!mightBeHeader) return WithoutTrailingHeaders(rest);
             if (lineEnd < 0) return "";
             rest = rest[(lineEnd + 1)..].TrimStart();
         }
@@ -144,17 +165,29 @@ public class ChatService(
         string? action = null, title = null, description = null, problem = null;
         var rest = answer;
 
-        for (var match = TicketLine.Match(rest); match.Success; match = TicketLine.Match(rest))
+        void Take(Match match)
         {
             var value = match.Groups["value"].Value.Trim();
             switch (match.Groups["key"].Value.ToLowerInvariant())
             {
-                case "action": action = value; break;
-                case "title": title = value; break;
-                case "problem": problem = value; break;
-                default: description = value; break;
+                case "action": action ??= value; break;
+                case "title": title ??= value; break;
+                case "problem": problem ??= value; break;
+                default: description ??= value; break;
             }
+        }
+
+        for (var match = TicketLine.Match(rest); match.Success; match = TicketLine.Match(rest))
+        {
+            Take(match);
             rest = rest[match.Length..];
+        }
+
+        // A model sometimes writes these lines after the answer. They are protocol lines, never part of the answer, so they come off too.
+        for (var match = TrailingTicketLine.Match(rest); match.Success; match = TrailingTicketLine.Match(rest))
+        {
+            Take(match);
+            rest = rest[..match.Index];
         }
 
         if (action is null && title is null && description is null && problem is null)

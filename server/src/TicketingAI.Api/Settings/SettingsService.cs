@@ -140,7 +140,8 @@ public partial class SettingsService(
         return new UseModelResult(0);
     }
 
-    public async Task<UseModelResult> UseEmbeddingModelAsync(UseEmbeddingModelRequest request, CancellationToken cancellationToken)
+    public async Task<UseModelResult> UseEmbeddingModelAsync(
+        UseEmbeddingModelRequest request, CancellationToken cancellationToken, Func<int, int, Task>? onProgress = null)
     {
         var values = new Dictionary<string, string>
         {
@@ -157,7 +158,7 @@ public partial class SettingsService(
         var keepAlive = (await settings.GetAsync(SettingKeys.ChatKeepAlive))?.Value ?? DefaultOf(SettingKeys.ChatKeepAlive);
         var options = new EmbeddingModelOptions(
             values[SettingKeys.EmbeddingModel], values[SettingKeys.EmbeddingBaseUrl], values[SettingKeys.EmbeddingApiKeyName], keepAlive);
-        var vectors = await embeddingSwitcher.EmbedAllAsync(options, cancellationToken);
+        var vectors = await embeddingSwitcher.EmbedAllAsync(options, cancellationToken, onProgress);
 
         await settings.ChangeValuesAsync(values, vectors);
         return new UseModelResult(vectors.Count);

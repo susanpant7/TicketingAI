@@ -22,16 +22,21 @@ public class OnlineEmbeddingClient(HttpClient http, ApiKeyResolver keys) : IEmbe
                 $"The embedding model is an online service, but no key is set: {keys.MissingKey(options.ApiKeyName, options.BaseUrl)}. " +
                 "Set it and restart the server.");
 
+        var baseUrl = keys.ResolveAddress(options.BaseUrl);
+        if (ApiKeyResolver.IsIncomplete(baseUrl))
+            throw new EmbeddingException(ApiKeyResolver.IncompleteAddressMessage);
+
         var vectors = new List<float[]>(texts.Count);
         foreach (var batch in texts.Chunk(BatchSize))
-            vectors.AddRange(await EmbedBatchAsync(batch, options, key, cancellationToken));
+            vectors.AddRange(await EmbedBatchAsync(batch, baseUrl, options, key, cancellationToken));
 
         return vectors;
     }
 
-    private async Task<float[][]> EmbedBatchAsync(string[] batch, EmbeddingModelOptions options, string key, CancellationToken cancellationToken)
+    private async Task<float[][]> EmbedBatchAsync(
+        string[] batch, string baseUrl, EmbeddingModelOptions options, string key, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, options.BaseUrl.TrimEnd('/') + "/embeddings")
+        using var request = new HttpRequestMessage(HttpMethod.Post, baseUrl.TrimEnd('/') + "/embeddings")
         {
             Content = JsonContent.Create(new { model = options.Model, input = batch })
         };

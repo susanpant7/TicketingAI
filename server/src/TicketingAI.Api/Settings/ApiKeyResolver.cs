@@ -8,6 +8,10 @@ namespace TicketingAI.Api.Settings;
 /// </summary>
 public partial class ApiKeyResolver(IConfiguration configuration)
 {
+    /// <summary>The environment variable with the Cloudflare account id, and where it goes in the address of Cloudflare Workers AI.</summary>
+    public const string AccountIdName = "CLOUDFLARE_ACCOUNT_ID";
+    public const string AccountIdPlaceholder = "<ACCOUNT_ID>";
+
     [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9_]*$")]
     private static partial Regex NamePattern();
 
@@ -50,6 +54,22 @@ public partial class ApiKeyResolver(IConfiguration configuration)
 
     /// <summary>The key a model really reads (see <see cref="EffectiveName"/>), or null when it is not set.</summary>
     public string? Get(string? keyName, string baseUrl) => Get(EffectiveName(keyName, baseUrl));
+
+    /// <summary>
+    /// The address to call: <ACCOUNT_ID> in it is replaced by the account id in CLOUDFLARE_ACCOUNT_ID, so the account id stays in the
+    /// environment and not in a setting. An address without the placeholder is used as it is.
+    /// </summary>
+    public string ResolveAddress(string baseUrl)
+    {
+        var accountId = configuration[AccountIdName];
+        return string.IsNullOrWhiteSpace(accountId) ? baseUrl : baseUrl.Replace(AccountIdPlaceholder, accountId.Trim());
+    }
+
+    /// <summary>True when the address still has a placeholder after <see cref="ResolveAddress"/>, so it cannot be called.</summary>
+    public static bool IsIncomplete(string resolvedAddress) => resolvedAddress.Contains('<');
+
+    public const string IncompleteAddressMessage =
+        "The address still has <ACCOUNT_ID> in it. Set CLOUDFLARE_ACCOUNT_ID in the .env file (and restart the server), or put the account id in the address.";
 
     /// <summary>Says what is missing for a model whose key is not set, for an error message.</summary>
     public string MissingKey(string? keyName, string baseUrl)

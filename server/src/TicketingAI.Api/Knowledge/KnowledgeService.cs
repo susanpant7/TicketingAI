@@ -105,28 +105,31 @@ public partial class KnowledgeService(
 
     public Task<int> DeleteDocumentAsync(string sourceFile) => repository.DeleteFileAsync(sourceFile);
 
-    public async Task<List<UploadFileResult>> LoadDefaultsAsync(CancellationToken cancellationToken)
+    public async Task<List<UploadFileResult>> LoadDefaultsAsync(CancellationToken cancellationToken, Func<int, int, Task>? onProgress = null)
     {
         var folder = Path.Combine(AppContext.BaseDirectory, "Knowledge", "Documents");
         if (!Directory.Exists(folder))
             return [];
 
         var departments = await departmentRepository.GetAllAsync();
+        var folders = Directory.GetDirectories(folder).Order().ToList();
+        var total = folders.Sum(f => Directory.GetFiles(f, "*.md").Length);
+
+        // One file at a time, so the page can show how far it is (a file is still added or rejected as a whole, as in an upload).
         var results = new List<UploadFileResult>();
-        foreach (var departmentFolder in Directory.GetDirectories(folder).Order())
+        if (onProgress is not null) await onProgress(0, total);
+        foreach (var departmentFolder in folders)
         {
-            var files = Directory.GetFiles(departmentFolder, "*.md").Order()
-                .Select(file => new UploadedFile(Path.GetFileName(file), File.ReadAllText(file)))
-                .ToList();
             var name = Path.GetFileName(departmentFolder);
             var department = departments.FirstOrDefault(d => d.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (department is null)
+            foreach (var path in Directory.GetFiles(departmentFolder, "*.md").Order())
             {
-                results.AddRange(files.Select(f => new UploadFileResult(
-                    f.FileName, 0, $"There is no '{name}' department. Load the default departments first.")));
-                continue;
+                var file = new UploadedFile(Path.GetFileName(path), File.ReadAllText(path));
+                results.AddRange(department is null
+                    ? [new UploadFileResult(file.FileName, 0, $"There is no '{name}' department. Load the default departments first.")]
+                    : await UploadAsync(department.Id, false, [file], cancellationToken));
+                if (onProgress is not null) await onProgress(results.Count, total);
             }
-            results.AddRange(await UploadAsync(department.Id, false, files, cancellationToken));
         }
         return results;
     }

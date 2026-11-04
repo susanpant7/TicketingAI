@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -56,10 +57,32 @@ public class KnowledgeController(IKnowledgeService knowledgeService) : Controlle
     public async Task<DeleteKnowledgeResult> DeleteDocument(string sourceFile) =>
         new(await knowledgeService.DeleteDocumentAsync(sourceFile));
 
-    /// <summary>Uploads the default knowledge files into their departments, which must exist.</summary>
+    /// <summary>
+    /// Uploads the default knowledge files into their departments, which must exist. It takes a while, so the answer is sent as it goes,
+    /// one JSON object per line: {"progress":{"done":5,"total":37}} lines, then {"result":[...one item per file...]} or {"error":"..."}.
+    /// </summary>
     [HttpPost("load-defaults")]
-    public async Task<List<UploadFileResult>> LoadDefaults(CancellationToken cancellationToken) =>
-        await knowledgeService.LoadDefaultsAsync(cancellationToken);
+    public async Task LoadDefaults(CancellationToken cancellationToken)
+    {
+        Response.ContentType = "application/x-ndjson";
+        async Task Send(object line)
+        {
+            await Response.WriteAsync(JsonSerializer.Serialize(line, Json) + "\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
+
+        try
+        {
+            var results = await knowledgeService.LoadDefaultsAsync(cancellationToken, (done, total) => Send(new { progress = new { done, total } }));
+            await Send(new { result = results });
+        }
+        catch (EmbeddingException ex)
+        {
+            await Send(new { error = ex.Message });
+        }
+    }
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [HttpDelete("department/{departmentId:int}")]
     public async Task<ActionResult<DeleteKnowledgeResult>> DeleteDepartment(int departmentId)

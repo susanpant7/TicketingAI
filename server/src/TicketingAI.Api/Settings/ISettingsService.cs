@@ -39,5 +39,6 @@ public interface ISettingsService
     /// Converts the stored knowledge to a new embedding model and, only when that worked, saves the embedding settings. Returns how many
     /// sections were embedded again.
     /// </summary>
-    Task<UseModelResult> UseEmbeddingModelAsync(UseEmbeddingModelRequest request, CancellationToken cancellationToken);
+    Task<UseModelResult> UseEmbeddingModelAsync(
+        UseEmbeddingModelRequest request, CancellationToken cancellationToken, Func<int, int, Task>? onProgress = null);
 }

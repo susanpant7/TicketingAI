@@ -28,7 +28,9 @@ public static class SettingKeys
 public record SettingDefinition(string Key, string Label, string Description, string Value);
 
 /// <summary>
-/// The starting value of every setting. Nothing writes them at startup: the app uses these values for any setting that has no row, and
+/// The starting value of every setting. The chat model starts as Groq (a free online service: its key is GROQ_API_KEY in the environment).
+/// No embedding model is selected at first: an admin chooses one on the Settings page, which also loads the knowledge, and the app
+/// says so until then. Nothing writes them at startup: the app uses these values for any setting that has no row, and
 /// "Restore defaults" on the Settings page saves them all as rows.
 /// </summary>
 public static class SettingDefaults
@@ -111,13 +113,13 @@ public static class SettingDefaults
             "5"),
         new(SettingKeys.ChatBaseUrl, "Chat API base URL",
             "The address the chat model is called at. This one setting decides how: an address with no path, such as http://localhost:11434 (http://host.docker.internal:11434 from a Docker container), is Ollama's own API for a model on our own machine, which needs no key. An address with a path, such as https://generativelanguage.googleapis.com/v1beta/openai (Gemini), is called in the OpenAI chat format, and its key is the environment variable named in the Chat API key name (never stored here). On the Settings page this address, the Chat model and the key name are not edited as separate rows: Use or Edit on a model in the list above sets them together, after a test. They must belong together.",
-            ""),
+            "https://api.groq.com/openai/v1"),
         new(SettingKeys.ChatApiKeyName, "Chat API key name",
             "The name of the environment variable (in the .env file) that holds the key of an online chat service, for example GROQ_API_KEY. Empty for Ollama, which needs no key. The key itself is never stored here. Use on a saved model or a service sets it together with the address and the model.",
-            ""),
+            "GROQ_API_KEY"),
         new(SettingKeys.ChatModel, "Chat model",
             "Model that writes the final answer from the retrieved context. Can be changed without re-embedding anything. The rules and the reply format were tested with qwen2.5:7b, so re-test after changing it. It must be a name the Chat API base URL knows: for Ollama it must be pulled first (ollama pull <name> on that computer), and an online service has its own model names, which it renames from time to time (a retired name gives a 404 error).",
-            ""),
+            "openai/gpt-oss-20b"),
         new(SettingKeys.ChatReasoningEffort, "Reasoning effort",
             "Only used for an online service (a Chat API base URL with a path). Many newer models think before they answer, which delays the first word by seconds. Setting this asks the service to think less, for example none, minimal or low (the accepted values depend on the model). Leave it empty to send nothing and use the model's own default. If the service rejects the value, the chat shows its error message: empty the setting again.",
             ""),

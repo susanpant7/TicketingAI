@@ -9,16 +9,27 @@ namespace TicketingAI.Api.Knowledge;
 /// </summary>
 public class EmbeddingSwitcher(IKnowledgeRepository knowledge, IEmbeddingClient embeddingClient)
 {
-    /// <summary>Embeds the text of every stored section with the given model. Returns the new vector of each section, by its id.</summary>
+    private const int BatchSize = 16;
+
+    /// <summary>
+    /// Embeds the text of every stored section with the given model. Returns the new vector of each section, by its id. onProgress is told
+    /// how many sections are done of how many, before the first batch and after each one.
+    /// </summary>
     public async Task<Dictionary<int, byte[]>> EmbedAllAsync(
-        EmbeddingModelOptions options, CancellationToken cancellationToken)
+        EmbeddingModelOptions options, CancellationToken cancellationToken, Func<int, int, Task>? onProgress = null)
     {
         var chunks = await knowledge.GetTextsAsync();
         if (chunks.Count == 0)
             return [];
 
         var texts = chunks.Select(c => EmbeddingText.Document(c.DocumentTitle, c.Heading, c.Content)).ToList();
-        var vectors = await embeddingClient.EmbedAsync(texts, options, cancellationToken);
+        var vectors = new List<float[]>(texts.Count);
+        if (onProgress is not null) await onProgress(0, texts.Count);
+        foreach (var batch in texts.Chunk(BatchSize))
+        {
+            vectors.AddRange(await embeddingClient.EmbedAsync(batch, options, cancellationToken));
+            if (onProgress is not null) await onProgress(vectors.Count, texts.Count);
+        }
 
         return chunks
             .Select((chunk, i) => (chunk.Id, Bytes: MemoryMarshal.AsBytes(vectors[i].AsSpan()).ToArray()))

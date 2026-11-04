@@ -26,6 +26,10 @@ public class ApiChatClient(HttpClient http, ApiKeyResolver keys) : IChatModelCli
                 $"The chat model is an online service, but no key is set: {keys.MissingKey(chat.ApiKeyName, chat.BaseUrl)}. " +
                 "Set it and restart the server.");
 
+        var baseUrl = keys.ResolveAddress(chat.BaseUrl);
+        if (ApiKeyResolver.IsIncomplete(baseUrl))
+            throw new ChatModelException(ApiKeyResolver.IncompleteAddressMessage);
+
         var body = new Dictionary<string, object>
         {
             ["model"] = chat.Model,
@@ -40,7 +44,7 @@ public class ApiChatClient(HttpClient http, ApiKeyResolver keys) : IChatModelCli
         if (!string.IsNullOrWhiteSpace(chat.ReasoningEffort))
             body["reasoning_effort"] = chat.ReasoningEffort.Trim();
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, chat.BaseUrl.TrimEnd('/') + "/chat/completions")
+        using var request = new HttpRequestMessage(HttpMethod.Post, baseUrl.TrimEnd('/') + "/chat/completions")
         {
             Content = JsonContent.Create(body)
         };

@@ -153,7 +153,7 @@ Content-Type: application/json
 }
 ```
 
-One vector comes back for each text, in the same order. For an online service (an address with a path, such as Gemini's) the same texts go to `POST {embedding.base_url}/embeddings` with the body `{ "model": "...", "input": [...] }` and the header `Authorization: Bearer <key>`, and the vectors come back in `data[i].embedding`. The key is read from the environment variable named in the setting, and is never stored.
+One vector comes back for each text, in the same order. Cloudflare Workers AI uses this same format, at `https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1` (the server fills in the account id from `CLOUDFLARE_ACCOUNT_ID`). For an online service (an address with a path, such as Gemini's) the same texts go to `POST {embedding.base_url}/embeddings` with the body `{ "model": "...", "input": [...] }` and the header `Authorization: Bearer <key>`, and the vectors come back in `data[i].embedding`. The key is read from the environment variable named in the setting, and is never stored.
 
 **4. Store one row per section** in `KnowledgeChunks`:
 
@@ -163,7 +163,7 @@ One vector comes back for each text, in the same order. For an online service (a
 | `Category` | The department name |
 | `SourceFile` | The uploaded file name |
 | `ContentHash` | SHA-256 of the content |
-| `Embedding` | The 768 numbers as raw **float32** values in a blob (3072 bytes) |
+| `Embedding` | The numbers as raw **float32** values in a blob (768 numbers, 3072 bytes, for `nomic-embed-text` and `bge-base-en-v1.5`) |
 | `IngestedAt` | UTC time |
 
 All files are validated and embedded **before** anything is saved, so if the embedding model fails, the existing knowledge stays as it was.
@@ -230,11 +230,19 @@ Authorization: Bearer <admin token>
 { "baseUrl": "http://localhost:11434", "model": "nomic-embed-text", "apiKeyName": "" }
 ```
 
-```json
-{ "reembedded": 270, "error": 0, "message": null }
+It takes a while, so the answer is sent as it goes, one JSON object per line (the same way as the chat stream). The page shows the progress bar from the `progress` lines, in a dialog that stays open until the end:
+
+```
+{"progress":{"done":0,"total":270}}
+{"progress":{"done":16,"total":270}}
+...
+{"progress":{"done":270,"total":270}}
+{"result":{"reembedded":270}}
 ```
 
-The server embeds the text of every stored section with the new model first, and only then saves the new settings and the new vectors in **one transaction**. If the model or the key is wrong, nothing is changed. When there is no knowledge yet, `reembedded` is `0`, and the page then loads the default knowledge files.
+The last line is the result, or `{"error":"..."}` when something failed.
+
+The server embeds the text of every stored section with the new model first, 16 at a time, and only then saves the new settings and the new vectors in **one transaction**. If the model or the key is wrong, nothing is changed. When there is no knowledge yet, `reembedded` is `0`, and the page then loads the default knowledge files (`POST /api/knowledge/load-defaults`, which streams `{"progress":{"done":5,"total":37}}` lines the same way, one per file).
 
 ## 6. A user logs in and starts chatting: "hello"
 

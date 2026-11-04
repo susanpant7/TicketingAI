@@ -18,7 +18,7 @@ public interface IKnowledgeService
     Task<int> DeleteDocumentAsync(string sourceFile);
 
     /// <summary>Uploads the default knowledge files (Knowledge/Documents/&lt;department&gt;/*.md) into their departments.</summary>
-    Task<List<UploadFileResult>> LoadDefaultsAsync(CancellationToken cancellationToken);
+    Task<List<UploadFileResult>> LoadDefaultsAsync(CancellationToken cancellationToken, Func<int, int, Task>? onProgress = null);
 
     /// <summary>Deletes all the knowledge of a department. Returns the number of sections deleted.</summary>
     Task<int> DeleteDepartmentKnowledgeAsync(int departmentId);

@@ -9,7 +9,7 @@ namespace TicketingAI.Api.Settings;
 /// not change a database that already has the settings: use the Settings page for that.
 /// When an address is one of the known services (see <see cref="AiProviders"/>), the rest of that service is filled in as well: its
 /// key name, its example model (unless a model is given).
-/// When no address is given, no chat or embedding model is selected: an admin chooses them on the Settings page, or they are given here.
+/// When no address is given, the chat model starts as Groq and no embedding model is selected (see SettingDefaults).
 /// </summary>
 public class AiDefaultsOptions
 {

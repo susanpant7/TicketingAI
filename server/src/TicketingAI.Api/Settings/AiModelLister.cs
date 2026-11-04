@@ -22,8 +22,16 @@ public class AiModelLister(
         baseUrl = baseUrl.Trim().TrimEnd('/');
         await EnsureKnownAsync(baseUrl, cancellationToken);
 
-        var ollama = AiProviders.IsOllamaApi(baseUrl);
-        using var request = new HttpRequestMessage(HttpMethod.Get, ollama ? $"{baseUrl}/api/tags" : $"{baseUrl}/models");
+        // <ACCOUNT_ID> in a known address is filled in from the environment, for the call only.
+        var address = keys.ResolveAddress(baseUrl);
+        if (ApiKeyResolver.IsIncomplete(address))
+            throw new ChatModelException(ApiKeyResolver.IncompleteAddressMessage);
+
+        var ollama = AiProviders.IsOllamaApi(address);
+        var cloudflare = IsCloudflare(address);
+        // Cloudflare's OpenAI-style address has no /models list. Its own model search lists the models of one kind of task.
+        var url = cloudflare ? CloudflareSearchUrl(address, kind) : ollama ? $"{address}/api/tags" : $"{address}/models";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         if (!ollama)
         {
             var key = keys.Get(keyName, baseUrl)
@@ -39,7 +47,7 @@ public class AiModelLister(
         }
         catch (HttpRequestException ex)
         {
-            throw new ChatModelException($"Cannot reach {baseUrl}.", ex);
+            throw new ChatModelException($"Cannot reach {address}.", ex);
         }
 
         using (response)
@@ -53,7 +61,7 @@ public class AiModelLister(
                     : $"The service answered {(int)response.StatusCode} for {baseUrl}. {detail}");
             }
 
-            return new AvailableAiModels(baseUrl, ReadNames(body, ollama, kind));
+            return new AvailableAiModels(baseUrl, cloudflare ? ReadCloudflareNames(body) : ReadNames(body, ollama, kind));
         }
     }
 
@@ -73,6 +81,35 @@ public class AiModelLister(
             || AiProviders.All.Any(p => Same(p.BaseUrl))
             || AiProviders.Embedding.Any(p => Same(p.BaseUrl))
             || (await savedModels.GetAllAsync(null)).Any(m => Same(m.BaseUrl));
+    }
+
+    private const string CloudflarePrefix = "https://api.cloudflare.com/client/v4/accounts/";
+
+    private static bool IsCloudflare(string address) =>
+        address.StartsWith(CloudflarePrefix, StringComparison.OrdinalIgnoreCase) && address.TrimEnd('/').EndsWith("/ai/v1", StringComparison.OrdinalIgnoreCase);
+
+    // https://api.cloudflare.com/client/v4/accounts/{id}/ai/v1 -> .../accounts/{id}/ai/models/search?task=...
+    private static string CloudflareSearchUrl(string address, string kind)
+    {
+        var account = address.TrimEnd('/')[..^"/ai/v1".Length];
+        var task = kind == SavedAiModel.Embedding ? "Text Embeddings" : "Text Generation";
+        return $"{account}/ai/models/search?task={Uri.EscapeDataString(task)}&per_page=100";
+    }
+
+    // {"result":[{"name":"@cf/baai/bge-base-en-v1.5", ...}], ...}
+    private static List<string> ReadCloudflareNames(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty("result", out var items) || items.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return items.EnumerateArray()
+            .Select(item => item.TryGetProperty("name", out var name) ? name.GetString() : null)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .Distinct()
+            .Order()
+            .ToList();
     }
 
     // Ollama: {"models":[{"name":"qwen2.5:7b"}]}. OpenAI format: {"data":[{"id":"gpt-oss-20b"}]}. Gemini writes "models/" before each name.
