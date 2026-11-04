@@ -174,6 +174,18 @@ Not covered (the assistant should say it does not know, and offer to raise a tic
 - Does the company provide a vehicle or a driver?
 - How is the statutory bonus calculated for my exact salary?
 
+## Multi-turn test questions
+
+Retrieval must also work inside a conversation. Ask the first message, then the second one, and check the section that is found for the second message (Settings does not matter: the rewrite of a short follow-up is part of the search). A follow-up needs the topic of the earlier message. A new question must **not** be pulled towards it.
+
+| First message | Second message | The second message is | Expected source |
+|---|---|---|---|
+| How do I reset my password? | how to contact it support | a new question | IT support and service levels: How to contact IT support |
+| How many leave days do I get? | and sick leave? | a follow-up | HR leave policy: Sick leave |
+| How do I connect to the VPN? | what about the laptop? | a follow-up | IT laptop and hardware |
+| When is the salary paid? | how do I apply for leave? | a new question | HR leave policy: How to apply for leave |
+| I forgot my password | how long until it works? | a follow-up | IT password reset: new password timing |
+
 ## Questions that need the right category
 
 Some questions touch both sets, so retrieval should consider all documents unless the category is clear:

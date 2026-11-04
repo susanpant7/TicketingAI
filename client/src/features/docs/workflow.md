@@ -274,7 +274,7 @@ What the server does, in order:
 
 **1. Read the settings and the departments.** The settings come from the `Settings` table and the departments from the `Departments` table, on every request, so a change on the Settings page applies to the next message.
 
-**2. Build the search query.** `hello` has one word. A message with 5 words or fewer is searched together with the user's previous message when there is one (a short follow-up such as "and casual leave?" needs it), and there is none here, so the query is `hello`.
+**2. Build the search query.** `hello` has one word. A message with 5 words or fewer is searched twice, alone and together with the user's previous message (section 10.1), and there is no previous message here, so the query is `hello`.
 
 **3. Embed the query and search.**
 
@@ -640,7 +640,26 @@ Authorization: Bearer <employee token>
 
 ### 10.1 Build the search query
 
-Short follow-ups only make sense with the question before them ("and casual leave?"). If the message has `retrieval.follow_up_max_words` words or fewer (5 by default), the query is `"{previous user message} {message}"`. Otherwise the query is the message alone. This is a rule on the word count, not a list of phrases.
+A short message can be a follow-up that only makes sense with the earlier messages ("and casual leave?"), or a new question that stands alone ("how to contact it support"). A word count cannot tell them apart, so a message with `retrieval.follow_up_max_words` words or fewer (8 by default), when there is a conversation before it, gets this treatment:
+
+1. **The chat model rewrites it** as one complete question (setting `retrieval.rewrite_follow_ups`, on by default). It gets the last 4 messages (each cut to 300 characters) and the message, with the instruction in `retrieval.rewrite_prompt`:
+
+   ```
+   Conversation:
+   Employee: How many leave days do I get?
+   Assistant: You get 18 days of paid annual leave per year.
+
+   Last message: and sick leave?
+   ```
+
+   ```
+   How many sick leave days do I get?
+   ```
+
+   A message that already stands alone comes back unchanged. The server searches the rewritten question and the message itself, and a section found by both counts with its better score. The rewrite has a 15 second limit.
+2. **When the rewrite is off or fails** (a model error, a timeout, an empty reply), the message is searched alone and as `"{previous user message} {message}"`, again with the better score per section.
+
+A longer message, or the first message of a conversation, is searched as it is. This is a rule on the word count and the prompt, not a list of phrases. The server log has a line for each rewrite (the message, the question and the time it took).
 
 ### 10.2 Embed the query
 
@@ -802,7 +821,8 @@ All of these are rows in the `Settings` table, editable on the Settings page (ad
 | `retrieval.top_k`               | 4                        | How many sections to fetch                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `retrieval.min_score`           | 0.5                      | Sections below this are dropped                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `retrieval.max_score_gap`       | 0.05                     | Sections scoring more than this below the best one are dropped too, so the prompt is shorter and the reply faster. `0` turns it off                                                                                                                                                                                                                                                                                                                                   |
-| `retrieval.follow_up_max_words` | 5                        | Messages this short are searched together with the previous user message. `0` turns it off                                                                                                                                                                                                                                                                                                                                                                            |
+| `retrieval.follow_up_max_words` | 8                        | Messages this short are made into a standalone question (or searched alone and with the previous message). `0` turns it off                                                                                                                                                                                                                                                                                                                                                                            |
+| `retrieval.rewrite_follow_ups`   | 1                        | `1` asks the chat model to rewrite a short follow-up as one complete question before the search (section 10.1). `0` turns it off |
 | `chat.api_key_name`             | (empty)                  | The name of the environment variable that holds the key of an online chat service (for example `GROQ_API_KEY`). Empty for Ollama. The key itself is never stored                                                                                                                                                                                                                                                                                                      |
 | `chat.base_url`                 | `http://localhost:11434` | Where the chat model is called, and this one setting decides how. An address with no path (`http://localhost:11434`, `http://host.docker.internal:11434` from a Docker container) is Ollama's own API. An address with a path (for example Gemini's `.../v1beta/openai`) is an online service in the OpenAI chat format. The key for an online service is the environment variable named in the key name of the model (for example `GEMINI_API_KEY`), never a setting |
 | `chat.model`                    | `qwen2.5:7b`             | Model that writes the answers                                                                                                                                                                                                                                                                                                                                                                                                                                         |

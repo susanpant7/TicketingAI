@@ -29,6 +29,8 @@ public static class SettingRules
         [SettingKeys.RetrievalMinScore] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalMaxScoreGap] = new(SettingKind.Decimal, Min: 0, Max: 1),
         [SettingKeys.RetrievalFollowUpMaxWords] = new(SettingKind.Int, Min: 0),
+        [SettingKeys.RetrievalRewrite] = new(SettingKind.Int, Min: 0, Max: 1),
+        [SettingKeys.RetrievalRewritePrompt] = new(SettingKind.Text),
         [SettingKeys.ChatBaseUrl] = new(SettingKind.OptionalText),
         [SettingKeys.ChatApiKeyName] = new(SettingKind.OptionalText),
         [SettingKeys.ChatModel] = new(SettingKind.OptionalText),
@@ -65,9 +67,11 @@ public static class SettingRules
                 return "The value cannot be empty.";
 
             case SettingKind.Int:
-                return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var whole) && whole >= rule.Min
+                return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var whole) && whole >= rule.Min && whole <= rule.Max
                     ? null
-                    : $"The value must be a whole number of at least {rule.Min}.";
+                    : rule.Max < int.MaxValue
+                        ? $"The value must be a whole number from {rule.Min} to {rule.Max}."
+                        : $"The value must be a whole number of at least {rule.Min}.";
 
             case SettingKind.Decimal:
                 return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)

@@ -242,12 +242,23 @@ public class ChatService(
     }
 
     private async Task<List<KnowledgeSearchResult>> FindSectionsAsync(
-        string message, IReadOnlyList<ChatMessage> history, AiSettings settings, CancellationToken cancellationToken) =>
-        KeepClosest(
-            (await knowledge.SearchAsync(BuildSearchQuery(message, history, settings.FollowUpMaxWords), settings.TopK, cancellationToken))
-                .Where(s => s.Score >= settings.MinScore)
-                .ToList(),
+        string message, IReadOnlyList<ChatMessage> history, AiSettings settings, CancellationToken cancellationToken)
+    {
+        // A section found by more than one query counts with its best score.
+        var best = new Dictionary<int, KnowledgeSearchResult>();
+        foreach (var query in await BuildSearchQueriesAsync(message, history, settings, cancellationToken))
+        {
+            foreach (var section in await knowledge.SearchAsync(query, settings.TopK, cancellationToken))
+            {
+                if (!best.TryGetValue(section.Id, out var seen) || section.Score > seen.Score)
+                    best[section.Id] = section;
+            }
+        }
+
+        return KeepClosest(
+            best.Values.Where(s => s.Score >= settings.MinScore).OrderByDescending(s => s.Score).Take(settings.TopK).ToList(),
             settings.MaxScoreGap);
+    }
 
     // Drops the chunks that score well below the best one: fewer chunks make a shorter prompt, and a shorter prompt is a faster reply.
     private static List<KnowledgeSearchResult> KeepClosest(List<KnowledgeSearchResult> sections, double maxGap)
@@ -259,12 +270,75 @@ public class ChatService(
         return sections.Where(s => best - s.Score <= maxGap).ToList();
     }
 
-    // Messages this short are usually follow-ups ("and for sick leave?") that only make sense with the previous question.
-    private static string BuildSearchQuery(string message, IReadOnlyList<ChatMessage> history, int followUpMaxWords)
+    // A short message can be a follow-up ("and for sick leave?") that only makes sense with the earlier messages, or a new
+    // question ("how to contact it support") that stands alone, and a word count cannot tell them apart. So for a short
+    // message the chat model first writes it as one complete question from the last messages (a new question comes back
+    // unchanged), and that question is searched, with the message itself as a second query. When the rewrite is off or
+    // fails, the message is searched alone and together with the previous question instead. Either way a section found by
+    // more than one query counts with its best score, so a new question is never pulled towards the previous topic.
+    private async Task<List<string>> BuildSearchQueriesAsync(
+        string message, IReadOnlyList<ChatMessage> history, AiSettings settings, CancellationToken cancellationToken)
     {
-        var isFollowUp = message.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= followUpMaxWords;
+        var isShort = message.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= settings.FollowUpMaxWords;
         var previousQuestion = history.LastOrDefault(m => m.Role == "user")?.Content;
+        if (!isShort || previousQuestion is null)
+            return [message];
 
-        return isFollowUp && previousQuestion is not null ? $"{previousQuestion} {message}" : message;
+        if (settings.RewriteFollowUps > 0)
+        {
+            var rewritten = await RewriteAsync(message, history, settings, cancellationToken);
+            if (rewritten is not null)
+                return rewritten.Equals(message, StringComparison.OrdinalIgnoreCase) ? [message] : [rewritten, message];
+        }
+
+        return [message, $"{previousQuestion} {message}"];
+    }
+
+    private const int RewriteContextMessages = 4;
+    private const int RewriteContextChars = 300;
+    private static readonly TimeSpan RewriteTimeout = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Asks the chat model to write the message as one complete question, from the last messages. Null when that did not work (a
+    /// failure, a timeout, or a reply that is not a question), so the caller can search another way.
+    /// </summary>
+    private async Task<string?> RewriteAsync(
+        string message, IReadOnlyList<ChatMessage> history, AiSettings settings, CancellationToken cancellationToken)
+    {
+        // The last few messages, each cut short: an answer can be long, and only its topic matters here.
+        var conversation = string.Join("\n", history.TakeLast(RewriteContextMessages).Select(m =>
+        {
+            var text = m.Content.Length > RewriteContextChars ? m.Content[..RewriteContextChars] + "..." : m.Content;
+            return $"{(m.Role == "user" ? "Employee" : "Assistant")}: {text}";
+        }));
+        var prompt = new List<ChatMessage>
+        {
+            new("system", settings.RewritePrompt),
+            new("user", $"Conversation:\n{conversation}\n\nLast message: {message}")
+        };
+        var options = new ChatModelOptions(
+            settings.ChatModel, 0, settings.TopP, settings.NumCtx, settings.MaxTokens, settings.KeepAlive,
+            settings.ChatBaseUrl, settings.ChatApiKeyName, settings.ChatReasoningEffort);
+
+        var clock = Stopwatch.StartNew();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(RewriteTimeout);
+        try
+        {
+            var reply = await model.ChatAsync(prompt, options, timeout.Token);
+
+            // Only the first line, without quotes: the instruction asks for the question alone.
+            var question = reply.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim().Trim('"', '\'', '`') ?? "";
+            if (question.Length == 0 || question.Length > 300)
+                return null;
+
+            logger.LogInformation("Search query rewritten in {Ms} ms: \"{Message}\" -> \"{Question}\"", clock.ElapsedMilliseconds, message, question);
+            return question;
+        }
+        catch (Exception ex) when (ex is ChatModelException or EmbeddingException || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            logger.LogWarning("The follow-up was not rewritten ({Error}); it is searched as it is", ex.Message);
+            return null;
+        }
     }
 }

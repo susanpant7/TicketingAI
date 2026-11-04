@@ -19,7 +19,7 @@ const tabs = [
 const groupName = (key: string) => key.split('.')[0]
 
 // The AI tab shows one part at a time, so the page stays short. The prompt texts are long, so they have their own part.
-const promptKeys = ['chat.system_prompt', 'chat.format_reminder']
+const promptKeys = ['chat.system_prompt', 'chat.format_reminder', 'retrieval.rewrite_prompt']
 
 const sections = [
   { id: 'chat', label: 'Chat model' },
@@ -43,6 +43,8 @@ const settingOrder = [
   'retrieval.min_score',
   'retrieval.max_score_gap',
   'retrieval.follow_up_max_words',
+  'retrieval.rewrite_follow_ups',
+  'retrieval.rewrite_prompt',
   'chat.base_url',
   'chat.model',
   'chat.api_key_name',

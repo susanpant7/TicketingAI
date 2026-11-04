@@ -32,6 +32,8 @@ public partial class SettingsService(
             MinScore: Number(stored, SettingKeys.RetrievalMinScore),
             MaxScoreGap: Number(stored, SettingKeys.RetrievalMaxScoreGap),
             FollowUpMaxWords: Int(stored, SettingKeys.RetrievalFollowUpMaxWords),
+            RewriteFollowUps: Int(stored, SettingKeys.RetrievalRewrite),
+            RewritePrompt: Text(stored, SettingKeys.RetrievalRewritePrompt),
             ChatBaseUrl: Text(stored, SettingKeys.ChatBaseUrl),
             ChatApiKeyName: Text(stored, SettingKeys.ChatApiKeyName),
             ChatModel: Text(stored, SettingKeys.ChatModel),

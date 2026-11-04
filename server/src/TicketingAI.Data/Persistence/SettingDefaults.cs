@@ -10,6 +10,8 @@ public static class SettingKeys
     public const string RetrievalMinScore = "retrieval.min_score";
     public const string RetrievalMaxScoreGap = "retrieval.max_score_gap";
     public const string RetrievalFollowUpMaxWords = "retrieval.follow_up_max_words";
+    public const string RetrievalRewrite = "retrieval.rewrite_follow_ups";
+    public const string RetrievalRewritePrompt = "retrieval.rewrite_prompt";
     public const string ChatBaseUrl = "chat.base_url";
     public const string ChatApiKeyName = "chat.api_key_name";
 
@@ -72,6 +74,11 @@ public static class SettingDefaults
         """;
 
     // Repeated at the end of the message, where a small model pays the most attention to it.
+    public const string RewritePrompt =
+        "Rewrite the employee's last message as one complete question for searching company documents. Use the conversation only to fill in " +
+        "what the message leaves out, such as the topic. If the message already stands alone, repeat it unchanged. Do not answer it. " +
+        "Reply with the question only.";
+
     public const string ChatFormatReminder =
         "(Begin your reply with the Department line. Use one of {{department_names}} for anything about work, " +
         "and none only for casual chat and requests unrelated to work. " +
@@ -109,8 +116,14 @@ public static class SettingDefaults
             "Chunks scoring more than this below the best match are dropped too. Scores bunch together, so weak matches otherwise still pass the minimum similarity and make the prompt longer, and a longer prompt means a slower reply. 0 turns it off. Typical: 0.03 to 0.1; a higher value keeps more chunks for questions that need several.",
             "0.05"),
         new(SettingKeys.RetrievalFollowUpMaxWords, "Follow-up message length (words)",
-            "Messages with this many words or fewer are searched together with the previous question, so short follow-ups such as 'and casual leave?' still find the right topic. Set 0 to turn this off.",
-            "5"),
+            "Messages with this many words or fewer are treated as possible follow-ups: they are made into a standalone question with the help of the previous messages (see 'Rewrite follow-ups'), or, without that, searched alone and together with the previous question, and each section keeps its better score. So a short follow-up such as 'and casual leave?' still finds the right topic, and a short new question such as 'how to contact it support' is not pulled towards the previous one. Set 0 to turn this off.",
+            "8"),
+        new(SettingKeys.RetrievalRewrite, "Rewrite follow-ups",
+            "1 asks the chat model to turn a short follow-up (see 'Follow-up message length') into one complete question, using the last messages, before the knowledge is searched. So 'and for sick leave?' becomes 'How many sick leave days do I get?'. It adds a short model call to those messages, and falls back to searching the message alone and with the previous question when it fails. 0 turns it off.",
+            "1"),
+        new(SettingKeys.RetrievalRewritePrompt, "Rewrite prompt",
+            "The instruction for that model call. The conversation and the last message are added to it. The reply must be only the question.",
+            RewritePrompt),
         new(SettingKeys.ChatBaseUrl, "Chat API base URL",
             "The address the chat model is called at. This one setting decides how: an address with no path, such as http://localhost:11434 (http://host.docker.internal:11434 from a Docker container), is Ollama's own API for a model on our own machine, which needs no key. An address with a path, such as https://generativelanguage.googleapis.com/v1beta/openai (Gemini), is called in the OpenAI chat format, and its key is the environment variable named in the Chat API key name (never stored here). On the Settings page this address, the Chat model and the key name are not edited as separate rows: Use or Edit on a model in the list above sets them together, after a test. They must belong together.",
             "https://api.groq.com/openai/v1"),
