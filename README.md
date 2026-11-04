@@ -108,9 +108,39 @@ The image is built from the repository root (the Dockerfile copies `server/src/.
 Render gives the service an https address such as `https://ticketing-ai-api.onrender.com`, so no tunnel or proxy is needed. Use that address as `VITE_API_URL` in Vercel (no slash at the end), and put the Vercel address in `Cors__AllowedOrigins`. Every push to the branch deploys again.
 
 Before you choose a plan:
-- **The free plan keeps no data.** Its disk is wiped on every deploy and whenever the service wakes up after sleeping (about 15 minutes without a request), so the users, tickets and knowledge are lost. It also takes about a minute to wake up. It is fine for a demo (**Settings**, **Manage App Data** loads the defaults again), not for real use.
+- **The free plan keeps no data by itself.** Its disk is wiped on every deploy and whenever the service wakes up after sleeping (about 15 minutes without a request), so the users, tickets and knowledge are lost. It also takes about a minute to wake up. **Litestream** (next section) keeps a copy of the database in a free Cloudflare R2 bucket and restores it at every start, so the data survives. Without it, the free plan is only fine for a demo (**Settings**, **Manage App Data** loads the defaults again).
 - **To keep the data, use a paid instance with a disk** mounted at `/app/data`, as in the table. If the service then stops with "unable to open database file", the disk is not writable for the container's non-root user: check the disk's mount path first, because the image runs as a non-root user.
 - **Memory:** the free 512 MB is enough for the API alone, since the models are online.
+
+## Keep the data on Render's free plan (Litestream)
+
+The image can run [Litestream](https://litestream.io) around the app. It reads the changes SQLite writes to its log and copies them to a bucket about once a second. When the container starts again, the database is restored from the bucket before the app starts. The app itself does not change.
+
+1. **Make a bucket** at a provider with S3-compatible storage. **Backblaze B2** has a free 10 GB (check whether it asks for a card), and Cloudflare R2 has a free allowance but asks for a payment method.
+   - **Backblaze B2:** Buckets, **Create a Bucket** (private). Then App Keys, **Add a New Application Key**, limited to that bucket. Note the **keyID**, the **applicationKey** (shown once) and the bucket's **S3 endpoint**, for example `s3.us-west-004.backblazeb2.com`: the region is the middle part (`us-west-004`).
+   - **Cloudflare R2:** R2, **Create bucket**, then **Manage R2 API Tokens**: a token with **Object Read & Write** for that bucket. Note the Access Key ID, the Secret Access Key and the address `https://<account id>.r2.cloudflarestorage.com`.
+2. **Set these environment variables on the server** (Render: Environment):
+
+   | Variable | Value |
+   | --- | --- |
+   | `LITESTREAM_ENABLED` | `true`. Anything else runs the app alone, as before |
+   | `LITESTREAM_BUCKET` | the bucket name |
+   | `LITESTREAM_ENDPOINT` | B2: `https://s3.<region>.backblazeb2.com`. R2: `https://<account id>.r2.cloudflarestorage.com` |
+   | `LITESTREAM_REGION` | B2: the region of the endpoint, for example `us-west-004`. R2: leave it out (default `auto`) |
+   | `LITESTREAM_ACCESS_KEY_ID` | B2: the keyID. R2: the access key id |
+   | `LITESTREAM_SECRET_ACCESS_KEY` | B2: the applicationKey. R2: the secret (a secret: only here, never in git) |
+   | `LITESTREAM_PATH` | optional, the folder in the bucket (default `ticketing-ai`) |
+   | `LITESTREAM_RETENTION` | optional, how long older copies are kept (default `24h`) |
+   | `LITESTREAM_RESTORE` | optional, `false` starts with an empty database and does not restore (the old copy stays in the bucket). Set it back to `true` afterwards |
+
+3. **Deploy.** `start.sh` restores the database when the file is missing and a copy exists, then starts the app with Litestream. The log shows the restore and then the replication.
+
+Things to know:
+- **Run one copy of the app only.** Two copies writing to the same bucket path would corrupt the copy.
+- **A crash can lose the last second or so of writes.** A restore adds a few seconds to a cold start.
+- **A fresh database:** use **Settings**, **Manage App Data**, **Clean up data**. The deletion is copied too, so a restore brings back the empty state. Older copies that still hold the removed data stay in the bucket until the retention time has passed.
+- **Memory:** Litestream is small (tens of MB for a database of this size). Check Render's metrics on the 512 MB plan.
+- **Local runs** do not use it: `dotnet run` and `docker run` without `LITESTREAM_ENABLED=true` behave as before.
 
 ## Host the client on Vercel
 
