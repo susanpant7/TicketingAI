@@ -83,7 +83,8 @@ public class ChatService(
             chatOptions.BaseUrl, chatOptions.Model, prompt.Sum(m => m.Content.Length), reply.Length);
 
         var response = BuildResponse(reply.Trim(), departments);
-        var final = await CreateTicketIfAgreedAsync(response, employeeId, departments);
+        var lastReply = conversation.LastOrDefault(m => m.Role == "assistant")?.Content;
+        var final = await CreateTicketIfAgreedAsync(response, employeeId, departments, offeredJustBefore: OfferEnd.IsMatch(lastReply ?? ""));
 
         // The chat is saved only when it was answered, so a failed message leaves nothing half-saved. The reply is what the
         // employee read (with the ticket sentence, without the header lines).
@@ -100,37 +101,61 @@ public class ChatService(
     public Task<int> ClearAllHistoryAsync() => chatHistory.DeleteAllAsync();
 
     /// <summary>
-    /// When the employee agreed to a ticket, the reply has "Action: create_ticket", "Title:" and "Description:" lines. They are taken
-    /// off the reply, and the server (not the model) creates the ticket and tells the employee who got it.
+    /// The reply can carry an "Action:" line: offer_ticket (the model says a ticket would help), confirm_ticket (the employee agreed to
+    /// the offer in the last reply) or create_ticket (the employee asked for a ticket in their own words), with "Title:" and
+    /// "Description:" lines for the last two. The lines are taken off the reply. The server writes every ticket offer itself, as the same
+    /// last sentence (<see cref="OfferSentence"/>), so it can tell later whether the last reply was an offer. The server (not the model)
+    /// creates the ticket and tells the employee who got it. A confirmation counts only when the last reply was such an offer, so a
+    /// "yes" or "ok" after an unrelated exchange never creates a ticket.
     /// </summary>
     private async Task<ChatResponse> CreateTicketIfAgreedAsync(
-        ChatResponse response, int? employeeId, IReadOnlyList<DepartmentDto> departments)
+        ChatResponse response, int? employeeId, IReadOnlyList<DepartmentDto> departments, bool offeredJustBefore)
     {
-        var (answer, draft, isProblem) = SplitTicketLines(response.Answer);
-        if (draft is null)
+        var lines = SplitTicketLines(response.Answer);
+        var department = departments.FirstOrDefault(d => d.Name == response.Department);
+        if (lines.Draft is null)
         {
-            // The model only labels the message as a problem report. The server adds the ticket offer, so the wording is fixed
-            // and the model cannot add it by habit to an ordinary question.
-            var offerTo = departments.FirstOrDefault(d => d.Name == response.Department)?.Name;
-            return isProblem && employeeId is not null && offerTo is not null
-                ? response with { Answer = $"{answer}\n\nIf this does not solve the issue, I can create a ticket for the {offerTo} department. Let me know." }
-                : response with { Answer = answer };
+            // The model only labels the message: Problem: yes (an answer to a problem report) or Action: offer_ticket (the problem is
+            // not solved). The server adds the offer, so the wording is fixed and the model cannot add it by habit to an ordinary question.
+            if (employeeId is not null && department is not null)
+            {
+                if (lines.IsProblem)
+                    return response with { Answer = $"{lines.Answer}\n\nIf this does not solve the issue, {OfferSentence(department.Name)}" };
+                if (lines.Action == OfferTicket)
+                    return response with { Answer = lines.Answer.Length == 0 ? OfferSentence(department.Name) : $"{lines.Answer}\n\n{OfferSentence(department.Name)}" };
+            }
+            return response with { Answer = lines.Answer };
         }
 
         if (employeeId is null)
             return response with { Answer = "Tickets can only be created for employees. Please log in with an employee account." };
 
-        var department = departments.FirstOrDefault(d => d.Name == response.Department);
         if (department is null)
             return response with { Answer = "I could not tell which department the ticket is for. Please tell me which one it should go to." };
 
-        var ticket = await ticketService.CreateAsync(employeeId.Value, department.Id, draft.Title, draft.Description);
+        if (lines.Action == ConfirmTicket && !offeredJustBefore)
+        {
+            // A yes or ok, but the last reply was not an offer: do not create a ticket by mistake. Offer it, so the next yes counts.
+            return response with { Answer = $"I did not offer a ticket just now. {OfferSentence(department.Name)}" };
+        }
+
+        var ticket = await ticketService.CreateAsync(employeeId.Value, department.Id, lines.Draft.Title, lines.Draft.Description);
         if (ticket is null)
             return response with { Answer = $"I could not create the ticket, because the {department.Name} department has no members yet." };
 
         var created = $"Ticket #{ticket.Id} was created and assigned to {ticket.AssignedTo} ({ticket.Department}).";
-        return response with { Answer = answer.Length == 0 ? created : $"{answer}\n\n{created}" };
+        return response with { Answer = lines.Answer.Length == 0 ? created : $"{lines.Answer}\n\n{created}" };
     }
+
+    private const string OfferTicket = "offer_ticket";
+    private const string ConfirmTicket = "confirm_ticket";
+    private const string CreateTicket = "create_ticket";
+
+    /// <summary>The last sentence of every reply that offers a ticket.</summary>
+    private static string OfferSentence(string departmentName) => $"I can create a ticket for the {departmentName} department. Let me know.";
+
+    // A reply is an offer when it ends with the sentence above.
+    private static readonly Regex OfferEnd = new(@"I can create a ticket for the .+ department\. Let me know\.\s*$", RegexOptions.Singleline);
 
     private static readonly string[] HeaderKeys = ["Department:", "Problem:", "Action:", "Title:", "Description:"];
 
@@ -174,7 +199,9 @@ public class ChatService(
 
     private record TicketDraft(string Title, string Description);
 
-    private static (string Answer, TicketDraft? Draft, bool IsProblem) SplitTicketLines(string answer)
+    private record TicketLines(string Answer, string? Action, TicketDraft? Draft, bool IsProblem);
+
+    private static TicketLines SplitTicketLines(string answer)
     {
         string? action = null, title = null, description = null, problem = null;
         var rest = answer;
@@ -184,7 +211,7 @@ public class ChatService(
             var value = match.Groups["value"].Value.Trim();
             switch (match.Groups["key"].Value.ToLowerInvariant())
             {
-                case "action": action ??= value; break;
+                case "action": action ??= value.ToLowerInvariant(); break;
                 case "title": title ??= value; break;
                 case "problem": problem ??= value; break;
                 default: description ??= value; break;
@@ -205,12 +232,12 @@ public class ChatService(
         }
 
         if (action is null && title is null && description is null && problem is null)
-            return (answer, null, false);
+            return new TicketLines(answer, null, null, false);
 
-        var draft = action?.Equals("create_ticket", StringComparison.OrdinalIgnoreCase) == true && !string.IsNullOrWhiteSpace(title)
+        var draft = action is CreateTicket or ConfirmTicket && !string.IsNullOrWhiteSpace(title)
             ? new TicketDraft(Clip(title, MaxTitleLength), Clip(string.IsNullOrWhiteSpace(description) ? title : description, MaxDescriptionLength))
             : null;
-        return (rest.Trim(), draft, problem?.Equals("yes", StringComparison.OrdinalIgnoreCase) == true);
+        return new TicketLines(rest.Trim(), action, draft, problem?.Equals("yes", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     private static string Clip(string text, int max) => text.Length <= max ? text : text[..max];

@@ -43,7 +43,7 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.KnowledgeChunk", b =>
@@ -95,7 +95,7 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.HasIndex("SourceFile", "Heading")
                         .IsUnique();
 
-                    b.ToTable("KnowledgeChunks");
+                    b.ToTable("KnowledgeChunks", (string)null);
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.SavedAiModel", b =>
@@ -149,7 +149,7 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.HasIndex("Kind", "Name")
                         .IsUnique();
 
-                    b.ToTable("SavedAiModels");
+                    b.ToTable("SavedAiModels", (string)null);
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.Setting", b =>
@@ -174,7 +174,7 @@ namespace TicketingAI.Data.Persistence.Migrations
 
                     b.HasKey("Key");
 
-                    b.ToTable("Settings");
+                    b.ToTable("Settings", (string)null);
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.StoredChatMessage", b =>
@@ -248,7 +248,7 @@ namespace TicketingAI.Data.Persistence.Migrations
 
                     b.HasIndex("ReportedById");
 
-                    b.ToTable("Tickets");
+                    b.ToTable("Tickets", (string)null);
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.User", b =>
@@ -289,7 +289,7 @@ namespace TicketingAI.Data.Persistence.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("TicketingAI.Data.Entities.StoredChatMessage", b =>

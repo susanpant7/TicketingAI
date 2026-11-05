@@ -467,7 +467,7 @@ Nothing is created yet. The employee has a choice: if the answer solved the prob
 
 ## 9. The AI creates a ticket
 
-The model never creates a ticket. It writes lines, and the **server** acts on them. This keeps a wrong output from creating anything on its own: a ticket needs the exact `Action: create_ticket` line, a title, a known department and a logged-in employee.
+The model never creates a ticket. It writes lines, and the **server** acts on them. This keeps a wrong output from creating anything on its own: a ticket needs an `Action` line (`confirm_ticket` or `create_ticket`), a title, a known department and a logged-in employee, and a `confirm_ticket` also needs the last reply to have been an offer of a ticket.
 
 ### 9.1 The conversation
 
@@ -477,27 +477,38 @@ The model never creates a ticket. It writes lines, and the **server** acts on th
 
 ```
 Department: IT
+Action: offer_ticket
 
-Resetting your password did not work. Do you want me to create a ticket for the IT department?
+It seems your password reset is not working.
 ```
+
+The model only says what the problem is. The `Action: offer_ticket` line tells the server to add the offer, so the employee sees:
+
+```
+It seems your password reset is not working.
+
+I can create a ticket for the IT department. Let me know.
+```
+
+Every offer ends with this same sentence, also the one the server adds to a `Problem: yes` reply. That is how the server knows, on the next message, that the last reply was an offer: it checks the last reply of the conversation (the one the page sends) for that ending. Nothing extra is stored for this.
 
 **3. "yes"** (kind 6). The model gets only its previous message, the offer, which names the problem and the department. It sees that it offered a ticket, and replies:
 
 ```
 Department: IT
-Action: create_ticket
+Action: confirm_ticket
 Title: Cannot reset password
 Description: The employee cannot reset their password with the self-service page, and the suggested steps did not work.
 
 I'm creating the ticket now.
 ```
 
-The ticket offer in step 2 names the problem and the department, so the title and the description of the ticket can be taken from that one message when the employee says "yes". That is why `chat.history_messages` can be set as low as 1 for a smaller prompt and a faster reply. With the default of 3 the model sees a little more of the conversation as well.
+The `Action` is `confirm_ticket` when the employee agrees to the offer in the last reply, and `create_ticket` when the employee asks for a ticket in their own words ("please create a ticket for my laptop"). The ticket offer in step 2 names the problem and the department, so the title and the description of the ticket can be taken from that one message when the employee says "yes". That is why `chat.history_messages` can be set as low as 1 for a smaller prompt and a faster reply. With the default of 3 the model sees a little more of the conversation as well.
 
 ### 9.2 What the server does
 
 1. Removes the `Department:` line, then the three ticket lines.
-2. Creates a ticket only if `Action` is `create_ticket` **and** the title is not empty. A missing description falls back to the title; the title is cut at 200 characters and the description at 4000.
+2. Creates a ticket only if `Action` is `create_ticket` or `confirm_ticket` **and** the title is not empty. A `confirm_ticket` counts only when the last reply of the conversation ended with the offer sentence. A "yes" or "ok" after an unrelated exchange, for example an offer, then a question about lunch, then "okay", creates nothing: the server answers that it did not offer a ticket, and offers one, so the next "yes" counts. A missing description falls back to the title; the title is cut at 200 characters and the description at 4000.
 3. Replies with a plain message, and creates nothing, when: the caller is the admin (the admin is not an employee), the department line is not a known department, or the department has no members.
 4. Picks the assignee **round-robin** within the department: members in order of id, excluding anyone with the admin's username and the reporter (unless they are the only member), continuing after the assignee of the department's latest ticket and wrapping around at the end. A static lock covers choosing the person and saving the ticket.
 5. Saves the ticket (`Status = New`, reporter from the token) and puts the facts after the model's sentence:
@@ -575,7 +586,7 @@ Nothing is created yet. The model only offered.
 
 Inside the server, in this order:
 
-1. The model sees its own offer and writes the ticket lines (`Action: create_ticket`, `Title: ...`, `Description: ...`) in its raw reply (section 9.1, step 3).
+1. The model sees its own offer and writes the ticket lines (`Action: confirm_ticket`, `Title: ...`, `Description: ...`) in its raw reply (section 9.1, step 3).
 2. The server checks the lines (section 9.2), picks the person in the IT department in turn, and saves the row in the `Tickets` table:
 
    | Column                 | Value                                        |
@@ -775,7 +786,7 @@ Every message is handled by the same prompt. The model decides which kind it is,
 | 2   | A work question the sections do not answer | Say it has no such information, and give the contact of the right department. Never guess, never say the company does or does not offer something                                                                                                                                     |
 | 3   | Casual chat (greeting, thanks, small talk) | A short friendly reply in different words each time. `Department: none`                                                                                                                                                                                                               |
 | 4   | An unrelated task (poems, trivia, code)    | Decline politely. `Department: none`                                                                                                                                                                                                                                                  |
-| 5   | The problem is not solved                  | Offer to create a ticket and ask for confirmation. Create nothing                                                                                                                                                                                                                     |
+| 5   | The problem is not solved                  | Say what the problem is, with `Action: offer_ticket`: the server adds the offer. Create nothing                                                                                                                                                                                                                     |
 | 6   | The employee agreed to the offered ticket  | Reply with the ticket lines (section 9)                                                                                                                                                                                                                                              |
 
 ## 12. Turning the reply into a response

@@ -60,12 +60,13 @@ public static class SettingDefaults
         4. A request unrelated to work (trivia, jokes, poems, stories, essays, code, homework). NEVER do it. Say in one sentence that you only help with work questions for: {{department_names}}.
            Department: none.
 
-        5. The employee says the problem is not solved, your answer did not help, or they need a person. Create nothing yet and do not repeat the answer. In one sentence name the problem and offer to create a ticket for the department that handles it, and ask if they want that.
+        5. The employee says the problem is not solved, your answer did not help, or they need a person. Create nothing yet and do not repeat the answer. In one short sentence say what the problem is. Do not offer or ask anything yourself: the app adds the offer of a ticket.
            Department: that department.
+           Action: offer_ticket
 
-        6. The employee agrees (yes, ok) to the ticket you offered in your previous message. Without that offer a plain yes or ok is kind 3; declining is kind 3 too. Write these lines instead of the single Department line:
-           Department: the department you offered.
-           Action: create_ticket
+        6. The employee agrees (yes, ok) to the ticket you offered in your very last message, or asks you in their own words to create a ticket. If your last message did not offer a ticket, a plain yes or ok is kind 3, not this: only a reply to an offer you just made counts. Declining is kind 3 too. Write these lines instead of the single Department line:
+           Department: the department you offered, or the one that handles the problem.
+           Action: confirm_ticket when they agree to your offer, or create_ticket when they ask for a ticket themselves.
            Title: one short line naming the problem.
            Description: one line on the problem and what was tried, taken from your previous message.
            Then a blank line and one short sentence that you are creating the ticket, without saying who gets it.
@@ -83,7 +84,7 @@ public static class SettingDefaults
         "(Begin your reply with the Department line. Use one of {{department_names}} for anything about work, " +
         "and none only for casual chat and requests unrelated to work. " +
         "For an answer from the sections, add the Problem line (yes or no) under the Department line. " +
-        "Add the Action, Title and Description lines only if the employee just agreed to a ticket you offered. " +
+        "Add an Action line only when you offer a ticket (offer_ticket), or when the employee just agreed to the ticket you offered in your last message (confirm_ticket) or asked for a ticket (create_ticket); the last two also need the Title and Description lines. " +
         "Keep the reply concise and short.)";
 
     /// <summary>
