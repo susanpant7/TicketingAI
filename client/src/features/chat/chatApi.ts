@@ -1,4 +1,4 @@
-import { API_URL, ApiError } from '@/shared/api/apiClient'
+import { apiFetch, API_URL, ApiError } from '@/shared/api/apiClient'
 import { getToken } from '@/shared/api/token'
 
 export interface ChatMessage {
@@ -13,7 +13,24 @@ export interface ChatReply {
   department: string | null
 }
 
-// The server keeps no conversation state yet, so the recent messages are sent along with each question.
+/** The person's saved chat (the server saves every answered message), oldest first. */
+export interface SavedChatMessage {
+  id: number
+  role: 'user' | 'assistant'
+  content: string
+  department: string | null
+  createdAt: string
+}
+
+export const getChatHistory = () => apiFetch<SavedChatMessage[]>('/chat/history')
+
+/** Starts a new chat: deletes the person's saved chat. */
+export const clearChatHistory = () => apiFetch<void>('/chat/history', { method: 'DELETE' })
+
+/** Deletes every saved chat (admin only). */
+export const clearAllChats = () => apiFetch<{ deleted: number }>('/chat/all', { method: 'DELETE' })
+
+// The page sends the recent messages along with each question, so the model has the conversation.
 // The server uses the last ones, as many as the "chat.history_messages" setting says.
 const HISTORY_LENGTH = 20
 

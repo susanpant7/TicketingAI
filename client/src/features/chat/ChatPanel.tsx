@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import ChatInput from '@/features/chat/ChatInput'
-import { streamMessage, type ChatMessage } from '@/features/chat/chatApi'
+import { clearChatHistory, getChatHistory, streamMessage, type ChatMessage } from '@/features/chat/chatApi'
 import MessageBubble, { TypingIndicator } from '@/features/chat/MessageBubble'
 import { errorMessage } from '@/shared/api/errorMessage'
 import Alert from '@/shared/components/Alert'
@@ -31,6 +31,32 @@ export default function ChatPanel({ open, onMinimize, onReply }: ChatPanelProps)
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, sending, draft, open])
+
+  // The saved chat is shown again after a reload (a message typed meanwhile is kept).
+  useEffect(() => {
+    let ignore = false
+    getChatHistory()
+      .then((saved) => {
+        if (ignore || saved.length === 0) return
+        setMessages((current) =>
+          current.length > 0 ? current : saved.map((m) => ({ id: `saved-${m.id}`, role: m.role, content: m.content })),
+        )
+      })
+      .catch(() => undefined)
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  async function handleNewChat() {
+    setError('')
+    try {
+      await clearChatHistory()
+      setMessages([])
+    } catch (err) {
+      setError(errorMessage(err, 'Could not start a new chat. Please try again.'))
+    }
+  }
 
   // Logging out (or leaving the app) stops a request that is still running, which also stops the model.
   useEffect(() => () => abortRef.current?.abort(), [])
@@ -70,6 +96,15 @@ export default function ChatPanel({ open, onMinimize, onReply }: ChatPanelProps)
           <p className="text-sm font-semibold">Ticketing AI assistant</p>
           <p className="text-xs text-indigo-100">Ask a question about work</p>
         </div>
+        {messages.length > 0 && !sending && (
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-indigo-100 hover:bg-white/15 hover:text-white"
+          >
+            New chat
+          </button>
+        )}
         <button
           type="button"
           onClick={onMinimize}

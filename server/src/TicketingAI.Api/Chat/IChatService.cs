@@ -7,4 +7,13 @@ public interface IChatService
     /// While the reply is written, onDraft (when given) is called with the part the employee may see so far.</summary>
     Task<ChatResponse> AskAsync(
         ChatRequest request, int? employeeId, CancellationToken cancellationToken, Func<string, Task>? onDraft = null);
+
+    /// <summary>The last messages of the person's saved chat (employeeId is null for the admin), oldest first.</summary>
+    Task<List<ChatHistoryItem>> GetHistoryAsync(int? employeeId);
+
+    /// <summary>Deletes the person's saved chat.</summary>
+    Task ClearHistoryAsync(int? employeeId);
+
+    /// <summary>Deletes every saved chat. Returns how many messages were deleted.</summary>
+    Task<int> ClearAllHistoryAsync();
 }

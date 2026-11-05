@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadDefaultDepartments } from '@/features/departments/departmentsApi'
 import { loadDefaultKnowledge } from '@/features/knowledge/knowledgeApi'
+import { clearAllChats } from '@/features/chat/chatApi'
 import { cleanUpData, restoreDefaults } from '@/features/settings/settingsApi'
 import { loadDefaultUsers } from '@/features/users/usersApi'
 import { errorMessage } from '@/shared/api/errorMessage'
@@ -105,7 +106,7 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [steps, setSteps] = useState<Step[]>([])
-  const [confirming, setConfirming] = useState<'all' | 'cleanup' | Module | null>(null)
+  const [confirming, setConfirming] = useState<'all' | 'cleanup' | 'chats' | Module | null>(null)
 
   // Cleaning up or loading may have changed the knowledge.
   useEffect(() => {
@@ -130,6 +131,21 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
       setNotice(await module.run(passwordFor(module)))
     } catch (err) {
       setError(failureText(err, `Could not load the ${module.title.toLowerCase()}. Please try again.`))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function clearChats() {
+    start()
+    setSteps([])
+    try {
+      const { deleted } = await clearAllChats()
+      setNotice(
+        deleted === 0 ? 'There were no saved chats.' : `Deleted ${deleted} saved chat ${deleted === 1 ? 'message' : 'messages'}.`,
+      )
+    } catch (err) {
+      setError(errorMessage(err, 'Could not clear the chats. Please try again.'))
     } finally {
       setBusy(false)
     }
@@ -244,6 +260,21 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
         </div>
       </section>
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 max-w-2xl">
+            <h2 className="font-semibold text-slate-900">Chats</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Every answered chat message is saved, so a conversation is still there after a reload. This deletes all the saved
+              chats of every user. Tickets, users and knowledge are not changed.
+            </p>
+          </div>
+          <Button variant="secondary" disabled={busy} onClick={() => setConfirming('chats')}>
+            Clear chats
+          </Button>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 max-w-2xl">
@@ -261,7 +292,7 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
       {confirming === 'all' && (
         <ConfirmDialog
           title="Load all default data"
-          message="This first deletes everything (tickets, users, knowledge, departments and settings), then loads the defaults (without the knowledge files and without an embedding model). Your own changes cannot be recovered."
+          message="This first deletes everything (tickets, chats, users, knowledge, departments and settings), then loads the defaults (without the knowledge files and without an embedding model). Your own changes cannot be recovered."
           confirmLabel="Load all default data"
           busy={busy}
           onConfirm={loadAll}
@@ -269,10 +300,21 @@ export default function ManageAppData({ onChanged }: { onChanged: () => void }) 
         />
       )}
 
+      {confirming === 'chats' && (
+        <ConfirmDialog
+          title="Clear all chats"
+          message="Delete the saved chats of every user? The users start with an empty chat. This cannot be undone."
+          confirmLabel="Clear chats"
+          busy={busy}
+          onConfirm={clearChats}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+
       {confirming === 'cleanup' && (
         <ConfirmDialog
           title="Clean up all data"
-          message="Delete everything: tickets, users, knowledge, departments and settings? This cannot be undone."
+          message="Delete everything: tickets, chats, users, knowledge, departments and settings? This cannot be undone."
           confirmLabel="Clean up data"
           busy={busy}
           onConfirm={cleanUp}

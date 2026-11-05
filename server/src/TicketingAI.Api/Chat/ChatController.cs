@@ -24,6 +24,23 @@ public class ChatController(IChatService chatService) : ControllerBase
         }
     }
 
+    /// <summary>The person's saved chat, oldest message first, so the conversation is there again after a reload.</summary>
+    [HttpGet("history")]
+    public async Task<List<ChatHistoryItem>> GetHistory() => await chatService.GetHistoryAsync(User.GetEmployeeId());
+
+    /// <summary>Starts a new chat: deletes the person's saved chat.</summary>
+    [HttpDelete("history")]
+    public async Task<IActionResult> ClearHistory()
+    {
+        await chatService.ClearHistoryAsync(User.GetEmployeeId());
+        return NoContent();
+    }
+
+    /// <summary>Deletes every saved chat (Settings, Manage App Data).</summary>
+    [HttpDelete("all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<object>> ClearAll() => new { deleted = await chatService.ClearAllHistoryAsync() };
+
     /// <summary>
     /// The same answer, sent while it is written: one JSON object per line. {"draft": "..."} lines carry the reply so far,
     /// and the last line is {"reply": {...}} with the final answer, or {"error": "..."}.

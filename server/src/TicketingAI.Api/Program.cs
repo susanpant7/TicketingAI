@@ -79,6 +79,7 @@ builder.Services.AddHttpClient<OllamaChatClient>(client => client.Timeout = Time
 // An external chat service (Gemini, Cloudflare, ...): its address comes from a setting, so the client has no base address.
 builder.Services.AddHttpClient<ApiChatClient>(client => client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddScoped<IChatModelClient, ChatModelClient>();
+builder.Services.AddScoped<IChatHistoryRepository, ChatHistoryRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();
 builder.Services.AddScoped<IKnowledgeService, KnowledgeService>();

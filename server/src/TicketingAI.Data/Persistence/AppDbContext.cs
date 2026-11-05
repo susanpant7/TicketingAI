@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<SavedAiModel> SavedAiModels => Set<SavedAiModel>();
+    public DbSet<StoredChatMessage> ChatMessages => Set<StoredChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

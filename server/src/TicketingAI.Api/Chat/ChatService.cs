@@ -13,6 +13,7 @@ public class ChatService(
     ISettingsService settingsService,
     IDepartmentRepository departmentRepository,
     ITicketService ticketService,
+    IChatHistoryRepository chatHistory,
     ILogger<ChatService> logger) : IChatService
 {
     // The model is asked to start every reply with "Department: <a department name or none>". Small models sometimes put the line at the end instead, so both ends are accepted.
@@ -82,8 +83,21 @@ public class ChatService(
             chatOptions.BaseUrl, chatOptions.Model, prompt.Sum(m => m.Content.Length), reply.Length);
 
         var response = BuildResponse(reply.Trim(), departments);
-        return await CreateTicketIfAgreedAsync(response, employeeId, departments);
+        var final = await CreateTicketIfAgreedAsync(response, employeeId, departments);
+
+        // The chat is saved only when it was answered, so a failed message leaves nothing half-saved. The reply is what the
+        // employee read (with the ticket sentence, without the header lines).
+        await chatHistory.AddAsync(employeeId, message, final);
+        return final;
     }
+
+    private const int HistoryCount = 100;
+
+    public Task<List<ChatHistoryItem>> GetHistoryAsync(int? employeeId) => chatHistory.GetRecentAsync(employeeId, HistoryCount);
+
+    public async Task ClearHistoryAsync(int? employeeId) => await chatHistory.DeleteForUserAsync(employeeId);
+
+    public Task<int> ClearAllHistoryAsync() => chatHistory.DeleteAllAsync();
 
     /// <summary>
     /// When the employee agreed to a ticket, the reply has "Action: create_ticket", "Title:" and "Description:" lines. They are taken

@@ -90,6 +90,8 @@ _The Write knowledge dialog. A title, a department and one or more sections; eac
 
 An employee can log in to the application, and then ask any question or ask for help with an issue. The AI replies based on the knowledge data that the admin loaded (the company's own documents), so the answers follow what the company really says. A round chat button at the bottom right of every page opens the chat. To log in, we use the username and the password the admin gave us.
 
+**The chat is saved.** Every answered message is saved, so after a reload the conversation is still in the chat window. **New chat** (in the window's top bar) deletes our own saved chat and starts again. The admin can delete everyone's chats on Settings, Manage App Data, **Clear chats**.
+
 **Ask a question.** We click the chat button and type a question, for example "how many leave days do I get?". The assistant answers from the company knowledge. Casual messages like "hello" get a short friendly reply, and requests that are not about work are politely declined.
 
 ![The chat window while the assistant is answering](/guide-images/employee-chat-waiting.png)
@@ -126,7 +128,7 @@ The admin has these pages. The admin does not report or receive tickets, and can
 | **Knowledge**   | Upload knowledge files, remove a department's knowledge, and see all stored sections in tabs by department                                     |
 | **Departments** | Add, edit and delete departments. A department that still has users cannot be deleted                                                          |
 | **Users**       | Add, edit and delete users, and change their department                                                                                        |
-| **Settings**    | Change the models, the prompt, and how the assistant searches. **Load default AI assistant data** (Manage App Data tab) puts the settings back |
+| **Settings**    | Change the models, the prompt, and how the assistant searches. **Load default AI assistant data** (Manage App Data tab) puts the settings back, and **Clear chats** deletes the saved chats of every user |
 | **Dev Docs**    | The installation guide and the AI and RAG documentation (open to everyone, without login)                                                      |
 
 **Uploading knowledge.** Each file starts with a title and a department, then one or more sections:

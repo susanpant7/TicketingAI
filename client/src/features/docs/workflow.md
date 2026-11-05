@@ -260,6 +260,8 @@ POST /api/auth/login
 
 The page keeps the token. Every request after this sends it as `Authorization: Bearer <token>`, and the server reads the employee id from it. A round chat button appears at the bottom right of every page. The admin signs in the same way (from configuration), but is not an employee, so the admin cannot report or receive tickets.
 
+**The chat is saved.** Every answered message is saved in the `ChatMessages` table, one row for what the employee wrote and one for the reply (with its department): the `UserId` of the employee (empty for the admin), the `Role` (`user` or `assistant`), the `Content` and the time. A message that fails (the model is not available) saves nothing. When the chat window opens after a reload, the page asks `GET /api/chat/history` for the last 100 messages of the person and shows them again, so the conversation goes on. The page still sends the recent messages as `history` with each question, as the server does not read the saved chat to build the prompt. The **New chat** button (`DELETE /api/chat/history`) deletes the person's own saved chat, and the admin's **Clear chats** button on Settings, Manage App Data (`DELETE /api/chat/all`) deletes everyone's. **Clean up data** deletes the chats too, and a deleted user's chat goes with the user.
+
 **The first message.** The employee opens the chat and types `hello`. The page sends the message, and the earlier messages of the conversation (none yet), because the server keeps no conversation of its own:
 
 ```http
@@ -636,7 +638,7 @@ Authorization: Bearer <employee token>
 { "message": "i am not able to reset my password", "history": [] }
 ```
 
-`history` is up to 40 earlier `{ "role": "user" | "assistant", "content": "..." }` items. The server keeps no conversation; the page sends it each time.
+`history` is up to 40 earlier `{ "role": "user" | "assistant", "content": "..." }` items. The server does not build the conversation from the saved chat; the page sends it each time.
 
 ### 10.1 Build the search query
 

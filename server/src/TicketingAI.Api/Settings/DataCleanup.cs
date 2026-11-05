@@ -14,6 +14,7 @@ public class DataCleanup(AppDbContext db)
         await using var transaction = await db.Database.BeginTransactionAsync();
 
         // Rows that point at others go first, so no foreign key is left dangling.
+        await db.ChatMessages.ExecuteDeleteAsync();
         await db.Tickets.ExecuteDeleteAsync();
         await db.Users.ExecuteDeleteAsync();
         await db.KnowledgeChunks.ExecuteDeleteAsync();
